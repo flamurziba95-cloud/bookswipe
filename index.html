@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>BookSwipe V1.1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0e0e10;--surface:#1a1a1e;--surface2:#242428;--border:rgba(255,255,255,0.08);
+  --text:#f0ede8;--muted:#8a8680;--accent:#e8c87a;--yes:#4caf87;--no:#e05c5c;--r:16px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(var(--safe-top) + 0.25rem) 1rem calc(var(--safe-bot) + 1rem);overflow-x:hidden;overflow-y:auto;}
+.screen{display:none;width:100%;max-width:440px;animation:fadeUp 0.35s ease;flex-direction:column;align-items:center;padding-bottom:2rem;}
+.screen.active{display:flex;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.logo{font-family:'Playfair Display',serif;font-size:2.4rem;letter-spacing:-1px;color:var(--accent);margin-bottom:0.15rem;}
+.tagline{color:var(--muted);font-size:0.78rem;margin-bottom:2rem;letter-spacing:0.05em;text-transform:uppercase;}
+.h2{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:0.3rem;text-align:center;}
+.sub{font-size:0.82rem;color:var(--muted);text-align:center;margin-bottom:1.2rem;line-height:1.6;}
+.card-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;width:100%;margin-bottom:0.9rem;}
+label{font-size:0.75rem;color:var(--muted);display:block;margin-bottom:0.35rem;letter-spacing:0.04em;text-transform:uppercase;}
+input[type=text],input[type=number]{width:100%;padding:0.8rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;margin-bottom:0.75rem;outline:none;transition:border 0.2s;-webkit-appearance:none;appearance:none;}
+input:focus{border-color:var(--accent);}
+input::placeholder{color:var(--muted);}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:0.9rem 1.6rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:500;cursor:pointer;transition:all 0.18s;border:none;width:100%;margin-bottom:0.6rem;min-height:52px;touch-action:manipulation;}
+.btn-primary{background:var(--accent);color:#1a1400;}
+.btn-primary:active{background:#d4b060;transform:scale(0.97);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:active{transform:scale(0.97);}
+.btn-danger{background:rgba(224,92,92,0.15);color:var(--no);border:1px solid rgba(224,92,92,0.3);}
+.btn-danger:active{transform:scale(0.97);}
+.divider{color:var(--muted);font-size:0.78rem;margin:0.3rem 0 0.8rem;text-align:center;}
+.round-badge{background:var(--surface2);border:1px solid var(--border);padding:0.35rem 1rem;border-radius:50px;font-size:0.75rem;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1rem;}
+.room-code{font-family:'Playfair Display',serif;font-size:2.8rem;letter-spacing:0.35em;color:var(--accent);text-align:center;padding:1rem;background:var(--surface);border-radius:12px;border:1px solid var(--border);margin:0.75rem 0;width:100%;cursor:pointer;}
+.pchip{display:inline-flex;align-items:center;gap:5px;padding:0.35rem 0.8rem;background:var(--surface2);border-radius:50px;font-size:0.82rem;margin:0.2rem;border:1px solid var(--border);}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--yes);flex-shrink:0;}
+.share-hint{font-size:0.76rem;color:var(--muted);text-align:center;padding:0.7rem;background:var(--surface);border-radius:10px;border:1px solid var(--border);margin-bottom:0.9rem;line-height:1.5;}
+.share-hint span{color:var(--accent);font-weight:500;}
+.copy-hint{font-size:0.7rem;color:var(--muted);text-align:center;margin-top:0.3rem;}
+.timer-wrap{position:relative;width:52px;height:52px;flex-shrink:0;}
+.timer-wrap svg{transform:rotate(-90deg);}
+.t-track{fill:none;stroke:var(--surface2);stroke-width:3;}
+.t-fill{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke 0.3s;}
+.t-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:500;color:var(--accent);}
+.vote-header{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:0.8rem;}
+.genre-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.55rem;width:100%;margin-bottom:1rem;}
+.genre-tile{background:var(--surface);border:1.5px solid var(--border);border-radius:13px;padding:0.8rem 0.65rem;display:flex;flex-direction:column;align-items:center;gap:0.32rem;cursor:pointer;transition:all 0.18s;touch-action:manipulation;min-height:80px;justify-content:center;-webkit-user-select:none;user-select:none;}
+.genre-tile:hover{border-color:var(--accent);background:rgba(232,200,122,0.06);}
+.genre-tile:hover .g-name{color:var(--accent);}
+.genre-tile.sel{border-color:var(--accent);background:rgba(232,200,122,0.08);}
+.genre-tile:active{transform:scale(0.95);}
+.g-emoji{font-size:1.55rem;line-height:1;}
+.g-name{font-size:0.72rem;text-align:center;color:var(--muted);line-height:1.3;}
+.genre-tile.sel .g-name{color:var(--accent);}
+.g-check{font-size:0.65rem;color:var(--accent);height:12px;}
+.length-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;width:100%;margin-bottom:1rem;}
+.length-tile{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:0.9rem 0.6rem;display:flex;flex-direction:column;align-items:center;gap:0.3rem;cursor:pointer;transition:all 0.18s;touch-action:manipulation;-webkit-user-select:none;user-select:none;}
+.length-tile.sel{border-color:var(--accent);background:rgba(232,200,122,0.08);}
+.length-tile:active{transform:scale(0.95);}
+.l-num{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--accent);}
+.l-label{font-size:0.72rem;color:var(--muted);text-align:center;}
+.length-tile.sel .l-label{color:var(--accent);}
+/* Swipe card */
+.swipe-header{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:0.4rem;}
+.prog-wrap{width:100%;height:3px;background:var(--surface2);border-radius:2px;margin-bottom:0.4rem;overflow:hidden;}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease;}
+.prog-txt{font-size:0.74rem;color:var(--muted);text-align:center;margin-bottom:0.5rem;}
+.swipe-area{position:relative;width:100%;height:480px;margin:0.4rem 0;}
+.book-card{position:absolute;width:100%;height:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;will-change:transform;display:flex;flex-direction:column;}
+.book-cover{height:42%;display:flex;align-items:center;justify-content:center;font-size:4.5rem;flex-shrink:0;position:relative;overflow:hidden;}
+.book-cover img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+.book-cover .cover-gradient{width:100%;height:100%;position:absolute;inset:0;}
+.book-cover .cover-label{position:absolute;bottom:0;left:0;right:0;padding:0.4rem 0.6rem;background:linear-gradient(0deg,rgba(0,0,0,0.7),transparent);font-size:0.6rem;color:rgba(255,255,255,0.6);text-align:center;letter-spacing:0.05em;text-transform:uppercase;}
+.wildcard-badge{position:absolute;top:0.6rem;right:0.6rem;background:rgba(232,200,122,0.2);border:1px solid rgba(232,200,122,0.4);border-radius:20px;padding:0.15rem 0.55rem;font-size:0.65rem;color:var(--accent);letter-spacing:0.05em;}
+.book-info{padding:0.8rem 1rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;}
+.g-tag{font-size:0.67rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:0.22rem;}
+.rating-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.25);border-radius:20px;padding:0.16rem 0.55rem;font-size:0.68rem;color:var(--accent);margin-bottom:0.35rem;}
+.book-title{font-family:'Playfair Display',serif;font-size:1.05rem;line-height:1.25;margin-bottom:0.12rem;}
+.book-author{font-size:0.76rem;color:var(--muted);margin-bottom:0.4rem;}
+.book-desc{font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:0.4rem;}
+.book-quote{font-size:0.72rem;color:var(--muted);line-height:1.5;font-style:italic;border-left:2px solid rgba(232,200,122,0.3);padding-left:0.6rem;opacity:0.9;}
+.slbl{position:absolute;top:1rem;padding:0.32rem 0.85rem;border-radius:8px;font-weight:700;font-size:0.95rem;letter-spacing:0.08em;text-transform:uppercase;opacity:0;pointer-events:none;border:2.5px solid;z-index:10;}
+.lbl-y{left:1rem;color:var(--yes);border-color:var(--yes);background:rgba(76,175,135,0.12);}
+.lbl-n{right:1rem;color:var(--no);border-color:var(--no);background:rgba(224,92,92,0.12);}
+.action-row{display:flex;gap:1.5rem;justify-content:center;align-items:center;margin-top:0.4rem;}
+.act-btn{width:72px;height:72px;border-radius:50%;border:none;cursor:pointer;font-size:1.8rem;display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:transform 0.15s;flex-direction:column;gap:2px;}
+.act-btn:active{transform:scale(0.88);}
+.act-no{background:rgba(224,92,92,0.12);color:var(--no);border:2px solid rgba(224,92,92,0.3);}
+.act-yes{background:rgba(76,175,135,0.12);color:var(--yes);border:2px solid rgba(76,175,135,0.3);}
+.act-lbl{font-size:0.52rem;letter-spacing:0.04em;text-transform:uppercase;font-family:'DM Sans',sans-serif;opacity:0.7;line-height:1;}
+.swipe-hint{font-size:0.67rem;color:var(--muted);text-align:center;margin-top:0.3rem;opacity:0.6;}
+/* Waiting */
+.pulse-orb{width:76px;height:76px;border-radius:50%;background:rgba(232,200,122,0.08);display:flex;align-items:center;justify-content:center;font-size:2.2rem;animation:pulse 2s ease-in-out infinite;margin:1.5rem auto;}
+@keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(232,200,122,0.25);}50%{transform:scale(1.06);box-shadow:0 0 0 18px rgba(232,200,122,0);}}
+.status-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0.6rem 0;}
+.schip{padding:0.28rem 0.7rem;border-radius:50px;font-size:0.73rem;border:1px solid var(--border);}
+.schip.done{background:rgba(76,175,135,0.12);border-color:rgba(76,175,135,0.3);color:var(--yes);}
+.schip.pend{background:var(--surface2);color:var(--muted);}
+/* Results */
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;display:flex;align-items:center;gap:0.9rem;width:100%;margin-bottom:0.5rem;}
+.m-emoji{font-size:2rem;flex-shrink:0;width:46px;text-align:center;}
+.m-info{flex:1;min-width:0;}
+.m-title{font-family:'Playfair Display',serif;font-size:0.92rem;margin-bottom:0.12rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-author{font-size:0.74rem;color:var(--muted);margin-bottom:0.12rem;}
+.m-tag{font-size:0.69rem;color:var(--yes);}
+/* Winner */
+.winner-card{background:linear-gradient(135deg,#1a1600,#201a00);border:2px solid var(--accent);border-radius:var(--r);padding:2rem 1.5rem;text-align:center;width:100%;animation:popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275);}
+@keyframes popIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}
+.where-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem 1.2rem;width:100%;margin-top:0.8rem;}
+.where-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.6rem;}
+.where-row{display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0;border-bottom:1px solid var(--border);}
+.where-row:last-child{border-bottom:none;}
+.where-icon{font-size:1.1rem;width:24px;text-align:center;flex-shrink:0;}
+.where-info{flex:1;}
+.where-name{font-size:0.82rem;font-weight:500;}
+.where-desc{font-size:0.7rem;color:var(--muted);}
+.where-tag{font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:20px;font-weight:500;}
+.tag-free{background:rgba(76,175,135,0.15);color:var(--yes);border:1px solid rgba(76,175,135,0.3);}
+.tag-paid{background:rgba(232,200,122,0.12);color:var(--accent);border:1px solid rgba(232,200,122,0.25);}
+/* Taste profile */
+.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem 1.2rem;width:100%;margin-top:0.8rem;}
+.profile-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.8rem;}
+.profile-player{margin-bottom:0.8rem;padding-bottom:0.8rem;border-bottom:1px solid var(--border);}
+.profile-player:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.profile-name{font-size:0.85rem;font-weight:500;margin-bottom:0.3rem;}
+.profile-desc{font-size:0.78rem;color:var(--muted);line-height:1.5;}
+.profile-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;}
+.profile-tag{font-size:0.65rem;padding:0.15rem 0.5rem;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.2);border-radius:20px;color:var(--accent);}
+/* Veto */
+.veto-section{width:100%;margin-top:1rem;}
+.veto-btn-wrap{position:relative;}
+.veto-progress{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:0.5rem;}
+.veto-chip{padding:0.25rem 0.65rem;border-radius:50px;font-size:0.72rem;border:1px solid var(--border);background:var(--surface2);color:var(--muted);}
+.veto-chip.voted{background:rgba(224,92,92,0.12);border-color:rgba(224,92,92,0.3);color:var(--no);}
+.veto-need{font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.4rem;}
+/* Gold bestseller card */
+.book-card.bestseller{
+  border:2px solid rgba(232,200,122,0.8) !important;
+  box-shadow:0 0 0 0 rgba(232,200,122,0), 0 0 18px rgba(232,200,122,0.2);
+  animation:goldPulse 2.5s ease-in-out infinite;
+}
+.book-card.bestseller .book-cover{border-radius:calc(var(--r) - 2px) calc(var(--r) - 2px) 0 0;}
+.bestseller-badge{
+  position:absolute;top:0.6rem;left:0.6rem;z-index:2;
+  background:linear-gradient(135deg,#e8c87a,#f5dc98);
+  color:#1a1000;border-radius:20px;padding:0.2rem 0.7rem;
+  font-size:0.68rem;font-weight:700;letter-spacing:0.04em;
+  display:flex;align-items:center;gap:4px;
+  box-shadow:0 2px 12px rgba(232,200,122,0.5);
+  white-space:nowrap;
+}
+@keyframes goldPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(232,200,122,0),0 0 18px rgba(232,200,122,0.2);}
+  50%{box-shadow:0 0 0 6px rgba(232,200,122,0.1),0 0 32px rgba(232,200,122,0.45);}
+}
+
+/* Confetti */
+.confetti-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;}
+/* Home */
+.mode-btn{
+  width:100%;height:80px;background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r);cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;
+  transition:all 0.2s ease;touch-action:manipulation;
+}
+.mode-btn:hover{border-color:var(--accent);background:rgba(232,200,122,0.06);color:var(--accent);}
+.mode-btn:hover span{opacity:1 !important;}
+.mode-btn:active{transform:scale(0.97);}
+.back-btn{background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;padding:0.3rem 0;margin-bottom:0.8rem;font-family:'DM Sans',sans-serif;align-self:flex-start;}
+.home-art{font-size:4.5rem;margin-bottom:1.5rem;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.err{color:var(--no);font-size:0.8rem;text-align:center;min-height:1.1rem;margin-bottom:0.3rem;}
+.winner-genres{font-size:0.77rem;color:var(--accent);text-align:center;margin-bottom:0.75rem;padding:0.5rem;background:rgba(232,200,122,0.07);border-radius:8px;border:1px solid rgba(232,200,122,0.15);}
+.quote-box{
+  margin-top:2.5rem;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--border);border-radius:14px;width:100%;
+  animation:fadeUp 0.6s ease;
+}
+.quote-text{font-size:1rem;color:var(--text);line-height:1.7;font-style:italic;margin-bottom:0.5rem;}
+.quote-author{font-size:0.82rem;color:var(--accent);letter-spacing:0.04em;}
+
+.spinner{width:32px;height:32px;border:3px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div class="home-art">📚</div>
+  <div class="logo">BookSwipe</div>
+  <div class="tagline">Swipe together · Read together</div>
+
+  <div style="width:100%;display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.2rem;">
+    <button class="mode-btn" onclick="showModeSelect('single')">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <span style="font-size:1.4rem;">📖</span>
+        <span style="font-size:0.98rem;font-weight:500;">Single Player</span>
+        <span style="font-size:0.7rem;opacity:0.55;font-weight:400;">Just you · Your pace · Your picks</span>
+      </div>
+    </button>
+    <button class="mode-btn" onclick="showModeSelect('multi')">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <span style="font-size:1.4rem;">👥</span>
+        <span style="font-size:0.98rem;font-weight:500;">Multiplayer</span>
+        <span style="font-size:0.7rem;opacity:0.55;font-weight:400;">Play with friends · Vote together</span>
+      </div>
+    </button>
+  </div>
+  <div class="err" id="home-err"></div>
+</div>
+
+<!-- MODE: MULTIPLAYER SETUP -->
+<div id="s-multi-setup" class="screen">
+  <button class="back-btn" onclick="show('home')">← Back</button>
+  <div class="logo" style="font-size:1.8rem;">BookSwipe</div>
+  <div class="sub" style="margin-bottom:1.2rem;">Multiplayer</div>
+  <div class="card-panel">
+    <label>Your name</label>
+    <input type="text" id="inp-name" placeholder="e.g. Flamur" maxlength="20" autocomplete="off"/>
+    <button class="btn btn-primary" onclick="createRoom()">✦ Create a new room</button>
+    <div class="divider">— or join existing —</div>
+    <label>Room code</label>
+    <input type="text" id="inp-code" placeholder="e.g. KNJR" maxlength="6" style="text-transform:uppercase;letter-spacing:0.15em;" autocomplete="off" autocorrect="off" autocapitalize="characters"/>
+    <button class="btn btn-secondary" onclick="joinRoom()">→ Join room</button>
+  </div>
+  <div class="err" id="multi-err"></div>
+</div>
+
+<!-- WAITING ROOM -->
+<div id="s-wait" class="screen">
+  <div class="logo" style="font-size:1.8rem;margin-bottom:0.1rem;">BookSwipe</div>
+  <div class="h2" style="margin-top:0.8rem;">Room ready!</div>
+  <div class="sub">Share this code with your friends</div>
+  <div class="room-code" id="disp-code" onclick="copyCode()">—</div>
+  <div class="copy-hint">Tap code to copy</div>
+  <div class="share-hint" style="margin-top:0.6rem;">Everyone opens this page → enters code <span id="hint-code">—</span> + their name.<br>When all joined, host starts.</div>
+  <div class="card-panel"><label>Players in room</label><div id="player-list"></div></div>
+  <div id="host-ctrl" style="width:100%;display:none;">
+    <button class="btn btn-primary" onclick="startGenreVote()">▶ Start Game</button>
+  </div>
+  <div id="guest-wait-msg" style="display:none;color:var(--muted);font-size:0.83rem;text-align:center;padding:0.8rem;">Waiting for host to start…</div>
+</div>
+
+<!-- GENRE VOTING -->
+<div id="s-genre" class="screen">
+  <div class="round-badge">Step 1 of 3 — Pick genres</div>
+  <div class="h2">What do you feel like?</div>
+  <div class="sub" id="genre-sub">Tap up to 3 genres you'd enjoy</div>
+  <div class="vote-header">
+    <div style="font-size:0.8rem;color:var(--muted);" id="genre-who"></div>
+    <div class="timer-wrap"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="t-track" cx="26" cy="26" r="22"/><circle class="t-fill" id="tr-genre" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="t-num" id="tn-genre">20</div></div>
+  </div>
+  <div class="genre-grid" id="genre-grid"></div>
+  <button class="btn btn-primary" onclick="submitGenre()">Confirm →</button>
+  <div class="err" id="genre-err"></div>
+</div>
+
+<!-- LENGTH VOTING -->
+<div id="s-length" class="screen">
+  <div class="round-badge">Step 2 of 3 — Session length</div>
+  <div class="h2">How long to swipe?</div>
+  <div class="sub">Vote for how many books this round</div>
+  <div class="vote-header">
+    <div style="font-size:0.8rem;color:var(--muted);" id="length-who"></div>
+    <div class="timer-wrap"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="t-track" cx="26" cy="26" r="22"/><circle class="t-fill" id="tr-length" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="t-num" id="tn-length">20</div></div>
+  </div>
+  <div class="winner-genres" id="won-genres"></div>
+  <div class="length-grid" id="length-grid"></div>
+  <button class="btn btn-primary" onclick="submitLength()">Confirm →</button>
+</div>
+
+<!-- VOTE WAITING -->
+<div id="s-vwait" class="screen">
+  <div class="h2" id="vw-title">Collecting votes…</div>
+  <div class="sub" id="vw-sub">Hang tight</div>
+  <div class="pulse-orb" id="vw-orb">🗳️</div>
+  <div class="status-row" id="vw-status"></div>
+  <div class="quote-box" id="vwait-quote"></div>
+</div>
+
+<!-- LOADING BOOKS -->
+<div id="s-loading" class="screen">
+  <div class="h2" style="margin-top:2rem;">Fetching books…</div>
+  <div class="sub">Finding the best matches for your genres</div>
+  <div class="loading-books"><div class="spinner"></div><div id="loading-msg">Searching Open Library…</div></div>
+  <div class="quote-box" id="loading-quote"></div>
+</div>
+
+<!-- SWIPE -->
+<div id="s-swipe" class="screen" style="padding-top:0;">
+  <div class="swipe-header">
+    <div class="round-badge" id="swipe-rnd-lbl" style="margin-bottom:0;">Round 1</div>
+    <div class="timer-wrap"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="t-track" cx="26" cy="26" r="22"/><circle class="t-fill" id="tr-swipe" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="t-num" id="tn-swipe">20</div></div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="prog-txt" id="prog-txt">Book 1 of 20</div>
+  <div class="swipe-area">
+    <div class="book-card" id="book-card">
+      <div class="slbl lbl-y" id="lbl-y">✓ YES</div>
+      <div class="slbl lbl-n" id="lbl-n">✗ NOPE</div>
+      <div class="book-cover" id="card-cover"></div>
+      <div class="book-info">
+        <div class="g-tag" id="card-genre"></div>
+        <div class="rating-badge" id="card-rating" style="display:none;"></div>
+        <div class="book-title" id="card-title"></div>
+        <div class="book-author" id="card-author"></div>
+        <div class="book-desc" id="card-desc"></div>
+        <div class="book-quote" id="card-quote" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="act-btn act-no" id="btn-no" onclick="doSwipe('no')"><span>✕</span><span class="act-lbl">nope</span></button>
+    <button class="act-btn act-yes" id="btn-yes" onclick="doSwipe('yes')"><span>✓</span><span class="act-lbl">yes!</span></button>
+  </div>
+  <div class="swipe-hint">← swipe left to pass · swipe right to pick →</div>
+</div>
+
+<!-- WAITING OTHERS -->
+<div id="s-others" class="screen">
+  <div class="h2">All done! 🎉</div>
+  <div class="sub">Waiting for others to finish swiping…</div>
+  <div class="pulse-orb">📖</div>
+  <div class="status-row" id="oth-status"></div>
+  <div style="font-size:0.78rem;color:var(--muted);text-align:center;" id="oth-msg"></div>
+  <div class="quote-box" id="others-quote"></div>
+</div>
+
+<!-- RESULTS -->
+<div id="s-results" class="screen">
+  <div class="round-badge" id="res-rnd">Round 1 results</div>
+  <div class="h2" id="res-title">Books everyone liked</div>
+  <div class="sub" id="res-sub"></div>
+  <div id="res-list" style="width:100%;"></div>
+  <div id="host-next" style="width:100%;display:none;">
+    <button class="btn btn-primary" style="margin-top:0.8rem;" id="next-btn" onclick="nextRound()">▶ Next Round</button>
+  </div>
+  <div id="guest-next" style="display:none;color:var(--muted);font-size:0.82rem;text-align:center;padding:0.8rem;">Waiting for host…</div>
+</div>
+
+<!-- WINNER -->
+<div id="s-winner" class="screen">
+  <div class="winner-card" id="winner-card"></div>
+
+  <!-- Where to read -->
+  <div id="where-card" class="where-card" style="display:none;">
+    <div class="where-title">📖 Where to read this</div>
+    <div id="where-list"></div>
+  </div>
+
+  <!-- Taste profiles -->
+  <div class="profile-card" id="profile-card" style="display:none;">
+    <div class="profile-title">📊 Taste profiles</div>
+    <div id="profile-list"></div>
+  </div>
+
+  <!-- Veto -->
+  <div class="veto-section">
+    <button class="btn btn-danger" id="veto-btn" onclick="pressVeto()">🚫 Veto this book</button>
+    <div class="veto-progress" id="veto-progress"></div>
+    <div class="veto-need" id="veto-need"></div>
+  </div>
+
+  <button class="btn btn-secondary" style="margin-top:0.6rem;" onclick="location.reload()">↩ New game</button>
+</div>
+
+<!-- Confetti canvas lives outside all screens so it doesn't affect layout -->
+<canvas class="confetti-canvas" id="confetti-canvas"></canvas>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBwk0AGsLLXHjekG0GspnJEVF8a9P5h7gc",
+  authDomain: "bookswipe-c6082.firebaseapp.com",
+  databaseURL: "https://bookswipe-c6082-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "bookswipe-c6082",
+  storageBucket: "bookswipe-c6082.firebasestorage.app",
+  messagingSenderId: "578061427897",
+  appId: "1:578061427897:web:3531d2e7cbda4cd7c5a768"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ═══════════════════════════════════════════
+// GENRE DEFINITIONS — 16 genres
+// ═══════════════════════════════════════════
+const GENRE_DEFS = [
+  {id:'philosophy',  name:'Philosophy',        emoji:'🧠', olSubject:'philosophy'},
+  {id:'existential', name:'Existentialism',    emoji:'🌀', olSubject:'existentialism'},
+  {id:'dystopia',    name:'Dystopia',          emoji:'👁️', olSubject:'dystopian_fiction'},
+  {id:'magic',       name:'Magic Realism',     emoji:'🦋', olSubject:'magic_realism'},
+  {id:'classic',     name:'Classic Fiction',   emoji:'📜', olSubject:'classic_literature'},
+  {id:'spiritual',   name:'Spiritual',         emoji:'🪷', olSubject:'spirituality'},
+  {id:'thriller',    name:'Thriller',          emoji:'🔪', olSubject:'psychological_fiction'},
+  {id:'scifi',       name:'Sci-Fi',            emoji:'🚀', olSubject:'science_fiction'},
+  {id:'historical',  name:'Historical',        emoji:'⚔️', olSubject:'historical_fiction'},
+  {id:'coming',      name:'Coming of Age',     emoji:'🌱', olSubject:'bildungsroman'},
+  {id:'romance',     name:'Romance',           emoji:'💕', olSubject:'love_stories'},
+  {id:'crime',       name:'Crime / Detective', emoji:'🕵️', olSubject:'detective_and_mystery_stories'},
+  {id:'biography',   name:'Biography / Memoir',emoji:'📷', olSubject:'biography'},
+  {id:'psychology',  name:'Psychology',        emoji:'🔬', olSubject:'psychology'},
+  {id:'adventure',   name:'Adventure',         emoji:'🧭', olSubject:'adventure_stories'},
+  {id:'essay',       name:'Essay / Stories',   emoji:'✍️', olSubject:'short_stories'},
+];
+
+// ═══════════════════════════════════════════
+// FALLBACK BOOK DATABASE (used when API fails)
+// ═══════════════════════════════════════════
+const FALLBACK = {
+  philosophy:[
+    {id:'f1',title:"Meditations",author:"Marcus Aurelius",emoji:"⚖️",desc:"Private notes of a Roman emperor to himself. Two thousand years old and still the most practical guide to living well — about discipline, purpose, and accepting what you cannot control.",quote:'"You have power over your mind, not outside events."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Audible",desc:"Great audiobook",free:false,icon:"🎧"}]},
+    {id:'f2',title:"Thus Spoke Zarathustra",author:"Friedrich Nietzsche",emoji:"⛰️",desc:"A prophet descends from his mountain with a radical new vision for humanity. Dense, poetic, and challenging — about the will to power, the death of God, and what comes after.",quote:'"Man must surpass himself — that is what he must do."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Penguin Classics",desc:"Best translation",free:false,icon:"📗"}]},
+    {id:'f3',title:"Steppenwolf",author:"Hermann Hesse",emoji:"🐺",desc:"A man torn between bourgeois comfort and wild spiritual longing discovers a magical theatre of the soul. Jazz, mirrors, absurdity, and the question of whether we can ever truly know ourselves.",quote:'"I am not a man. I am a steppenwolf."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Kindle",desc:"Affordable digital",free:false,icon:"📱"}]},
+  ],
+  existential:[
+    {id:'f4',title:"The Stranger",author:"Albert Camus",emoji:"🌅",desc:"A man kills a stranger on a beach and feels almost nothing. Razor-sharp and profoundly uncomfortable — it forces you to question what meaning, morality, and emotion actually are.",quote:'"In the midst of winter, I found there was an invincible summer within me."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Vintage",desc:"Best English translation",free:false,icon:"📗"}]},
+    {id:'f5',title:"Notes from Underground",author:"Fyodor Dostoevsky",emoji:"🕳️",desc:"A bitter, brilliant man rants about free will, consciousness, and his own contradictions from the depths of his underground apartment. Considered the first truly existentialist novel ever written.",quote:'"I am a sick man... I am a spiteful man."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Audible",desc:"Excellent dramatic reading",free:false,icon:"🎧"}]},
+    {id:'f6',title:"Nausea",author:"Jean-Paul Sartre",emoji:"🌫️",desc:"A man in a small French town begins to feel the overwhelming, crushing absurdity of existence itself. Dense, cerebral, and deeply unsettling — the purest expression of existential thought in fiction.",quote:'"Existence precedes essence."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"New Directions",desc:"Classic paperback",free:false,icon:"📗"}]},
+  ],
+  dystopia:[
+    {id:'f7',title:"1984",author:"George Orwell",emoji:"👁️",desc:"Big Brother is watching. A terrifying and eerily prescient vision of total surveillance, propaganda, doublethink, and the systematic erasure of truth, memory, and individual thought.",quote:'"War is peace. Freedom is slavery. Ignorance is strength."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Signet Classics",desc:"Most widely read edition",free:false,icon:"📗"}]},
+    {id:'f8',title:"Brave New World",author:"Aldous Huxley",emoji:"💊",desc:"A world of engineered happiness where people are bred, conditioned, and kept blissfully content — and individuality, art, and real emotion have been quietly, cheerfully eliminated forever.",quote:'"Everyone belongs to everyone else."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Harper Perennial",desc:"Standard paperback",free:false,icon:"📗"}]},
+    {id:'f9',title:"Animal Farm",author:"George Orwell",emoji:"🐷",desc:"Animals revolt against their farmer and build a republic based on equality — until the pigs discover they enjoy power. A perfect, savage, and painfully relevant satire of revolution and corruption.",quote:'"All animals are equal, but some animals are more equal than others."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Audible",desc:"Short gripping audiobook",free:false,icon:"🎧"}]},
+  ],
+  magic:[
+    {id:'f10',title:"One Hundred Years of Solitude",author:"Gabriel García Márquez",emoji:"🦋",desc:"Seven generations of the Buendía family unfold in the mythical Colombian town of Macondo, where the miraculous and the mundane are indistinguishable. The defining novel of magical realism.",quote:'"He was still too young to know that the heart\'s memory eliminates the bad and magnifies the good."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Kindle",desc:"Gregory Rabassa translation",free:false,icon:"📱"}]},
+    {id:'f11',title:"Kafka on the Shore",author:"Haruki Murakami",emoji:"🐟",desc:"A runaway boy and an elderly man who can talk to cats move through parallel realities. Fish fall from the sky, classical music fills the air, and the border between dream and waking dissolves entirely.",quote:'"If you remember me, then I don\'t care if everyone else forgets."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Vintage",desc:"Philip Gabriel translation",free:false,icon:"📗"}]},
+    {id:'f12',title:"The Master and Margarita",author:"Mikhail Bulgakov",emoji:"🐱",desc:"The Devil arrives in Soviet Moscow accompanied by a giant talking black cat, a hitman, and a beautiful witch. Dark, hilarious, devastating — and one of the strangest love stories ever written.",quote:'"Cowardice is the greatest sin."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Penguin Classics",desc:"Pevear & Volokhonsky translation",free:false,icon:"📗"}]},
+  ],
+  spiritual:[
+    {id:'f16',title:"Siddhartha",author:"Hermann Hesse",emoji:"🪷",desc:"A young Brahmin walks away from privilege, enlightened teachers, and even the Buddha himself, determined to find spiritual truth through direct experience. Written with luminous, unhurried beauty.",quote:'"Wisdom cannot be imparted. Wisdom that a wise man attempts to impart always sounds like foolishness."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"New Directions",desc:"Classic translation",free:false,icon:"📗"}]},
+    {id:'f17',title:"The Prophet",author:"Kahlil Gibran",emoji:"🌊",desc:"A prophet prepares to leave the city he has lived in for twelve years. The people gather and ask him about life — love, work, joy, pain, children, death. Each answer reads like distilled truth.",quote:'"Your children are not your children. They are the sons and daughters of Life\'s longing for itself."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Audible",desc:"Beautiful spoken version",free:false,icon:"🎧"}]},
+    {id:'f18',title:"Man's Search for Meaning",author:"Viktor Frankl",emoji:"🕯️",desc:"A psychiatrist survives three years in Nazi concentration camps and emerges with a profound insight: the last of human freedoms is the ability to choose one's attitude in any given circumstances.",quote:'"He who has a why to live can bear almost any how."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Beacon Press",desc:"Expanded edition",free:false,icon:"📗"}]},
+  ],
+  thriller:[
+    {id:'f19',title:"Crime and Punishment",author:"Fyodor Dostoevsky",emoji:"🪓",desc:"A brilliant but impoverished student convinces himself he is extraordinary enough to commit the perfect murder — and then lives through the psychological devastation of what he has done.",quote:'"Pain and suffering are always inevitable for a large intelligence and a deep heart."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Penguin Classics",desc:"Oliver Ready translation",free:false,icon:"📗"}]},
+    {id:'f20',title:"The Road",author:"Cormac McCarthy",emoji:"🔥",desc:"A father and his young son push a shopping cart through the ash-grey ruins of America after some unnamed catastrophe has killed nearly everything. Brutal, tender, and entirely about love.",quote:'"You have to carry the fire."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Vintage",desc:"Pulitzer Prize edition",free:false,icon:"📗"}]},
+    {id:'f21',title:"In Cold Blood",author:"Truman Capote",emoji:"🩸",desc:"The true story of the brutal 1959 murder of a Kansas farming family and the two young men who did it. Capote spent six years reporting it — and invented the true crime genre in the process.",quote:'"I thought Mr. Clutter was a very nice gentleman. I thought so right up until the moment I cut his throat."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Vintage",desc:"Original true crime masterpiece",free:false,icon:"📗"}]},
+  ],
+  scifi:[
+    {id:'f22',title:"Flowers for Algernon",author:"Daniel Keyes",emoji:"🌸",desc:"Charlie Gordon, a man with an IQ of 68, undergoes experimental surgery to become a genius — and documents everything in diary entries as his intelligence rises, peaks, and then slowly, heartbreakingly falls.",quote:'"I don\'t know what\'s worse: to not know what you are and be happy, or to become what you\'ve always wanted to be, and feel alone."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Mariner Books",desc:"SF Masterworks edition",free:false,icon:"📗"}]},
+    {id:'f23',title:"Solaris",author:"Stanisław Lem",emoji:"🪐",desc:"Scientists orbit a planet covered by a vast, living ocean that seems to respond to human thought — by manifesting the people they have lost. Eerie, philosophical, and profoundly unsettling.",quote:'"We take off into the cosmos ready for anything: for solitude, for hardship, for exhaustion, death. But we do not know how to deal with other worlds."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"MIT Press",desc:"Definitive translation",free:false,icon:"📗"}]},
+    {id:'f24',title:"The Left Hand of Darkness",author:"Ursula K. Le Guin",emoji:"❄️",desc:"An envoy from a federation of planets visits a world where humans have no fixed gender — changing biologically each month. A quietly radical meditation on identity, politics, and what being human means.",quote:'"It is good to have an end to journey toward, but it is the journey that matters in the end."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Ace Books",desc:"Hugo & Nebula winner",free:false,icon:"📗"}]},
+  ],
+  historical:[
+    {id:'f25',title:"All Quiet on the Western Front",author:"Erich Maria Remarque",emoji:"🪖",desc:"Young German soldiers march off to World War I full of patriotic idealism — and are destroyed not heroically but slowly, brutally, pointlessly by the trenches. The definitive anti-war novel.",quote:'"We are not youth any longer. We don\'t want to take the world by storm. We fly from ourselves."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Ballantine Books",desc:"A.W. Wheen translation",free:false,icon:"📗"}]},
+    {id:'f26',title:"Pachinko",author:"Min Jin Lee",emoji:"🌺",desc:"Four generations of a Korean family navigate discrimination, war, poverty, and sacrifice across nearly a century in Japan and Korea. An epic, devastating story about identity, survival, and what we inherit.",quote:'"History has failed us, but no matter."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Grand Central",desc:"National Book Award finalist",free:false,icon:"📗"}]},
+    {id:'f27',title:"The Name of the Rose",author:"Umberto Eco",emoji:"🌹",desc:"A learned Franciscan monk and his novice arrive at a medieval Italian abbey and are immediately drawn into a series of mysterious deaths. A labyrinth of forbidden books, heresy, and poison.",quote:'"Books are not made to be believed, but to be subjected to inquiry."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Mariner Books",desc:"William Weaver translation",free:false,icon:"📗"}]},
+  ],
+  coming:[
+    {id:'f28',title:"The Catcher in the Rye",author:"J.D. Salinger",emoji:"🧢",desc:"Holden Caulfield wanders New York City after being expelled from his fourth school, raging against phoniness, loss, and the unbearable weight of growing up. The definitive voice of teenage alienation.",quote:'"Don\'t ever tell anybody anything. If you do, you start missing everybody."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Little, Brown",desc:"Original Salinger edition",free:false,icon:"📗"}]},
+    {id:'f29',title:"Demian",author:"Hermann Hesse",emoji:"🥚",desc:"A boy named Sinclair is guided through adolescence by the brilliant, mysterious Demian — learning to break free from conventional morality and discover the self that exists beneath all masks.",quote:'"I wanted only to try to live in accord with the promptings which came from my true self."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Harper Perennial",desc:"Michael Roloff translation",free:false,icon:"📗"}]},
+    {id:'f30',title:"The Little Prince",author:"Antoine de Saint-Exupéry",emoji:"🌹",desc:"A pilot stranded in the Sahara meets a tiny prince who has fallen from a distant asteroid. Deceptively simple and profoundly moving — about love, loneliness, and what adults forget.",quote:'"It is only with the heart that one can see rightly; what is essential is invisible to the eye."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Audible",desc:"Wonderful narrated version",free:false,icon:"🎧"}]},
+  ],
+  romance:[
+    {id:'f31',title:"Normal People",author:"Sally Rooney",emoji:"💕",desc:"Two Irish teenagers fall in and out of love as they navigate class, power, intimacy, and the gap between what they feel and what they can bring themselves to say to each other.",quote:'"What strange creatures brothers are!"',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Kindle",desc:"Also a hit Hulu series",free:false,icon:"📱"}]},
+    {id:'f32',title:"Atonement",author:"Ian McEwan",emoji:"🏡",desc:"A thirteen-year-old girl's misreading of an adult situation tears two lovers apart. The story follows the consequences across decades, war, and finally asks whether fiction can ever undo real harm.",quote:'"The problem these fifty-nine years has been this: how can a novelist achieve atonement?"',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Anchor Books",desc:"Booker Prize shortlisted",free:false,icon:"📗"}]},
+    {id:'f33',title:"The Notebook",author:"Nicholas Sparks",emoji:"🕊️",desc:"A love story spanning decades, told through a weathered notebook read aloud to a woman with dementia who may or may not remember the man reading to her. Simple, devastating, and hard to put down.",quote:'"I am nothing special; just a common man with common thoughts."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Grand Central",desc:"Also a classic film",free:false,icon:"📗"}]},
+  ],
+  crime:[
+    {id:'f34',title:"And Then There Were None",author:"Agatha Christie",emoji:"🏝️",desc:"Ten strangers are lured to a remote island under false pretences — and then murdered one by one according to a children's rhyme. The best-selling crime novel of all time. Still completely unguessable.",quote:'"Ten little soldiers went out to dine; one choked his little self and then there were nine."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"HarperCollins",desc:"Best-selling mystery ever",free:false,icon:"📗"}]},
+    {id:'f35',title:"The Girl with the Dragon Tattoo",author:"Stieg Larsson",emoji:"🕵️",desc:"A disgraced journalist and a fierce, tattooed hacker investigate a forty-year-old disappearance in a powerful and deeply corrupt Swedish family. Dark, addictive, and impossible to put down.",quote:'"She had no idea how to deal with people who showed kindness."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Vintage Crime",desc:"Best-selling crime trilogy",free:false,icon:"📗"}]},
+    {id:'f36',title:"The Big Sleep",author:"Raymond Chandler",emoji:"🔦",desc:"Private detective Philip Marlowe is hired by a dying California millionaire and plunges into a world of blackmail, pornography, and murder. The novel that defined the hardboiled detective genre.",quote:'"I was as inconspicuous as a tarantula on a slice of angel food cake."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Vintage Crime",desc:"Chandler classic edition",free:false,icon:"📗"}]},
+  ],
+  biography:[
+    {id:'f37',title:"Educated",author:"Tara Westover",emoji:"🏔️",desc:"A woman who grew up in a survivalist family in rural Idaho — never attending school — eventually earns a PhD from Cambridge. A shattering memoir about family, knowledge, and the cost of becoming yourself.",quote:'"You can love someone and still choose to say goodbye to them."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Random House",desc:"#1 NYT bestseller",free:false,icon:"📗"}]},
+    {id:'f38',title:"The Diary of a Young Girl",author:"Anne Frank",emoji:"📓",desc:"A Jewish teenager hides from the Nazis in a secret annex in Amsterdam for over two years and writes about hope, fear, first love, and the ordinary details of extraordinary confinement.",quote:'"Despite everything, I believe that people are really good at heart."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Puffin",desc:"Definitive edition",free:false,icon:"📗"}]},
+    {id:'f39',title:"Long Walk to Freedom",author:"Nelson Mandela",emoji:"✊",desc:"Mandela's autobiography traces his journey from rural childhood to 27 years imprisoned on Robben Island to the presidency of South Africa. One of the great lives of the twentieth century, told with extraordinary dignity.",quote:'"It always seems impossible until it\'s done."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Back Bay Books",desc:"Essential autobiography",free:false,icon:"📗"}]},
+  ],
+  psychology:[
+    {id:'f40',title:"Thinking, Fast and Slow",author:"Daniel Kahneman",emoji:"🧩",desc:"A Nobel Prize-winning psychologist reveals how two systems of thinking govern our decisions — one fast, intuitive, and emotional; one slow, deliberate, and logical — and how each leads us astray.",quote:'"Nothing in life is as important as you think it is, while you are thinking about it."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Farrar, Straus",desc:"Nobel Prize winner's landmark work",free:false,icon:"📗"}]},
+    {id:'f41',title:"The Body Keeps the Score",author:"Bessel van der Kolk",emoji:"🫀",desc:"A pioneering trauma researcher explains how trauma reshapes the body and brain — and surveys the revolutionary therapies, from yoga to EMDR to theatre, that help people reclaim their lives.",quote:'"Trauma is not what happens to us, but what we hold inside in the absence of an empathetic witness."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Penguin Books",desc:"Modern classic of psychology",free:false,icon:"📗"}]},
+    {id:'f42',title:"Man and His Symbols",author:"Carl Jung",emoji:"🌀",desc:"Jung's final and most accessible work, written specifically for the general public. Explores the unconscious, dreams, archetypes, and the symbolic language through which the psyche speaks to us.",quote:'"Who looks outside, dreams; who looks inside, awakes."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Dell",desc:"Illustrated Jungian classic",free:false,icon:"📗"}]},
+  ],
+  adventure:[
+    {id:'f43',title:"The Count of Monte Cristo",author:"Alexandre Dumas",emoji:"⚔️",desc:"Edmond Dantès is wrongly imprisoned on his wedding day. He escapes, discovers a vast treasure, and returns as the mysterious Count of Monte Cristo — patient, brilliant, and utterly determined to destroy those who ruined him.",quote:'"All human wisdom is contained in these two words — wait and hope."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Penguin Classics",desc:"Unabridged edition",free:false,icon:"📗"}]},
+    {id:'f44',title:"Into the Wild",author:"Jon Krakauer",emoji:"🌲",desc:"A 24-year-old honours graduate burns his money, abandons his car, and hitchhikes to Alaska to live alone in the wilderness with almost nothing. A true story that raises profound questions about freedom and folly.",quote:'"The very basic core of a man\'s living spirit is his passion for adventure."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Anchor Books",desc:"Also a great Sean Penn film",free:false,icon:"📗"}]},
+    {id:'f45',title:"Life of Pi",author:"Yann Martel",emoji:"🐯",desc:"A sixteen-year-old Indian boy survives a shipwreck and spends 227 days adrift in the Pacific Ocean in a lifeboat with a 450-pound Bengal tiger. A stunning story about survival, faith, and the stories we tell.",quote:'"I must say a word about fear. It is life\'s only true opponent."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"Mariner Books",desc:"Man Booker Prize winner",free:false,icon:"📗"}]},
+  ],
+  essay:[
+    {id:'f46',title:"Labyrinths",author:"Jorge Luis Borges",emoji:"🌀",desc:"Infinite libraries that contain every possible book. Forking paths through time. A circular ruin. Borges' collected stories and essays are mind-bending puzzles that rewire how you think about reality.",quote:'"I have always imagined that Paradise will be a kind of library."',where:[{name:"Libby",desc:"Free with library card",free:true,icon:"📚"},{name:"New Directions",desc:"Essential Borges collection",free:false,icon:"📗"}]},
+    {id:'f47',title:"Dubliners",author:"James Joyce",emoji:"🍀",desc:"Fifteen short stories of ordinary life in early 20th-century Dublin — a timid teacher, a frustrated wife, a paralysed priest — each cracking open suddenly into something vast, sad, and luminous.",quote:'"His soul swooned slowly as he heard the snow falling faintly through the universe."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Penguin Classics",desc:"Annotated edition",free:false,icon:"📗"}]},
+    {id:'f48',title:"Essays",author:"Michel de Montaigne",emoji:"✍️",desc:"The inventor of the essay writes with extraordinary honesty and warmth about thumbs, cannibals, friendship, fear, and death — becoming, in the process, the most human writer who ever lived.",quote:'"Every man carries the whole form of the human condition within him."',where:[{name:"Project Gutenberg",desc:"Free full text",free:true,icon:"🌐"},{name:"Penguin Classics",desc:"M.A. Screech selection",free:false,icon:"📗"}]},
+  ],
+};
+
+// ═══════════════════════════════════════════
+// SMART EMOJI PICKER — unique per book title
+// ═══════════════════════════════════════════
+function pickEmoji(title, genre){
+  const t = (title||'').toLowerCase();
+
+  // ── Exact / strong title matches first ──────────────────
+  const exact = [
+    // Nature & elements
+    [['ocean','sea','whale','sailor','ship','voyage','naval','tide','wave','coral','reef','submarine'],'🌊'],
+    [['fire','burn','flame','inferno','blaze','ash','ember','smoke','arson','wildfire'],'🔥'],
+    [['storm','thunder','lightning','hurricane','tornado','cyclone','tempest'],'⛈️'],
+    [['snow','winter','ice','frozen','arctic','tundra','glacier','frost','blizzard'],'❄️'],
+    [['sun','solar','desert','sahara','dune','drought','scorching','oasis'],'☀️'],
+    [['rain','flood','river','stream','waterfall','dam','bayou','swamp','marsh'],'🌧️'],
+    [['earth','soil','ground','mud','clay','stone','rock','cave','mine','quarry'],'🪨'],
+    [['forest','tree','jungle','wood','timber','bark','leaf','roots','canopy'],'🌲'],
+    [['mountain','hill','peak','summit','cliff','ridge','alpine','highland','valley'],'⛰️'],
+    [['island','beach','paradise','coast','shore','tropical','palm','lagoon'],'🏝️'],
+    [['garden','flower','bloom','petal','blossom','rose','orchid','lilac','tulip'],'🌸'],
+    [['moon','lunar','night','midnight','nocturnal','darkness','twilight','dusk'],'🌙'],
+    [['star','galaxy','cosmos','universe','nebula','constellation','astro'],'✨'],
+    [['space','rocket','planet','orbit','satellite','nasa','astronaut','alien','mars'],'🚀'],
+    // People & relationships
+    [['mother','mom','mama','maternal','matriarch','womb','daughter','sisterhood'],'👩'],
+    [['father','dad','patriarch','paternal','son','brotherhood','fatherhood'],'👨'],
+    [['child','children','kid','boy','girl','youth','teen','adolescent','infant','baby'],'👧'],
+    [['sister','women','female','feminine','woman','lady','queen','witch','goddess'],'👑'],
+    [['brother','men','male','masculine','man','king','knight','warrior'],'⚔️'],
+    [['lover','beloved','romance','amour','sweetheart','darling','soulmate'],'💕'],
+    [['marriage','wedding','bride','husband','wife','vow','matrimony','divorce'],'💍'],
+    [['family','generation','dynasty','clan','tribe','ancestry','lineage','heritage'],'👨‍👩‍👧‍👦'],
+    [['friend','friendship','companion','comrade','ally','brotherhood'],'🤝'],
+    [['stranger','outsider','exile','foreigner','refugee','immigrant','wanderer'],'🧳'],
+    // Conflict & crime
+    [['war','battle','combat','soldier','military','army','trench','siege','troops'],'🪖'],
+    [['murder','kill','death','dead','corpse','grave','burial','coffin','morgue'],'💀'],
+    [['blood','wound','scar','violence','brutal','savage','gore','slaughter'],'🩸'],
+    [['detective','investigation','clue','evidence','suspect','witness','alibi'],'🔍'],
+    [['crime','thief','robbery','heist','smuggle','gangster','mafia','cartel'],'🦹'],
+    [['prison','jail','cell','inmate','escape','fugitive','parole','warden'],'🔒'],
+    [['spy','espionage','secret','covert','undercover','agent','mission','cipher'],'🕵️'],
+    [['assassin','sniper','hitman','bounty','target','weapon','poison'],'🎯'],
+    [['ghost','haunt','spirit','specter','demon','devil','evil','curse','hex'],'👻'],
+    [['vampire','werewolf','monster','creature','beast','horror','nightmare','terror'],'🧛'],
+    // Mind & soul
+    [['dream','sleep','unconscious','subconscious','vision','hallucination','trance'],'💭'],
+    [['memory','remember','forgotten','nostalgia','past','childhood','flashback'],'🧠'],
+    [['madness','insane','asylum','lunatic','psychosis','mania','delusion','paranoia'],'🌀'],
+    [['soul','spirit','faith','religion','god','divine','sacred','prayer','heaven','hell'],'✝️'],
+    [['philosophy','wisdom','truth','knowledge','question','meaning','existence'],'💡'],
+    [['meditation','zen','mindful','enlighten','buddha','karma','peace','serenity'],'🪷'],
+    [['magic','wizard','witch','spell','enchant','mystic','potion','sorcery'],'🔮'],
+    [['power','ambition','greed','domination','control','authority','empire','ruler'],'👑'],
+    // Places & journeys
+    [['paris','france','french','eiffel','seine','louvre','montmartre'],'🗼'],
+    [['london','england','british','thames','oxford','cambridge','baker street'],'🎡'],
+    [['russia','soviet','moscow','st. petersburg','siberia','gulag','czar','tsar'],'🏰'],
+    [['america','american','usa','new york','washington','california','chicago'],'🗽'],
+    [['africa','african','sahara','savanna','congo','nigeria','kenya','safari'],'🌍'],
+    [['japan','tokyo','samurai','geisha','zen','cherry','haiku','manga'],'⛩️'],
+    [['india','indian','mughal','gandhi','taj','bombay','delhi','bengal','caste'],'🕌'],
+    [['middle east','arab','persian','ottoman','baghdad','cairo','jerusalem'],'🕌'],
+    [['road','journey','travel','wander','nomad','pilgrim','quest','odyssey','walk'],'🛤️'],
+    [['train','railway','railroad','station','locomotive','platform','carriage'],'🚂'],
+    [['ship','boat','sail','vessel','voyage','crossing','maritime','harbour','port'],'⛵'],
+    [['plane','flight','pilot','aviation','airforce','cockpit','parachute'],'✈️'],
+    // Work & society
+    [['doctor','hospital','medicine','surgery','nurse','patient','diagnosis','cure'],'🏥'],
+    [['law','lawyer','court','judge','jury','verdict','trial','justice','legal'],'⚖️'],
+    [['school','teacher','student','university','college','graduate','campus','class'],'📚'],
+    [['art','paint','artist','gallery','canvas','sculpture','museum','portrait'],'🎨'],
+    [['music','song','musician','concert','piano','violin','jazz','orchestra','band'],'🎵'],
+    [['money','wealth','rich','finance','bank','stock','invest','capitalism','greed'],'💰'],
+    [['politics','election','government','democracy','president','senator','party'],'🏛️'],
+    [['science','experiment','laboratory','research','discovery','theory','quantum'],'🔬'],
+    [['technology','computer','internet','digital','code','hack','cyber','robot','ai'],'💻'],
+    [['food','cook','chef','restaurant','hunger','feast','wine','bread','farm'],'🍽️'],
+    // Time & history
+    [['ancient','medieval','century','history','chronicle','empire','conquest','dynasty'],'📜'],
+    [['future','apocalypse','dystopia','collapse','survival','bunker','post-war'],'🏚️'],
+    [['revolution','uprising','rebellion','protest','resistance','freedom','liberty'],'✊'],
+    [['slavery','oppression','segregation','racism','civil rights','colonialism'],'⛓️'],
+    [['holocaust','genocide','atrocity','concentration','nazi','fascism'],'🕯️'],
+    // Animals
+    [['dog','wolf','fox','hound','puppy','canine','pack'],'🐺'],
+    [['cat','kitten','feline','lion','tiger','leopard','panther'],'🐱'],
+    [['bird','eagle','hawk','raven','crow','owl','falcon','dove','pigeon'],'🦅'],
+    [['horse','rider','ranch','cowboy','saddle','gallop','mare','stallion'],'🐎'],
+    [['fish','shark','dolphin','whale','octopus','squid','crab','lobster'],'🐟'],
+    [['bear','wilderness','alaska','cabin','huntsman','trapper'],'🐻'],
+    // Objects & symbols
+    [['letter','diary','journal','notebook','manuscript','letter','correspondence'],'📝'],
+    [['clock','time','hour','minute','deadline','countdown','watch'],'⏳'],
+    [['mirror','reflection','identity','self','portrait','image','appearance'],'🪞'],
+    [['door','gate','threshold','key','lock','entrance','passage','secret room'],'🚪'],
+    [['light','lamp','candle','torch','illuminate','dark','shadow','blind'],'🕯️'],
+    [['mask','disguise','costume','carnival','theatre','actor','performance','role'],'🎭'],
+    [['crown','throne','royalty','kingdom','palace','court','noble','lord'],'👑'],
+    [['sword','dagger','blade','knife','weapon','fight','duel','battle'],'🗡️'],
+    [['gun','bullet','shot','pistol','rifle','shoot','sniper','war'],'💣'],
+    [['ring','gold','treasure','jewel','diamond','gem','precious','vault'],'💎'],
+    [['book','library','reading','page','chapter','author','writer','words'],'📖'],
+    [['map','atlas','navigation','explore','chart','compass','cartography'],'🗺️'],
+    [['photograph','camera','photo','image','snapshot','film','lens'],'📷'],
+    [['phone','call','message','text','conversation','wire','signal'],'📞'],
+    [['house','home','apartment','room','door','wall','window','family home'],'🏠'],
+    [['city','urban','skyscraper','street','alley','downtown','metropolis'],'🏙️'],
+    [['church','cathedral','chapel','altar','cross','sermon','congregation','holy'],'⛪'],
+    [['hospital','clinic','ward','emergency','ambulance','operating'],'🏥'],
+  ];
+
+  for(const [keywords, emoji] of exact){
+    if(keywords.some(k=>t.includes(k))) return emoji;
+  }
+
+  // ── Genre fallback — varied, never just one emoji per genre ─
+  const genreMap = {
+    'Thriller':           ['🕯️','🔦','🗝️','⚠️','🌑','🩻'][Math.floor(Math.random()*6)],
+    'Crime / Detective':  ['🔍','🗂️','🚔','📁','🧩','🔎'][Math.floor(Math.random()*6)],
+    'Philosophy':         ['💡','🏺','⚖️','🌐','🧿','📿'][Math.floor(Math.random()*6)],
+    'Existentialism':     ['🌀','🕳️','♾️','🫧','🔄','🌫️'][Math.floor(Math.random()*6)],
+    'Dystopia':           ['🏚️','⚙️','🔩','📡','🏗️','🕰️'][Math.floor(Math.random()*6)],
+    'Magic Realism':      ['🦋','🪄','🌈','🫐','🪬','🌿'][Math.floor(Math.random()*6)],
+    'Classic Fiction':    ['📜','🪶','🏛️','🎩','🕰️','🗝️'][Math.floor(Math.random()*6)],
+    'Spiritual':          ['🪷','☯️','🕌','🙏','🌙','✨'][Math.floor(Math.random()*6)],
+    'Sci-Fi':             ['🚀','🛸','🤖','🌌','⚗️','🔭'][Math.floor(Math.random()*6)],
+    'Historical':         ['⏳','🏰','⚔️','🗺️','🧭','📜'][Math.floor(Math.random()*6)],
+    'Coming of Age':      ['🌱','🎒','🚲','🪁','📓','🌻'][Math.floor(Math.random()*6)],
+    'Romance':            ['💕','🌹','💌','🥂','🌅','🫀'][Math.floor(Math.random()*6)],
+    'Biography / Memoir': ['📷','🏆','🗓️','🪞','🖊️','🎗️'][Math.floor(Math.random()*6)],
+    'Psychology':         ['🧠','🔬','💭','🪢','🫁','🧬'][Math.floor(Math.random()*6)],
+    'Adventure':          ['🧭','🗺️','⛺','🪃','🏕️','🌄'][Math.floor(Math.random()*6)],
+    'Essay / Stories':    ['✍️','📓','🖋️','📰','🗞️','📋'][Math.floor(Math.random()*6)],
+  };
+  return genreMap[genre] || ['📖','📚','🔖','📑','🗒️','📄'][Math.floor(Math.random()*6)];
+}
+
+// ═══════════════════════════════════════════
+// OPEN LIBRARY SEARCH API FETCH
+// Uses /search.json which returns descriptions + ratings inline
+// ═══════════════════════════════════════════
+async function fetchBooksForGenre(genreId, count=8){
+  const gdef = GENRE_DEFS.find(g=>g.id===genreId);
+  if(!gdef) return [];
+  const genreName = gdef.name;
+
+  try {
+    // Use search API with subject filter — returns richer data than subjects endpoint
+    const subject = gdef.olSubject.replace(/_/g,' ');
+    const offset = Math.floor(Math.random()*80); // randomise results each game
+    const fields = 'key,title,author_name,first_sentence,description,ratings_average,ratings_count,subject,cover_i,cover_id';
+    const url = `https://openlibrary.org/search.json?subject=${encodeURIComponent(subject)}&fields=${fields}&limit=40&offset=${offset}&language=eng`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('API fail');
+    const data = await res.json();
+    // Relax filter — keep books even without desc, use fun desc as fallback
+    const docs = (data.docs||[]).filter(w=>{
+      if(!w.title||!w.author_name||!w.author_name.length) return false;
+      // Reject any non-Latin characters anywhere
+      const latinOnly = /^[\u0000-\u007F\u00C0-\u024F\s\p{P}]*$/u;
+      if(!latinOnly.test(w.title)) return false;
+      if(!latinOnly.test(w.author_name[0]||'')) return false;
+      // Reject common non-English stop words in description (if desc exists)
+      const desc = extractDesc(w);
+      if(desc){
+        const foreign = /\b(und|der|die|das|ein|eine|ist|ich|sie|nicht|mit|von|den|dem|les|des|une|que|para|por|van|het|een|jeg|det|och|som|han|för|til|på|med|er|en|et|om|vi|de|du|il|la|le|ne|se|si|ce|au|aux|lui|nous|vous|ils|elles|mais|donc|car|ni)\b/i;
+        if(foreign.test(desc)) return false;
+        const latinOnlyDesc = /^[\u0000-\u007F\u00C0-\u024F\s\p{P}]*$/u;
+        if(!latinOnlyDesc.test(desc)) return false;
+      }
+      return true;
+    });
+    docs.sort(()=>Math.random()-0.5);
+    return docs.slice(0,count).map((w,i)=>{
+      const realDesc = extractDesc(w);
+      const title = w.title;
+      const desc = realDesc || makeFunDesc(title, genreName);
+      const rating = w.ratings_average && w.ratings_count > 5
+        ? `${w.ratings_average.toFixed(1)} (${w.ratings_count.toLocaleString()} ratings)`
+        : null;
+      const coverId = w.cover_i || w.cover_id || null;
+      return {
+        id: 'ol_'+genreId+'_'+i+'_'+Date.now(),
+        title,
+        author: w.author_name[0],
+        coverId,
+        genre: genreName,
+        desc,
+        isFunDesc: !realDesc,
+        quote: null,
+        rating,
+        where:[
+          {name:"Open Library",desc:"Free to read online",free:true,icon:"🌐"},
+          {name:"Libby / OverDrive",desc:"Free with library card",free:true,icon:"📚"},
+        ],
+        isAPI: true,
+      };
+    });
+  } catch(e) {
+    return (FALLBACK[genreId]||[]).map(b=>({...b, genre: genreName}));
+  }
+}
+
+function extractDesc(w){
+  // Junk patterns from Open Library edit notes — reject these
+  const junkPatterns = [
+    /added missing/i, /fixed page/i, /back cover/i, /import/i,
+    /ocr/i, /scan/i, /\bISBN\b/, /\bedition\b.*\bpublish/i,
+    /uploaded by/i, /edit note/i, /no description/i,
+  ];
+
+  let d = w.first_sentence;
+  if(d && typeof d === 'object') d = d.value || d[0] || '';
+  if(d && typeof d === 'string'){
+    d = d.replace(/[^\u0000-\u024F\s.,!?;:'""\-()]/g,'').trim();
+    if(d.length > 40 && !junkPatterns.some(p=>p.test(d))) return d;
+  }
+  d = w.description;
+  if(d && typeof d === 'object') d = d.value || '';
+  if(d && typeof d === 'string'){
+    d = d.replace(/[^\u0000-\u024F\s.,!?;:'""\-()]/g,'').trim().slice(0,400);
+    if(d.length > 40 && !junkPatterns.some(p=>p.test(d))) return d;
+  }
+  return null;
+}
+
+// Fun satirical descriptions when no real one is found
+function makeFunDesc(title, genre){
+  const t = title||'Unknown';
+  const g = (genre||'').toLowerCase();
+  const funLines = [
+    `"${t}" — a book so significant that even people who haven't read it have strong opinions about it.`,
+    `The kind of ${g||'literary'} work that makes you feel both intellectually superior and vaguely confused at the same time.`,
+    `"${t}" promises to change your life. Whether it delivers is between you and the book.`,
+    `A ${g||'celebrated'} classic that has been sitting on nightstands, half-read, in fourteen countries.`,
+    `Critics called "${t}" essential. Your book club will call it "a lot." Both are correct.`,
+    `The sort of book people buy twice — once to read, once to look smart.`,
+    `"${t}" — because apparently someone decided the world needed more existential questions and fewer easy answers.`,
+    `A work of ${g||'literary'} fiction so layered that the author may not have fully understood it either.`,
+  ];
+  return funLines[Math.floor(Math.random()*funLines.length)];
+}
+
+async function buildBookPool(genres, count){
+  show('loading');
+  setTimeout(()=>showQuote('loading-quote'), 100);
+
+  // ── 1. NYT Bestsellers — hardcoded current list (March 2026)
+  // NYT API blocks CORS from browsers, so we use a curated hardcoded list
+  // updated to current bestsellers. These ALWAYS appear as gold cards.
+  const ALL_BESTSELLERS = [
+    // Fiction
+    {title:"Judge Stone", author:"James Patterson & Viola Davis", genre:"Thriller", rank:1,
+     desc:"A gripping legal thriller about a high-stakes case that puts justice itself on trial. Patterson and Davis combine forces for a propulsive, page-turning courtroom drama.",
+     emoji:"⚖️"},
+    {title:"The Correspondent", author:"Virginia Evans", genre:"Thriller", rank:2,
+     desc:"A journalist embedded in a conflict zone uncovers a conspiracy that reaches the highest levels of power. Tense, timely, and impossible to put down.",
+     emoji:"📰"},
+    {title:"Dear Debbie", author:"Freida McFadden", genre:"Thriller", rank:3,
+     desc:"A woman receives letters meant for someone else — and becomes obsessed with unravelling a stranger's dark secret. McFadden at her most twisty.",
+     emoji:"✉️"},
+    {title:"Strangers", author:"Belle Burden", genre:"Biography / Memoir", rank:1,
+     desc:"A searing memoir that explores intimacy, identity and what we learn about ourselves through the people we love and lose. Heartbreaking and beautifully written.",
+     emoji:"🪞"},
+    {title:"Mistakes Were Made", author:"Lucy Score", genre:"Romance", rank:4,
+     desc:"A sharp-tongued lawyer and her infuriating new client are thrown together — and the sparks are undeniable. Witty, warm, and completely addictive.",
+     emoji:"💼"},
+    {title:"The Anxious Generation", author:"Jonathan Haidt", genre:"Psychology", rank:1,
+     desc:"A landmark investigation into the collapse of youth mental health in the smartphone era — and a practical plan for a healthier, freer childhood.",
+     emoji:"📱"},
+    {title:"The Let Them Theory", author:"Mel Robbins", genre:"Psychology", rank:2,
+     desc:"The author of The 5 Second Rule returns with a single powerful idea: stop trying to control others, let them be who they are, and reclaim your own energy.",
+     emoji:"🙌"},
+    {title:"Slaying the Vampire Conqueror", author:"Carissa Broadbent", genre:"Adventure", rank:5,
+     desc:"Sylina takes on a dangerous mission to destroy a vampire conqueror — and discovers that her enemy is far more complicated than she ever imagined.",
+     emoji:"🧛"},
+    {title:"Original Sins", author:"Eve L. Ewing", genre:"Essay / Stories", rank:3,
+     desc:"A powerful cultural examination of how the American school system creates and enforces racial hierarchies — urgent, clear-eyed, and deeply researched.",
+     emoji:"🏫"},
+    {title:"On Her Game", author:"Christine Brennan", genre:"Biography / Memoir", rank:2,
+     desc:"The definitive account of Caitlin Clark's extraordinary rise and the revolution she sparked in women's sports. A story about talent, pressure, and cultural change.",
+     emoji:"🏀"},
+  ];
+
+  // Pick bestsellers that match the chosen genres (or take any if no match)
+  const genreNames = genres.map(gid=>GENRE_DEFS.find(g=>g.id===gid)?.name||'');
+  let matched = ALL_BESTSELLERS.filter(b=>genreNames.includes(b.genre));
+  if(matched.length === 0) matched = ALL_BESTSELLERS; // fallback: use all
+  matched.sort(()=>Math.random()-0.5);
+  const bestsellerBooks = matched.slice(0,3).map(b=>({
+    id: 'nyt_'+b.title.replace(/\s/g,'_'),
+    title: b.title,
+    author: b.author,
+    emoji: b.emoji,
+    genre: b.genre,
+    desc: b.desc,
+    quote: null,
+    rating: null,
+    isBestseller: true,
+    nytRank: b.rank,
+    weeksOnList: null,
+    where:[
+      {name:"Open Library", desc:"Free to read online", free:true, icon:"🌐"},
+      {name:"Libby / OverDrive", desc:"Free with library card", free:true, icon:"📚"},
+      {name:"Amazon / Kindle", desc:"Buy or borrow digitally", free:false, icon:"📱"},
+    ],
+  }));
+
+  // ── 2. Fetch Open Library books per genre ───────────────
+  const perGenre = Math.ceil((count + 2) / genres.length);
+  const olBooks = [];
+  for(const gid of genres){
+    $('loading-msg').textContent = `Fetching ${GENRE_DEFS.find(g=>g.id===gid)?.name||gid} books…`;
+    const books = await fetchBooksForGenre(gid, perGenre);
+    olBooks.push(...books);
+  }
+
+  // ── 3. Wild card from a random other genre ───────────────
+  const otherGenres = GENRE_DEFS.filter(g=>!genres.includes(g.id));
+  if(otherGenres.length > 0){
+    const wildGenre = otherGenres[Math.floor(Math.random()*otherGenres.length)];
+    $('loading-msg').textContent = `Adding wild card from ${wildGenre.name}…`;
+    const wildBooks = await fetchBooksForGenre(wildGenre.id, 3);
+    if(wildBooks.length > 0){
+      const wc = wildBooks[Math.floor(Math.random()*wildBooks.length)];
+      wc.isWildcard = true;
+      olBooks.push(wc);
+    }
+  }
+
+  // ── 4. Merge, deduplicate, limit ────────────────────────
+  const seen = new Set();
+  // Mark bestsellers as seen so OL doesn't duplicate them
+  bestsellerBooks.forEach(b=>{seen.add(b.title.toLowerCase());});
+
+  const uniqueOL = olBooks.filter(b=>{
+    const key = b.title.toLowerCase();
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  // Bestsellers first (max 3), then shuffle the rest
+  const topBest = bestsellerBooks.slice(0, 3);
+  const rest = uniqueOL.sort(()=>Math.random()-0.5).slice(0, count - topBest.length);
+  const pool = [...topBest, ...rest].sort(()=>Math.random()-0.5).slice(0, count);
+
+  $('loading-msg').textContent = 'Ready!';
+  return pool;
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let S={name:'',id:'',room:'',isHost:false,round:1,books:[],votes:{},idx:0};
+let timerIv=null, roomListener=null;
+
+const $=id=>document.getElementById(id);
+const genCode=()=>{const c='ABCDEFGHJKLMNPQRSTUVWXYZ';let r='';for(let i=0;i<4;i++)r+=c[Math.floor(Math.random()*c.length)];return r;};
+const genId=()=>Math.random().toString(36).slice(2,10);
+const rRef=()=>ref(db,'rooms/'+S.room);
+const getR=async()=>(await get(rRef())).val();
+const setR=d=>set(rRef(),d);
+const updR=d=>update(rRef(),d);
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=$('s-'+id);
+  if(el){
+    el.classList.add('active');
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
+    window.scrollTo({top:0,behavior:'instant'});
+    setTimeout(()=>{document.documentElement.scrollTop=0;document.body.scrollTop=0;},50);
+  }
+}
+function stopTimer(){if(timerIv){clearInterval(timerIv);timerIv=null;}}
+function startTimer(ringId,numId,secs,onDone){
+  stopTimer();
+  const ring=$(ringId),num=$(numId);
+  const circ=138.2;let rem=secs;
+  ring.style.strokeDashoffset=0;ring.style.stroke='var(--accent)';num.textContent=rem;
+  timerIv=setInterval(()=>{
+    rem--;num.textContent=Math.max(0,rem);
+    ring.style.strokeDashoffset=circ*(1-rem/secs);
+    if(rem<=5)ring.style.stroke='var(--no)';
+    if(rem<=0){stopTimer();if(onDone)onDone();}
+  },1000);
+}
+function stopListener(){if(roomListener){try{off(rRef());}catch(e){}roomListener=null;}}
+function listenRoom(cb){stopListener();roomListener=onValue(rRef(),snap=>cb(snap.val()));}
+function copyCode(){navigator.clipboard&&navigator.clipboard.writeText(S.room).then(()=>{const el=$('disp-code');el.style.color='var(--yes)';setTimeout(()=>el.style.color='var(--accent)',1200);});}
+window.copyCode=copyCode;
+window.show=show;
+
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════
+function errEl(){return $('multi-err')||$('home-err')||{textContent:''};}
+
+async function createRoom(){
+  const name=$('inp-name').value.trim();
+  if(!name){errEl().textContent='Enter your name first.';return;}
+  errEl().textContent='Creating room…';
+  S.name=name;S.id=genId();S.room=genCode();S.isHost=true;
+  await setR({code:S.room,phase:'waiting',round:1,books:[],players:{[S.id]:{name,doneVoting:false,doneGenre:false,doneLength:false}},votes:{},genreVotes:{},lengthVotes:{},survivingBooks:[],winningGenres:[],shownGenres:[],vetoVotes:{}});
+  errEl().textContent='';showWait();
+}
+window.createRoom=createRoom;
+
+async function joinRoom(){
+  const name=$('inp-name').value.trim();
+  const code=$('inp-code').value.trim().toUpperCase();
+  errEl().textContent='';
+  if(!name){errEl().textContent='Enter your name.';return;}
+  if(code.length<4){errEl().textContent='Enter a valid 4-letter room code.';return;}
+  errEl().textContent='Looking up room…';
+  S.room=code;
+  const room=await getR();
+  if(!room){errEl().textContent='Room not found. Check the code and try again.';S.room='';return;}
+  if(['swiping','results','winner'].includes(room.phase)){errEl().textContent='Game already started. Ask host for a new room.';return;}
+  S.name=name;S.id=genId();S.isHost=false;
+  await updR({['players/'+S.id]:{name,doneVoting:false,doneGenre:false,doneLength:false}});
+  errEl().textContent='';showWait();
+}
+window.joinRoom=joinRoom;
+
+// ═══════════════════════════════════════════
+// WAITING ROOM
+// ═══════════════════════════════════════════
+function showWait(){
+  $('disp-code').textContent=S.room;$('hint-code').textContent=S.room;
+  $('host-ctrl').style.display=S.isHost?'block':'none';
+  $('guest-wait-msg').style.display=S.isHost?'none':'block';
+  show('wait');
+  listenRoom(room=>{
+    if(!room)return;
+    $('player-list').innerHTML=Object.values(room.players||{}).map(p=>`<span class="pchip"><span class="pdot"></span>${p.name}</span>`).join('');
+    if(!S.isHost){
+      if(room.phase==='genre-voting'){stopListener();enterGenreVote(room);}
+      else if(room.phase==='swiping'){stopListener();beginSwiping(room);}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// GENRE VOTING
+// ═══════════════════════════════════════════
+async function startGenreVote(){
+  const room=await getR();
+  const nP=Object.keys(room.players).length;
+  const extra=Math.min(nP+2,GENRE_DEFS.length-5);
+  const shuffled=[...GENRE_DEFS].sort(()=>Math.random()-0.5);
+  const shown=shuffled.slice(0,5+extra).map(g=>g.id);
+  const pu={};Object.keys(room.players).forEach(pid=>{pu['players/'+pid+'/doneGenre']=false;});
+  await updR({phase:'genre-voting',shownGenres:shown,genreVotes:{},...pu});
+  enterGenreVote(await getR());
+}
+window.startGenreVote=startGenreVote;
+
+function enterGenreVote(room){
+  const shown=room.shownGenres||[];
+  const defs=shown.map(id=>GENRE_DEFS.find(g=>g.id===id)).filter(Boolean);
+  $('genre-sub').textContent='Tap up to 3 genres you\'d enjoy';
+  $('genre-who').textContent=S.name;
+  $('s-genre').dataset.max=3;
+  $('genre-grid').innerHTML=defs.map(g=>`
+    <div class="genre-tile" data-id="${g.id}" ontouchstart="" onclick="toggleGenre(this)">
+      <div class="g-emoji">${g.emoji}</div>
+      <div class="g-name">${g.name}</div>
+      <div class="g-check"></div>
+    </div>`).join('');
+  show('genre');
+  startTimer('tr-genre','tn-genre',20,()=>submitGenre());
+}
+
+function toggleGenre(el){
+  const max=3;
+  if(el.classList.contains('sel')){el.classList.remove('sel');el.querySelector('.g-check').textContent='';}
+  else{
+    if(document.querySelectorAll('#genre-grid .genre-tile.sel').length>=max){$('genre-err').textContent='Max 3 genres';setTimeout(()=>$('genre-err').textContent='',1500);return;}
+    el.classList.add('sel');el.querySelector('.g-check').textContent='✓';$('genre-err').textContent='';
+  }
+}
+window.toggleGenre=toggleGenre;
+
+async function submitGenre(){
+  stopTimer();
+  const selected=[...document.querySelectorAll('#genre-grid .genre-tile.sel')].map(e=>e.dataset.id);
+  await updR({['genreVotes/'+S.id]:selected,['players/'+S.id+'/doneGenre']:true});
+  showVWait('Waiting for genre votes…','Everyone is picking their genres','🗳️');
+  listenRoom(room=>{
+    if(!room)return;
+    const players=Object.entries(room.players||{});
+    $('vw-status').innerHTML=players.map(([,p])=>`<span class="schip ${p.doneGenre?'done':'pend'}">${p.doneGenre?'✓':'…'} ${p.name}</span>`).join('');
+    if(players.filter(([,p])=>p.doneGenre).length===players.length){stopListener();computeGenres(room);}
+  });
+}
+window.submitGenre=submitGenre;
+
+async function computeGenres(room){
+  const tally={};
+  Object.values(room.genreVotes||{}).forEach(votes=>votes.forEach(g=>{tally[g]=(tally[g]||0)+1;}));
+  const top3=Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
+  const pu={};Object.keys(room.players).forEach(pid=>{pu['players/'+pid+'/doneLength']=false;});
+  await updR({winningGenres:top3,phase:'length-voting',lengthVotes:{},...pu});
+  enterLengthVote(await getR());
+}
+
+// ═══════════════════════════════════════════
+// LENGTH VOTING
+// ═══════════════════════════════════════════
+function enterLengthVote(room){
+  const wg=(room.winningGenres||[]).map(id=>{const d=GENRE_DEFS.find(g=>g.id===id);return d?d.emoji+' '+d.name:id;});
+  $('won-genres').textContent='Winning genres: '+wg.join(' · ');
+  $('length-who').textContent=S.name;
+  $('length-grid').innerHTML=[10,15,20,25].map(n=>`
+    <div class="length-tile" data-val="${n}" ontouchstart="" onclick="selectLength(this)">
+      <div class="l-num">${n}</div><div class="l-label">books to swipe</div>
+    </div>`).join('');
+  show('length');
+  startTimer('tr-length','tn-length',20,()=>submitLength());
+}
+function selectLength(el){document.querySelectorAll('.length-tile').forEach(t=>t.classList.remove('sel'));el.classList.add('sel');}
+window.selectLength=selectLength;
+
+async function submitLength(){
+  stopTimer();
+  const sel=document.querySelector('.length-tile.sel');
+  const val=sel?parseInt(sel.dataset.val):15;
+  await updR({['lengthVotes/'+S.id]:val,['players/'+S.id+'/doneLength']:true});
+  showVWait('Tallying votes…','Fetching books for your genres','📚');
+  listenRoom(room=>{
+    if(!room)return;
+    const players=Object.entries(room.players||{});
+    $('vw-status').innerHTML=players.map(([,p])=>`<span class="schip ${p.doneLength?'done':'pend'}">${p.doneLength?'✓':'…'} ${p.name}</span>`).join('');
+    if(players.filter(([,p])=>p.doneLength).length===players.length){stopListener();computeLength(room);}
+  });
+}
+window.submitLength=submitLength;
+
+async function computeLength(room){
+  const tally={};
+  Object.values(room.lengthVotes||{}).forEach(v=>{tally[v]=(tally[v]||0)+1;});
+  const sorted=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+  let count=parseInt(sorted[0][0]);
+  if(sorted.length>1&&sorted[0][1]===sorted[1][1]){
+    const vals=Object.values(room.lengthVotes||{});
+    count=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+  }
+
+  if(S.isHost){
+    // Only host fetches books to avoid duplicate API calls
+    show('loading');
+    const genres=room.winningGenres||['philosophy'];
+    const finalBooks=await buildBookPool(genres,count);
+    const pu={};Object.keys(room.players).forEach(pid=>{pu['players/'+pid+'/doneVoting']=false;});
+    await updR({phase:'swiping',round:1,books:finalBooks,votes:{},vetoVotes:{},...pu});
+    beginSwiping(await getR());
+  } else {
+    // Non-host waits for swiping phase
+    showVWait('Host is fetching books…','Almost ready!','📚');
+    listenRoom(room=>{
+      if(!room)return;
+      if(room.phase==='swiping'){stopListener();beginSwiping(room);}
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// SWIPING
+// ═══════════════════════════════════════════
+let dragX=0,dragY=0,dragStartX=0,dragStartY=0,dragging=false;
+const THRESH=70;
+
+function beginSwiping(room){
+  S.books=room.books||[];S.round=room.round||1;S.votes={};S.idx=0;
+  $('swipe-rnd-lbl').textContent='Round '+S.round;
+  show('swipe');renderCard();setupDrag();
+}
+
+function calcSecs(book){
+  const l=(book.desc||'').length;
+  if(l<120)return 20;
+  if(l<250)return 25;
+  return 30;
+}
+
+function renderCard(){
+  if(S.idx>=S.books.length){finishSwiping();return;}
+  const b=S.books[S.idx];
+  const card=$('book-card');
+  const cover=$('card-cover');
+
+  // Gold bestseller glow or normal
+  card.classList.toggle('bestseller', !!b.isBestseller);
+
+  // ── Cover: real image or gradient fallback ──────────────
+  cover.innerHTML='';
+  cover.style.background='';
+
+  // ── Cover ──────────────────────────────────
+  cover.innerHTML='';
+  cover.style.background='';
+  renderBookCover(cover, b);
+
+  // Badges
+  if(b.isBestseller){
+    const bb=document.createElement('div');bb.className='bestseller-badge';
+    bb.innerHTML=`✦ NYT Bestseller${b.nytRank?' #'+b.nytRank:''}`;cover.appendChild(bb);
+  }
+  if(b.isWildcard){
+    const wb=document.createElement('div');wb.className='wildcard-badge';
+    wb.textContent='🎲 Wild card';cover.appendChild(wb);
+  }
+
+  $('card-genre').textContent=b.genre||'';
+  $('card-title').textContent=b.title;
+  $('card-author').textContent=b.author;
+  $('card-desc').textContent=b.desc||'';
+
+  if(b.quote){$('card-quote').style.display='block';$('card-quote').textContent=b.quote;}
+  else{$('card-quote').style.display='none';}
+
+  const ratingEl=$('card-rating');
+  if(b.rating){ratingEl.style.display='inline-flex';ratingEl.innerHTML=`⭐ ${b.rating} · Open Library`;}
+  else if(b.gr){ratingEl.style.display='inline-flex';ratingEl.innerHTML=`⭐ ${b.gr} <span style="color:var(--muted);font-size:0.63rem;margin-left:2px;">(${b.grK} · Goodreads)</span>`;}
+  else{ratingEl.style.display='none';}
+
+  $('prog-fill').style.width=(S.idx/S.books.length*100)+'%';
+  $('prog-txt').textContent=`Book ${S.idx+1} of ${S.books.length}`;
+
+  card.style.transition='';card.style.transform='translate(0,0) rotate(0deg)';card.style.opacity='1';
+  $('lbl-y').style.opacity=0;$('lbl-n').style.opacity=0;
+  $('btn-yes').disabled=false;$('btn-no').disabled=false;
+  startTimer('tr-swipe','tn-swipe',calcSecs(b),()=>doSwipe('no'));
+}
+
+// Generate a unique but consistent color from a string
+function strToHue(str){
+  let hash=0;
+  for(let i=0;i<str.length;i++) hash=str.charCodeAt(i)+((hash<<5)-hash);
+  return Math.abs(hash)%360;
+}
+
+// ─── SMART BOOK EMOJI ──────────────────────
+function getBookEmoji(title, genre){
+  const t=(title||'').toLowerCase();
+  const famous=[
+    [['life of pi'],'🐯'],[['frankenstein'],'🧟'],[['moby dick','moby-dick'],'🐋'],
+    [['great gatsby'],'🥂'],[['to kill a mockingbird'],'🐦'],[['old man and the sea'],'🎣'],
+    [['animal farm'],'🐷'],[['lord of the flies'],'🪰'],[['call of the wild'],'🐺'],
+    [['watership down'],'🐰'],[['jungle book'],'🐯'],[['twenty thousand leagues','nautilus'],'🦑'],
+    [['war of the worlds'],'👽'],[['time machine'],'⏰'],[['jekyll','hyde'],'🧪'],
+    [['dorian gray'],'🪞'],[['count of monte cristo'],'⚔️'],[['three musketeers'],'🗡️'],
+    [['hunchback','notre dame'],'🔔'],[['les misérables','les miserables'],'⛓️'],
+    [['sherlock','holmes'],'🔍'],[['dracula'],'🧛'],[['alice in wonderland'],'🐇'],
+    [['wizard of oz'],'🌪️'],[['treasure island'],'🏴‍☠️'],[['robinson crusoe'],'🏝️'],
+    [['don quixote'],'⚔️'],[['anna karenina'],'🚂'],[['war and peace'],'🪖'],
+    [['crime and punishment'],'🪓'],[['karamazov'],'☦️'],[['notes from underground'],'🕳️'],
+    [['1984','nineteen eighty'],'👁️'],[['brave new world'],'💊'],[['fahrenheit 451'],'🔥'],
+    [['handmaid'],'🔴'],[['hunger games'],'🏹'],[['lord of the rings','fellowship'],'💍'],
+    [['hobbit'],'🧙'],[['silmarillion'],'✨'],[['harry potter'],'⚡'],[['narnia'],'🦁'],
+    [['dune'],'🏜️'],[['solaris'],'🪐'],[['hitchhiker'],'🌌'],[['flowers for algernon'],'🌸'],
+    [['left hand of darkness'],'❄️'],[['dispossessed'],'🌍'],[['the stranger','l\'etranger'],'🌅'],
+    [['nausea'],'🌫️'],[['siddhartha'],'🪷'],[['steppenwolf'],'🐺'],[['demian'],'🥚'],
+    [['prophet'],'🌊'],[['meditations'],'⚖️'],[['zarathustra','nietzsche'],'⛰️'],
+    [['man\'s search for meaning'],'🕯️'],[['body keeps the score'],'🫀'],
+    [['thinking fast and slow'],'🧩'],[['sapiens'],'🦴'],[['selfish gene'],'🧬'],
+    [['educated'],'🏔️'],[['diary of a young girl','anne frank'],'📓'],
+    [['long walk to freedom'],'✊'],[['into the wild'],'🌲'],[['kite runner'],'🪁'],
+    [['thousand splendid suns'],'☀️'],[['alchemist'],'⚗️'],
+    [['hundred years of solitude','one hundred years'],'🦋'],
+    [['master and margarita'],'🐱'],[['name of the rose'],'🌹'],[['perfume'],'🌹'],
+    [['road'],'🔥'],[['remains of the day'],'🍵'],[['never let me go'],'🧬'],
+    [['pachinko'],'🌺'],[['normal people'],'💕'],[['little prince','petit prince'],'🌹'],
+    [['phantom of the opera'],'🎭'],[['scarlet letter'],'🔴'],[['invisible man'],'👤'],
+    [['black beauty'],'🐎'],[['sea wolf'],'🐺'],[['white fang'],'🐺'],
+    [['around the world in eighty days','80 days'],'🌍'],[['journey to the center'],'⛏️'],
+    [['picture of dorian'],'🖼️'],[['importance of being'],'🎭'],
+    [['portrait of a lady'],'🎨'],[['scarlet pimpernel'],'🌸'],
+    [['hound of the baskervilles'],'🐕'],[['sign of four'],'💎'],
+    [['moonstone'],'💎'],[['woman in white'],'👻'],[['rebecca'],'🗝️'],
+    [['jane eyre'],'🕯️'],[['wuthering heights'],'🌧️'],[['pride and prejudice'],'💌'],
+    [['sense and sensibility'],'🌹'],[['emma'],'🎀'],[['persuasion'],'💌'],
+    [['northanger abbey'],'🏰'],[['middlemarch'],'🏡'],[['mill on the floss'],'🌊'],
+    [['silas marner'],'💰'],[['adam bede'],'🌾'],[['tess'],'🌾'],
+    [['jude the obscure'],'🪨'],[['return of the native'],'🌿'],[['far from the madding'],'🐑'],
+    [['ulysses'],'🌊'],[['dubliners'],'🍀'],[['portrait of the artist'],'🎨'],
+    [['sound and the fury'],'🌀'],[['as i lay dying'],'⚰️'],[['light in august'],'☀️'],
+    [['grapes of wrath'],'🍇'],[['of mice and men'],'🐭'],[['east of eden'],'🌅'],
+    [['catcher in the rye'],'🧢'],[['on the road'],'🚗'],[['naked lunch'],'🍽️'],
+    [['bell jar'],'🔔'],[['catch-22','catch 22'],'✈️'],[['slaughterhouse'],'🕊️'],
+    [['beloved'],'👻'],[['song of solomon'],'🎵'],[['color purple'],'💜'],
+    [['invisible cities'],'🏙️'],[['if on a winter\'s night'],'📚'],
+    [['name of the wind'],'🌬️'],[['way of kings'],'👑'],[['mistborn'],'🌫️'],
+    [['shadow of the wind'],'💨'],[['pillars of the earth'],'⛪'],
+    [['gone with the wind'],'🌪️'],[['atlas shrugged'],'🏔️'],[['fountainhead'],'🏛️'],
+    [['ayn rand'],'🏛️'],[['catch me'],'✈️'],
+  ];
+  for(const [keys,emoji] of famous){
+    if(keys.some(k=>t.includes(k))) return emoji;
+  }
+  return pickEmoji(title, genre);
+}
+
+// ─── RENDER EMOJI COVER ────────────────────
+function renderBookCover(cover, b){
+  const emoji=getBookEmoji(b.title, b.genre);
+  const hue=strToHue(b.title||'');
+  const hue2=(hue+50)%360;
+  cover.style.background=`linear-gradient(160deg,hsl(${hue},35%,10%) 0%,hsl(${hue2},40%,16%) 100%)`;
+  cover.innerHTML=`
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;">
+      <div style="font-size:4rem;line-height:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));">${emoji}</div>
+      <div style="font-size:0.58rem;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:0.15em;">${b.genre||''}</div>
+    </div>`;
+}
+
+// Keep for backwards compat
+function renderGradientCover(cover,b){ renderBookCover(cover,b); }
+function loadGoogleCover(cover,b,key){ addBadgesBack(cover,b); }
+
+function addBadgesBack(cover,b){
+  if(b.isBestseller&&!cover.querySelector('.bestseller-badge')){
+    const bb=document.createElement('div');bb.className='bestseller-badge';
+    bb.innerHTML=`✦ NYT Bestseller${b.nytRank?' #'+b.nytRank:''}`;cover.appendChild(bb);
+  }
+  if(b.isWildcard&&!cover.querySelector('.wildcard-badge')){
+    const wb=document.createElement('div');wb.className='wildcard-badge';
+    wb.textContent='🎲 Wild card';cover.appendChild(wb);
+  }
+}
+
+function doSwipe(dir){
+  stopTimer();
+  if(S.idx>=S.books.length||$('btn-yes').disabled)return;
+  $('btn-yes').disabled=true;$('btn-no').disabled=true;
+  S.votes[S.books[S.idx].id]=(dir==='yes');
+  const card=$('book-card');
+  const tx=dir==='yes'?430:-430, rot=dir==='yes'?22:-22;
+  card.style.transition='transform 0.3s ease,opacity 0.3s ease';
+  card.style.transform=`translate(${tx}px,-16px) rotate(${rot}deg)`;
+  card.style.opacity='0';
+  setTimeout(()=>{S.idx++;renderCard();},300);
+}
+window.doSwipe=doSwipe;
+
+function setupDrag(){
+  const card=$('book-card');
+  const start=(x,y)=>{dragging=true;dragStartX=x;dragStartY=y;dragX=0;dragY=0;card.style.transition='';};
+  const move=(x,y)=>{
+    if(!dragging)return;
+    dragX=x-dragStartX;dragY=y-dragStartY;
+    card.style.transform=`translate(${dragX}px,${Math.abs(dragX)*0.04}px) rotate(${dragX*0.07}deg)`;
+    const p=Math.min(Math.abs(dragX)/THRESH,1);
+    $('lbl-y').style.opacity=dragX>20?p:0;
+    $('lbl-n').style.opacity=dragX<-20?p:0;
+  };
+  const end=()=>{
+    if(!dragging)return;dragging=false;
+    if(dragX>THRESH)doSwipe('yes');
+    else if(dragX<-THRESH)doSwipe('no');
+    else{
+      card.style.transition='transform 0.28s ease';
+      card.style.transform='translate(0,0) rotate(0deg)';
+      $('lbl-y').style.opacity=0;$('lbl-n').style.opacity=0;
+      setTimeout(()=>card.style.transition='',280);
+    }
+  };
+  card.ontouchstart=e=>{e.preventDefault();start(e.touches[0].clientX,e.touches[0].clientY);};
+  card.ontouchmove=e=>{e.preventDefault();move(e.touches[0].clientX,e.touches[0].clientY);};
+  card.ontouchend=e=>{e.preventDefault();end();};
+  card.onmousedown=e=>start(e.clientX,e.clientY);
+  window.onmousemove=e=>{if(dragging)move(e.clientX,e.clientY);};
+  window.onmouseup=end;
+}
+
+async function finishSwiping(){
+  await updR({['votes/'+S.id]:S.votes,['players/'+S.id+'/doneVoting']:true});
+  showOthers();
+  listenRoom(room=>{
+    if(!room)return;
+    const players=Object.entries(room.players||{});
+    const done=players.filter(([,p])=>p.doneVoting).length;
+    $('oth-status').innerHTML=players.map(([,p])=>`<span class="schip ${p.doneVoting?'done':'pend'}">${p.doneVoting?'✓':'…'} ${p.name}</span>`).join('');
+    $('oth-msg').textContent=`${done} of ${players.length} done`;
+    if(done===players.length){stopListener();computeResults(room);}
+  });
+}
+
+// ═══════════════════════════════════════════
+// RESULTS
+// ═══════════════════════════════════════════
+async function computeResults(room){
+  const pids=Object.keys(room.players);
+  const votes=room.votes||{};
+  const books=room.books||[];
+
+  // A book advances only if EVERY player voted YES (true)
+  const matches=books.filter(b=>pids.every(pid=>votes[pid]&&votes[pid][b.id]===true));
+  if(matches.length===0){showResults(room,[],true);return;}
+  if(matches.length===1){if(S.isHost)await updR({phase:'winner',winner:matches[0]});showWinner(matches[0],room);return;}
+  if(S.isHost)await updR({survivingBooks:matches,phase:'results'});
+  showResults(room,matches,false);
+}
+
+function showResults(room,matches,noMatch){
+  const rnd=room.round||1;
+  $('res-rnd').textContent=`Round ${rnd} results`;
+  if(noMatch){
+    $('res-title').textContent='No consensus yet';
+    $('res-sub').textContent='Nobody agreed on any single book this round.';
+    $('res-list').innerHTML='<div style="text-align:center;padding:1.2rem;color:var(--muted);font-size:0.87rem;line-height:1.7;">No book got enough love this round.<br>Try again with a fresh set of books!</div>';
+    if(S.isHost){
+      $('host-next').style.display='block';
+      $('next-btn').textContent=`↩ Try new books (Round ${rnd+1})`;
+      $('next-btn').onclick=tryNewBooks;
+      // Add new game button
+      let ng=$('new-game-btn');
+      if(!ng){
+        ng=document.createElement('button');
+        ng.id='new-game-btn';
+        ng.className='btn btn-secondary';
+        ng.style.marginTop='0.5rem';
+        ng.textContent='✕ Start a new game';
+        ng.onclick=()=>location.reload();
+        $('host-next').appendChild(ng);
+      }
+      $('guest-next').style.display='none';
+    }else{
+      $('host-next').style.display='none';$('guest-next').style.display='block';listenForNextRound();
+    }
+  }else{
+    $('res-title').textContent=`${matches.length} books survived!`;
+    $('res-sub').textContent=`Everyone liked these — round ${rnd+1} will narrow it down.`;
+    $('res-list').innerHTML=matches.map(b=>`
+      <div class="match-card">
+        <div class="m-emoji">${b.emoji||'📖'}</div>
+        <div class="m-info">
+          <div class="m-title">${b.title}</div>
+          <div class="m-author">${b.author}</div>
+          <div class="m-tag">${b.rating||b.gr?`⭐ ${b.rating||b.gr} · `:''}✓ All players liked this</div>
+        </div>
+      </div>`).join('');
+    if(S.isHost){$('host-next').style.display='block';$('next-btn').textContent=`▶ Start Round ${rnd+1} (${matches.length} books)`;$('guest-next').style.display='none';}
+    else{$('host-next').style.display='none';$('guest-next').style.display='block';listenForNextRound();}
+  }
+  show('results');
+}
+
+function listenForNextRound(){
+  listenRoom(room=>{
+    if(!room)return;
+    if(room.phase==='swiping'&&room.round>S.round){stopListener();S.round=room.round;beginSwiping(room);}
+    if(room.phase==='winner'){stopListener();showWinner(room.winner,room);}
+    if(room.phase==='genre-voting'){stopListener();enterGenreVote(room);}
+  });
+}
+
+async function tryNewBooks(){
+  // Fetch completely fresh books for the same genres
+  const room=await getR();
+  const genres=room.winningGenres||['philosophy'];
+  const count=(room.books||[]).length;
+  show('loading');
+  $('loading-msg').textContent='Fetching fresh books…';
+  setTimeout(()=>showQuote('loading-quote'),100);
+  const newBooks=await buildBookPool(genres, count);
+  const pu={};Object.keys(room.players).forEach(pid=>{pu['players/'+pid+'/doneVoting']=false;});
+  await updR({round:(room.round||1)+1,books:newBooks,survivingBooks:[],phase:'swiping',votes:{},...pu});
+  beginSwiping(await getR());
+}
+window.tryNewBooks=tryNewBooks;
+
+async function nextRound(){
+  const room=await getR();
+  const books=room.survivingBooks||room.books||[];
+  const pu={};Object.keys(room.players).forEach(pid=>{pu['players/'+pid+'/doneVoting']=false;});
+  await updR({round:(room.round||1)+1,books,phase:'swiping',votes:{},...pu});
+  beginSwiping(await getR());
+}
+window.nextRound=nextRound;
+
+// ═══════════════════════════════════════════
+// WINNER SCREEN
+// ═══════════════════════════════════════════
+function showWinner(book, room){
+  // Header above the card
+  const emoji = getBookEmoji(book.title, book.genre);
+  $('winner-card').innerHTML=`
+    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);margin-bottom:1rem;">🏆 Your group's pick</div>
+    <div style="font-size:3.2rem;margin:0.2rem 0;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));">${emoji}</div>
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:0.3rem;margin-top:0.6rem;">${book.genre||''}</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--accent);margin:0.4rem 0 0.2rem;line-height:1.25;">${book.title}</div>
+    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;">by ${book.author}</div>
+    ${book.rating?`<div style="font-size:0.74rem;color:var(--accent);margin-bottom:0.8rem;">⭐ ${book.rating} · Open Library</div>`:''}
+    <div style="font-size:0.78rem;color:var(--muted);line-height:1.65;margin-bottom:${book.quote?'0.8rem':'0'};">${book.desc||''}</div>
+    ${book.quote?`<div style="font-size:0.73rem;font-style:italic;color:var(--muted);border-left:2px solid rgba(232,200,122,0.4);padding-left:0.7rem;text-align:left;line-height:1.5;margin-top:0.5rem;">${book.quote}</div>`:''}`;
+
+  // Where to read
+  if(book.where&&book.where.length){
+    $('where-card').style.display='block';
+    $('where-list').innerHTML=book.where.map(w=>`
+      <div class="where-row">
+        <div class="where-icon">${w.icon}</div>
+        <div class="where-info"><div class="where-name">${w.name}</div><div class="where-desc">${w.desc}</div></div>
+        <span class="where-tag ${w.free?'tag-free':'tag-paid'}">${w.free?'Free':'Paid'}</span>
+      </div>`).join('');
+  }
+
+  // Taste profiles — unique per player
+  if(room){
+    const pids=Object.keys(room.players||{});
+    const votes=room.votes||{};
+    const books=room.books||[];
+    const players=Object.entries(room.players||{});
+
+    $('profile-card').style.display='block';
+    $('profile-list').innerHTML=players.map(([pid,p])=>{
+      const pVotes=votes[pid]||{};
+      const yesBooks=books.filter(b=>pVotes[b.id]===true);
+      const noBooks=books.filter(b=>pVotes[b.id]===false);
+
+      const yesCounts={};
+      yesBooks.forEach(b=>{ yesCounts[b.genre]=(yesCounts[b.genre]||0)+1; });
+      const noCounts={};
+      noBooks.forEach(b=>{ noCounts[b.genre]=(noCounts[b.genre]||0)+1; });
+
+      const topYes=Object.entries(yesCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
+      const topNo=Object.entries(noCounts).sort((a,b)=>b[1]-a[1]).slice(0,1).map(e=>e[0]);
+      const decisiveness=books.length>0?Math.round(((yesBooks.length+noBooks.length)/books.length)*100):0;
+      const profile=buildProfile(topYes, topNo, yesBooks.length, 0, noBooks.length, decisiveness);
+
+      return `<div class="profile-player">
+        <div class="profile-name">${p.name}</div>
+        <div class="profile-desc">${profile.desc}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:0.3rem;">${profile.stats}</div>
+        <div class="profile-genres">${topYes.map(g=>`<span class="profile-tag">${g}</span>`).join('')}${topNo[0]?`<span class="profile-tag" style="background:rgba(224,92,92,0.1);border-color:rgba(224,92,92,0.2);color:var(--no);">✕ ${topNo[0]}</span>`:''}</div>
+      </div>`;
+    }).join('');
+
+    // Veto setup
+    setupVeto(room);
+  }
+
+  show('winner');
+  setTimeout(()=>launchConfetti(), 100);
+}
+
+function buildProfile(topYes, topNo, yesCount, maybeCount, noCount, decisiveness){
+  const total = yesCount + noCount;
+  const dark=['Thriller','Dystopia','Crime / Detective','Existentialism','Psychology'];
+  const light=['Romance','Adventure','Coming of Age','Classic Fiction'];
+  const deep=['Philosophy','Spiritual','Biography / Memoir','Essay / Stories'];
+  const weird=['Magic Realism','Sci-Fi','Historical'];
+  const darkScore=topYes.filter(g=>dark.includes(g)).length;
+  const lightScore=topYes.filter(g=>light.includes(g)).length;
+  const deepScore=topYes.filter(g=>deep.includes(g)).length;
+  const weirdScore=topYes.filter(g=>weird.includes(g)).length;
+  let style='';
+  if(decisiveness>=80) style='decisive and opinionated';
+  else if(noCount>yesCount*2) style='a tough crowd to please';
+  else if(yesCount>total*0.6) style='an enthusiastic yes-sayer';
+  else style='thoughtful and selective';
+  let desc='';
+  if(darkScore>=2&&lightScore===0) desc='You live on the dark side of literature — drawn to moral ambiguity, psychological tension, and stories that leave a mark.';
+  else if(lightScore>=2&&darkScore===0) desc='A warm-hearted reader who wants stories that feel alive — full of emotion, connection, and genuine human moments.';
+  else if(deepScore>=2) desc='A philosophical soul — you read to wrestle with the big questions, not to escape them.';
+  else if(darkScore>=1&&deepScore>=1) desc='Equal parts brooding and thoughtful — you want books that disturb you AND make you think harder about the world.';
+  else if(lightScore>=1&&deepScore>=1) desc='A romantic thinker — you want stories with heart and meaning, not just one or the other.';
+  else if(weirdScore>=2) desc='An unconventional reader — drawn to the strange, the speculative, and stories that bend reality a little.';
+  else if(topYes.length===0) desc='A complete enigma. Either very picky or just here for the snacks.';
+  else desc='Eclectic taste — you swipe yes on things others wouldn\'t expect, making you the most interesting reader at the table.';
+  const rejectLine=topNo[0]?` Hard pass on ${topNo[0].toLowerCase()} though.`:'';
+  const statsLine=total>0?`✓ ${yesCount} yes · ✕ ${noCount} no · ${style}`:'No votes recorded';
+  return {desc:desc+rejectLine, stats:statsLine};
+}
+
+// ═══════════════════════════════════════════
+// VETO — 60% majority
+// ═══════════════════════════════════════════
+function vetoThreshold(nPlayers){
+  // 60% majority, rounded up
+  return Math.ceil(nPlayers*0.6);
+}
+
+function setupVeto(room){
+  const players=Object.entries(room.players||{});
+  const n=players.length;
+  const needed=vetoThreshold(n);
+  const currentVetos=Object.keys(room.vetoVotes||{}).length;
+  $('veto-need').textContent=`${currentVetos}/${needed} players have vetoed · Need ${needed} to restart`;
+  renderVetoProgress(room);
+  listenRoom(r=>{
+    if(!r)return;
+    const vetos=Object.keys(r.vetoVotes||{}).length;
+    renderVetoProgress(r);
+    $('veto-need').textContent=`${vetos}/${needed} players have vetoed · Need ${needed} to restart`;
+    if(vetos>=needed){
+      stopListener();
+      // Restart with same genres, new books
+      restartWithVeto(r);
+    }
+  });
+}
+
+function renderVetoProgress(room){
+  const players=Object.entries(room.players||{});
+  const vetoVotes=room.vetoVotes||{};
+  $('veto-progress').innerHTML=players.map(([pid,p])=>`
+    <span class="veto-chip ${vetoVotes[pid]?'voted':''}">${vetoVotes[pid]?'🚫':''} ${p.name}</span>`).join('');
+  const myVoted=vetoVotes[S.id];
+  $('veto-btn').textContent=myVoted?'✓ Veto cast':'🚫 Veto this book';
+  $('veto-btn').disabled=!!myVoted;
+  $('veto-btn').style.opacity=myVoted?'0.5':'1';
+}
+
+async function pressVeto(){
+  await updR({['vetoVotes/'+S.id]:true});
+}
+window.pressVeto=pressVeto;
+
+async function restartWithVeto(room){
+  stopTimer();
+  // Keep same genres, fetch new books
+  show('loading');
+  $('loading-msg').textContent='Veto passed! Fetching new books…';
+  const genres=room.winningGenres||['philosophy'];
+  const count=(room.books||[]).length;
+  const newBooks=await buildBookPool(genres,count);
+  const pu={};
+  Object.keys(room.players).forEach(pid=>{pu['players/'+pid+'/doneVoting']=false;});
+  await updR({phase:'swiping',round:(room.round||1)+1,books:newBooks,votes:{},vetoVotes:{},...pu});
+  beginSwiping(await getR());
+}
+
+// ═══════════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════════
+function launchConfetti(){
+  const canvas=$('confetti-canvas');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const pieces=[];
+  const colors=['#e8c87a','#4caf87','#e05c5c','#7aa4e8','#f0ede8','#e8a87a'];
+  for(let i=0;i<130;i++){pieces.push({x:Math.random()*canvas.width,y:-10-Math.random()*200,w:6+Math.random()*8,h:8+Math.random()*12,color:colors[Math.floor(Math.random()*colors.length)],vx:(Math.random()-0.5)*4,vy:2+Math.random()*4,rot:Math.random()*360,vrot:(Math.random()-0.5)*8,opacity:1});}
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.rot+=p.vrot;if(frame>120)p.opacity=Math.max(0,p.opacity-0.012);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);ctx.globalAlpha=p.opacity;ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();});
+    frame++;if(frame<220)requestAnimationFrame(draw);else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+// ═══════════════════════════════════════════
+// WAITING QUOTES
+// ═══════════════════════════════════════════
+const QUOTES = [
+  {text:"A reader lives a thousand lives before he dies. The man who never reads lives only one.", author:"George R.R. Martin"},
+  {text:"Not all those who wander are lost.", author:"J.R.R. Tolkien"},
+  {text:"The more that you read, the more things you will know. The more that you learn, the more places you'll go.", author:"Dr. Seuss"},
+  {text:"One must always be careful of books, and what is inside them, for words have the power to change us.", author:"Cassandra Clare"},
+  {text:"It is what you read when you don't have to that determines what you will be when you can't help it.", author:"Oscar Wilde"},
+  {text:"There is no friend as loyal as a book.", author:"Ernest Hemingway"},
+  {text:"A book is a dream that you hold in your hands.", author:"Neil Gaiman"},
+  {text:"We read to know we are not alone.", author:"C.S. Lewis"},
+  {text:"The reading of all good books is like a conversation with the finest minds of past centuries.", author:"René Descartes"},
+  {text:"Think before you speak. Read before you think.", author:"Fran Lebowitz"},
+  {text:"A book must be the axe for the frozen sea within us.", author:"Franz Kafka"},
+  {text:"Books are a uniquely portable magic.", author:"Stephen King"},
+  {text:"Until I feared I would lose it, I never loved to read. One does not love breathing.", author:"Harper Lee"},
+  {text:"I am not afraid of storms, for I am learning how to sail my ship.", author:"Louisa May Alcott"},
+  {text:"No two persons ever read the same book.", author:"Edmund Wilson"},
+  {text:"You can find magic wherever you look. Sit back and relax, all you need is a book.", author:"Dr. Seuss"},
+  {text:"That's the thing about books. They let you travel without moving your feet.", author:"Jhumpa Lahiri"},
+  {text:"If you only read the books that everyone else is reading, you can only think what everyone else is thinking.", author:"Haruki Murakami"},
+  {text:"A word after a word after a word is power.", author:"Margaret Atwood"},
+  {text:"Literature is the most agreeable way of ignoring life.", author:"Fernando Pessoa"},
+  {text:"The world is a book, and those who do not travel read only one page.", author:"Saint Augustine"},
+  {text:"I took a deep breath and listened to the old brag of my heart: I am, I am, I am.", author:"Sylvia Plath"},
+  {text:"Books are mirrors: we only see in them what we already have inside us.", author:"Carlos Ruiz Zafón"},
+  {text:"To read is to voyage through time.", author:"Carl Sagan"},
+  {text:"Sleep is good, he said, and books are better.", author:"George R.R. Martin"},
+  {text:"I would be most content if my children grew up to be the kind of people who think decorating consists mostly of building enough bookshelves.", author:"Anna Quindlen"},
+  {text:"Life is too short to read bad books.", author:"James Joyce"},
+  {text:"Outside of a dog, a book is man's best friend. Inside of a dog, it's too dark to read.", author:"Groucho Marx"},
+  {text:"Always read something that will make you look good if you die in the middle of it.", author:"P.J. O'Rourke"},
+  {text:"Reading is to the mind what exercise is to the body.", author:"Joseph Addison"},
+];
+
+let quoteTimers = {};
+
+function showQuote(elId){
+  const el = $(elId);
+  if(!el) return;
+  const q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  el.innerHTML = `<div class="quote-text">"${q.text}"</div><div class="quote-author">— ${q.author}</div>`;
+  // Rotate every 8 seconds
+  if(quoteTimers[elId]) clearInterval(quoteTimers[elId]);
+  quoteTimers[elId] = setInterval(()=>{
+    const next = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+    el.style.opacity='0';el.style.transition='opacity 0.4s';
+    setTimeout(()=>{
+      el.innerHTML=`<div class="quote-text">"${next.text}"</div><div class="quote-author">— ${next.author}</div>`;
+      el.style.opacity='1';
+    },400);
+  },8000);
+}
+
+function stopQuotes(elId){
+  if(quoteTimers[elId]){clearInterval(quoteTimers[elId]);delete quoteTimers[elId];}
+}
+
+function showVWait(title,sub,orb){
+  $('vw-title').textContent=title;
+  $('vw-sub').textContent=sub;
+  $('vw-orb').textContent=orb;
+  $('vw-status').innerHTML='';
+  show('vwait');
+  setTimeout(()=>showQuote('vwait-quote'), 100);
+}
+
+function showOthers(){
+  show('others');
+  setTimeout(()=>showQuote('others-quote'), 100);
+}
+
+// ═══════════════════════════════════════════
+// HOME MODE SELECT
+// ═══════════════════════════════════════════
+function showModeSelect(mode){
+  if(mode==='single') show('sp-mood');
+  else show('multi-setup');
+}
+window.showModeSelect=showModeSelect;
+
+// ═══════════════════════════════════════════
+// SINGLE PLAYER STATE
+// ═══════════════════════════════════════════
+let SP = {
+  mood: null,           // selected mood id
+  books: [],            // all books fetched
+  idx: 0,               // current swipe index
+  yesBooks: [],         // books swiped YES
+  slBooks: [],          // shortlist books for round 2
+  slIdx: 0,             // shortlist swipe index
+  superYes: [],         // final super yes picks
+};
+
+const MOODS = [
+  {id:'dark',     label:'Dark & Intense',    emoji:'🌑', desc:'Thriller, crime, psychological tension',    genres:['thriller','existential','crime','dystopia']},
+  {id:'warm',     label:'Warm & Emotional',  emoji:'💕', desc:'Romance, coming of age, heartfelt stories', genres:['romance','coming','classic','biography']},
+  {id:'think',    label:'Make Me Think',      emoji:'🧠', desc:'Philosophy, psychology, big ideas',          genres:['philosophy','psychology','existential','essay']},
+  {id:'escape',   label:'Take Me Somewhere',  emoji:'🚀', desc:'Sci-fi, adventure, magic realism',          genres:['scifi','adventure','magic','historical']},
+  {id:'spirit',   label:'Deep & Spiritual',   emoji:'🪷', desc:'Spiritual, memoir, meaning of life',        genres:['spiritual','biography','philosophy','essay']},
+  {id:'surprise', label:'Surprise Me',        emoji:'🎲', desc:'Random mix — anything goes',                genres:['thriller','romance','scifi','historical','magic','coming']},
+];
+
+// ─── MOOD SCREEN ───────────────────────────
+function initMoodScreen(){
+  $('sp-mood-grid').innerHTML = MOODS.map(m=>`
+    <div class="genre-tile" ontouchstart="" onclick="selectMood('${m.id}')">
+      <div class="g-emoji">${m.emoji}</div>
+      <div class="g-name" style="font-weight:500;color:var(--text);">${m.label}</div>
+      <div class="g-name" style="font-size:0.65rem;margin-top:2px;">${m.desc}</div>
+    </div>`).join('');
+}
+window.initMoodScreen=initMoodScreen;
+
+async function selectMood(moodId){
+  SP.mood = moodId;
+  SP.idx = 0;
+  SP.yesBooks = [];
+  const mood = MOODS.find(m=>m.id===moodId);
+  show('loading');
+  $('loading-msg').textContent=`Finding ${mood.label} books…`;
+  setTimeout(()=>showQuote('loading-quote'),100);
+
+  // Shuffle genres and pick 2-3
+  const genres = [...mood.genres].sort(()=>Math.random()-0.5).slice(0,3);
+  SP.books = await buildBookPool(genres, 20);
+  show('sp-swipe');
+  window.scrollTo({top:0,behavior:'instant'});
+  spRenderCard();
+  spSetupDrag();
+}
+window.selectMood=selectMood;
+
+// ─── SP SWIPE ──────────────────────────────
+function spRenderCard(){
+  if(SP.idx>=SP.books.length){ spFinishSwiping(); return; }
+  const b = SP.books[SP.idx];
+  const cover=$('sp-card-cover');
+  cover.innerHTML='';
+  cover.style.background='';
+  renderBookCover(cover, b);
+
+  $('sp-card-genre').textContent=b.genre||'';
+  $('sp-card-title').textContent=b.title;
+  $('sp-card-author').textContent=b.author;
+  $('sp-card-desc').textContent=b.desc||'';
+  if(b.rating){$('sp-card-rating').style.display='inline-flex';$('sp-card-rating').innerHTML=`⭐ ${b.rating} · Open Library`;}
+  else{$('sp-card-rating').style.display='none';}
+
+  const pct=(SP.idx/SP.books.length*100);
+  $('sp-prog-fill').style.width=pct+'%';
+  $('sp-prog-txt').textContent=`Book ${SP.idx+1} of ${SP.books.length}`;
+
+  const card=$('sp-book-card');
+  card.style.transition='';card.style.transform='translate(0,0) rotate(0deg)';card.style.opacity='1';
+  $('sp-lbl-y').style.opacity=0;$('sp-lbl-n').style.opacity=0;
+  $('sp-btn-yes').disabled=false;$('sp-btn-no').disabled=false;
+
+  // Scroll to top so card is always visible
+  if(SP.idx===0) window.scrollTo({top:0,behavior:'instant'});
+}
+
+function spSwipe(dir){
+  if(SP.idx>=SP.books.length||$('sp-btn-yes').disabled)return;
+  $('sp-btn-yes').disabled=true;$('sp-btn-no').disabled=true;
+  if(dir==='yes') SP.yesBooks.push(SP.books[SP.idx]);
+  const card=$('sp-book-card');
+  const tx=dir==='yes'?430:-430, rot=dir==='yes'?22:-22;
+  card.style.transition='transform 0.3s ease,opacity 0.3s ease';
+  card.style.transform=`translate(${tx}px,-16px) rotate(${rot}deg)`;
+  card.style.opacity='0';
+  setTimeout(()=>{SP.idx++;spRenderCard();},300);
+}
+window.spSwipe=spSwipe;
+
+function spFinishEarly(){ spFinishSwiping(); }
+window.spFinishEarly=spFinishEarly;
+
+function spFinishSwiping(){
+  if(SP.yesBooks.length===0){ show('sp-empty'); return; }
+  if(SP.yesBooks.length===1){ spShowPick(SP.yesBooks[0]); return; }
+  SP.slBooks=[...SP.yesBooks];
+  SP.slIdx=0;
+  SP.superYes=[];
+  $('sp-shortlist-sub').textContent=`You liked ${SP.slBooks.length} books — now go deeper`;
+  spRenderShortlist();
+  show('sp-shortlist');
+  window.scrollTo({top:0,behavior:'instant'});
+  spSetupSlDrag();
+}
+
+// ─── SHORTLIST SWIPE ───────────────────────
+function spRenderShortlist(){
+  if(SP.slIdx>=SP.slBooks.length){ spFinishShortlist(); return; }
+  const b=SP.slBooks[SP.slIdx];
+  const cover=$('sp-sl-cover');
+  cover.innerHTML='';
+  cover.style.background='';
+  renderBookCover(cover,b);
+
+  $('sp-sl-genre').textContent=b.genre||'';
+  $('sp-sl-title').textContent=b.title;
+  $('sp-sl-author').textContent=b.author;
+
+  // Shortlist shows a different/longer description
+  $('sp-sl-desc').textContent=b.desc||'';
+
+  // Show quote as an interesting fact if available
+  if(b.quote){
+    $('sp-sl-fact').style.display='block';
+    $('sp-sl-fact').textContent=b.quote;
+  } else {
+    $('sp-sl-fact').style.display='none';
+  }
+
+  if(b.rating){$('sp-sl-rating').style.display='inline-flex';$('sp-sl-rating').innerHTML=`⭐ ${b.rating}`;}
+  else{$('sp-sl-rating').style.display='none';}
+
+  $('sp-sl-prog').textContent=`${SP.slIdx+1} of ${SP.slBooks.length}`;
+
+  const card=$('sp-sl-card');
+  card.style.transition='';card.style.transform='translate(0,0) rotate(0deg)';card.style.opacity='1';
+  $('sp-sl-lbl-y').style.opacity=0;$('sp-sl-lbl-n').style.opacity=0;
+  $('sp-sl-btn-yes').disabled=false;$('sp-sl-btn-no').disabled=false;
+}
+
+function spSlSwipe(dir){
+  if(SP.slIdx>=SP.slBooks.length||$('sp-sl-btn-yes').disabled)return;
+  $('sp-sl-btn-yes').disabled=true;$('sp-sl-btn-no').disabled=true;
+  if(dir==='yes') SP.superYes.push(SP.slBooks[SP.slIdx]);
+  const card=$('sp-sl-card');
+  const tx=dir==='yes'?430:-430, rot=dir==='yes'?22:-22;
+  card.style.transition='transform 0.3s ease,opacity 0.3s ease';
+  card.style.transform=`translate(${tx}px,-16px) rotate(${rot}deg)`;
+  card.style.opacity='0';
+  setTimeout(()=>{SP.slIdx++;spRenderShortlist();},300);
+}
+window.spSlSwipe=spSlSwipe;
+
+function spFinishShortlist(){
+  // Pick first YES from shortlist, or first book if none picked
+  const pick = SP.superYes.length>0 ? SP.superYes[0] : SP.slBooks[0];
+  spShowPick(pick);
+}
+
+// ─── YOUR PICK ─────────────────────────────
+function spShowPick(book){
+  $('sp-pick-card').innerHTML=`
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:0.3rem;">${book.genre||''}</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--accent);margin:0.4rem 0 0.2rem;">${book.title}</div>
+    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.7rem;">by ${book.author}</div>
+    ${book.rating?`<div style="font-size:0.74rem;color:var(--accent);margin-bottom:0.7rem;">⭐ ${book.rating}</div>`:''}
+    <div style="font-size:0.78rem;color:var(--muted);line-height:1.65;">${book.desc||''}</div>
+    ${book.quote?`<div style="font-size:0.73rem;font-style:italic;color:var(--muted);border-left:2px solid rgba(232,200,122,0.4);padding-left:0.7rem;text-align:left;line-height:1.5;margin-top:0.8rem;">${book.quote}</div>`:''}`;
+
+  // Where to read
+  if(book.where&&book.where.length){
+    $('sp-where-card').style.display='block';
+    $('sp-where-list').innerHTML=book.where.map(w=>`
+      <div class="where-row">
+        <div class="where-icon">${w.icon}</div>
+        <div class="where-info"><div class="where-name">${w.name}</div><div class="where-desc">${w.desc}</div></div>
+        <span class="where-tag ${w.free?'tag-free':'tag-paid'}">${w.free?'Free':'Paid'}</span>
+      </div>`).join('');
+  }
+
+  // Save to Want to Read list
+  saveToWTR(book);
+  renderWTR();
+
+  show('sp-pick');
+  document.documentElement.scrollTop=0;
+  document.body.scrollTop=0;
+  setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),50);
+}
+
+// ─── WANT TO READ ──────────────────────────
+function saveToWTR(book){
+  const list=JSON.parse(localStorage.getItem('bs_wtr')||'[]');
+  // Avoid duplicates
+  if(!list.find(b=>b.title===book.title)){
+    list.unshift({title:book.title, author:book.author, genre:book.genre, addedAt:Date.now()});
+    localStorage.setItem('bs_wtr', JSON.stringify(list.slice(0,50)));
+  }
+}
+
+function renderWTR(){
+  const list=JSON.parse(localStorage.getItem('bs_wtr')||'[]');
+  if(list.length===0){
+    $('sp-wtr-list').innerHTML='<div style="font-size:0.82rem;color:var(--muted);padding:0.5rem 0;">No books saved yet.</div>';
+    return;
+  }
+  $('sp-wtr-list').innerHTML=list.map((b,i)=>`
+    <div class="where-row" style="align-items:flex-start;">
+      <div style="font-size:0.75rem;color:var(--muted);width:18px;flex-shrink:0;padding-top:2px;">${i+1}</div>
+      <div class="where-info">
+        <div class="where-name">${b.title}</div>
+        <div class="where-desc">${b.author} · ${b.genre||''}</div>
+      </div>
+      <button onclick="removeFromWTR(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:0 4px;">✕</button>
+    </div>`).join('');
+}
+window.removeFromWTR=function(i){
+  const list=JSON.parse(localStorage.getItem('bs_wtr')||'[]');
+  list.splice(i,1);
+  localStorage.setItem('bs_wtr',JSON.stringify(list));
+  renderWTR();
+};
+
+function spPlayAgain(){
+  SP={mood:null,books:[],idx:0,yesBooks:[],slBooks:[],slIdx:0,superYes:[]};
+  show('sp-mood');
+}
+window.spPlayAgain=spPlayAgain;
+
+// ─── SP DRAG SETUP ─────────────────────────
+let spDragX=0,spDragStartX=0,spDragging=false;
+function spSetupDrag(){
+  const card=$('sp-book-card');
+  const start=x=>{spDragging=true;spDragStartX=x;spDragX=0;card.style.transition='';};
+  const move=x=>{
+    if(!spDragging)return;
+    spDragX=x-spDragStartX;
+    card.style.transform=`translate(${spDragX}px,${Math.abs(spDragX)*0.04}px) rotate(${spDragX*0.07}deg)`;
+    const p=Math.min(Math.abs(spDragX)/THRESH,1);
+    $('sp-lbl-y').style.opacity=spDragX>20?p:0;
+    $('sp-lbl-n').style.opacity=spDragX<-20?p:0;
+  };
+  const end=()=>{
+    if(!spDragging)return;spDragging=false;
+    if(spDragX>THRESH)spSwipe('yes');
+    else if(spDragX<-THRESH)spSwipe('no');
+    else{
+      card.style.transition='transform 0.28s ease';
+      card.style.transform='translate(0,0) rotate(0deg)';
+      $('sp-lbl-y').style.opacity=0;$('sp-lbl-n').style.opacity=0;
+      setTimeout(()=>card.style.transition='',280);
+    }
+  };
+  card.ontouchstart=e=>{e.preventDefault();start(e.touches[0].clientX);};
+  card.ontouchmove=e=>{e.preventDefault();move(e.touches[0].clientX);};
+  card.ontouchend=e=>{e.preventDefault();end();};
+  card.onmousedown=e=>start(e.clientX);
+  window.onmousemove=e=>{if(spDragging)move(e.clientX);};
+  window.onmouseup=end;
+}
+
+let spSlDragX=0,spSlDragStartX=0,spSlDragging=false;
+function spSetupSlDrag(){
+  const card=$('sp-sl-card');
+  const start=x=>{spSlDragging=true;spSlDragStartX=x;spSlDragX=0;card.style.transition='';};
+  const move=x=>{
+    if(!spSlDragging)return;
+    spSlDragX=x-spSlDragStartX;
+    card.style.transform=`translate(${spSlDragX}px,${Math.abs(spSlDragX)*0.04}px) rotate(${spSlDragX*0.07}deg)`;
+    const p=Math.min(Math.abs(spSlDragX)/THRESH,1);
+    $('sp-sl-lbl-y').style.opacity=spSlDragX>20?p:0;
+    $('sp-sl-lbl-n').style.opacity=spSlDragX<-20?p:0;
+  };
+  const end=()=>{
+    if(!spSlDragging)return;spSlDragging=false;
+    if(spSlDragX>THRESH)spSlSwipe('yes');
+    else if(spSlDragX<-THRESH)spSlSwipe('no');
+    else{
+      card.style.transition='transform 0.28s ease';
+      card.style.transform='translate(0,0) rotate(0deg)';
+      $('sp-sl-lbl-y').style.opacity=0;$('sp-sl-lbl-n').style.opacity=0;
+      setTimeout(()=>card.style.transition='',280);
+    }
+  };
+  card.ontouchstart=e=>{e.preventDefault();start(e.touches[0].clientX);};
+  card.ontouchmove=e=>{e.preventDefault();move(e.touches[0].clientX);};
+  card.ontouchend=e=>{e.preventDefault();end();};
+  card.onmousedown=e=>start(e.clientX);
+  window.onmousemove=e=>{if(spSlDragging)move(e.clientX);};
+  window.onmouseup=end;
+}
+
+// Init mood screen on load
+initMoodScreen();
+</script>
+<!-- ═══════════════════════════════════════
+     SINGLE PLAYER SCREENS
+════════════════════════════════════════ -->
+
+<!-- SP: MOOD SELECTOR -->
+<div id="s-sp-mood" class="screen">
+  <button class="back-btn" onclick="show('home')">← Back</button>
+  <div class="h2" style="margin-top:0.5rem;">What are you in the mood for?</div>
+  <div class="sub">Pick one and we'll find the perfect books</div>
+  <div class="genre-grid" id="sp-mood-grid" style="margin-top:0.5rem;"></div>
+</div>
+
+<!-- SP: SWIPE -->
+<div id="s-sp-swipe" class="screen" style="padding-top:0;align-items:stretch;">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:0.3rem;">
+    <div class="round-badge" style="margin-bottom:0;">Discovering books</div>
+    <button class="act-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);width:44px;height:44px;font-size:0.75rem;" onclick="spFinishEarly()">Done</button>
+  </div>
+  <div class="prog-wrap" style="margin-bottom:0.2rem;"><div class="prog-fill" id="sp-prog-fill" style="width:0%"></div></div>
+  <div class="prog-txt" id="sp-prog-txt" style="margin-bottom:0.3rem;">Book 1 of 20</div>
+  <div class="swipe-area" style="margin:0 0 0.3rem;">
+    <div class="book-card" id="sp-book-card">
+      <div class="slbl lbl-y" id="sp-lbl-y">✓ YES</div>
+      <div class="slbl lbl-n" id="sp-lbl-n">✗ NOPE</div>
+      <div class="book-cover" id="sp-card-cover"></div>
+      <div class="book-info">
+        <div class="g-tag" id="sp-card-genre"></div>
+        <div class="rating-badge" id="sp-card-rating" style="display:none;"></div>
+        <div class="book-title" id="sp-card-title"></div>
+        <div class="book-author" id="sp-card-author"></div>
+        <div class="book-desc" id="sp-card-desc"></div>
+      </div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="act-btn act-no" id="sp-btn-no" onclick="spSwipe('no')"><span>✕</span><span class="act-lbl">nope</span></button>
+    <button class="act-btn act-yes" id="sp-btn-yes" onclick="spSwipe('yes')"><span>✓</span><span class="act-lbl">yes!</span></button>
+  </div>
+  <div class="swipe-hint">No rush — take your time</div>
+</div>
+
+<!-- SP: SHORTLIST -->
+<div id="s-sp-shortlist" class="screen" style="padding-top:0.25rem;">
+  <div class="h2" style="margin-top:0;">Your shortlist</div>
+  <div class="sub" id="sp-shortlist-sub" style="margin-bottom:0.5rem;">Swipe again — go with your gut</div>
+  <div class="swipe-area">
+    <div class="book-card" id="sp-sl-card">
+      <div class="slbl lbl-y" id="sp-sl-lbl-y">✓ YES</div>
+      <div class="slbl lbl-n" id="sp-sl-lbl-n">✗ NOPE</div>
+      <div class="book-cover" id="sp-sl-cover"></div>
+      <div class="book-info">
+        <div class="g-tag" id="sp-sl-genre"></div>
+        <div class="rating-badge" id="sp-sl-rating" style="display:none;"></div>
+        <div class="book-title" id="sp-sl-title"></div>
+        <div class="book-author" id="sp-sl-author"></div>
+        <div class="book-desc" id="sp-sl-desc"></div>
+        <div class="book-quote" id="sp-sl-fact" style="display:none;border-left-color:rgba(76,175,135,0.4);margin-top:0.4rem;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="act-btn act-no" id="sp-sl-btn-no" onclick="spSlSwipe('no')"><span>✕</span><span class="act-lbl">nope</span></button>
+    <button class="act-btn act-yes" id="sp-sl-btn-yes" onclick="spSlSwipe('yes')"><span>✓</span><span class="act-lbl">yes!</span></button>
+  </div>
+  <div class="swipe-hint">← nope · swipe right for yes →</div>
+  <div class="prog-txt" id="sp-sl-prog" style="margin-top:0.4rem;"></div>
+</div>
+
+<!-- SP: YOUR PICK -->
+<div id="s-sp-pick" class="screen" style="padding-top:0.5rem;">
+  <div class="winner-card" id="sp-pick-card"></div>
+  <div class="where-card" id="sp-where-card" style="display:none;">
+    <div class="where-title">📖 Where to read this</div>
+    <div id="sp-where-list"></div>
+  </div>
+  <!-- Want to Read list -->
+  <div class="where-card" id="sp-wtr-card" style="margin-top:0.8rem;">
+    <div class="where-title">📚 Your want to read list</div>
+    <div id="sp-wtr-list"></div>
+  </div>
+  <div style="display:flex;gap:0.6rem;width:100%;margin-top:0.8rem;">
+    <button class="mode-btn" style="flex:1;height:56px;" onclick="spPlayAgain()">↩ Play again</button>
+    <button class="mode-btn" style="flex:1;height:56px;" onclick="show('home')">🏠 Home</button>
+  </div>
+</div>
+
+<!-- SP: NO PICKS -->
+<div id="s-sp-empty" class="screen">
+  <div style="font-size:3rem;margin:2rem 0 1rem;">🤔</div>
+  <div class="h2">Nothing grabbed you</div>
+  <div class="sub">You passed on everything this round.<br>Try a different mood?</div>
+  <button class="btn btn-primary" onclick="show('sp-mood')" style="margin-top:1rem;">Try a different mood</button>
+  <button class="btn btn-secondary" onclick="show('home')">← Home</button>
+</div>
+
+</body>
+</html>
