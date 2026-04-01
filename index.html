@@ -132,6 +132,13 @@ input::placeholder{color:var(--muted);}
 .profile-desc{font-size:0.78rem;color:var(--muted);line-height:1.5;}
 .profile-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;}
 .profile-tag{font-size:0.65rem;padding:0.15rem 0.5rem;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.2);border-radius:20px;color:var(--accent);}
+/* Compatibility */
+.compat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.2rem;width:100%;margin-top:0.8rem;text-align:center;}
+.compat-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.6rem;}
+.compat-score{font-family:'Playfair Display',serif;font-size:2.4rem;color:var(--accent);line-height:1;margin-bottom:0.3rem;}
+.compat-label{font-size:0.78rem;color:var(--muted);margin-bottom:0.7rem;line-height:1.5;}
+.compat-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.compat-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--no),var(--accent),var(--yes));transition:width 1.2s ease;}
 /* Veto */
 .veto-section{width:100%;margin-top:1rem;}
 .veto-btn-wrap{position:relative;}
@@ -352,6 +359,14 @@ input::placeholder{color:var(--muted);}
   <div id="where-card" class="where-card" style="display:none;">
     <div class="where-title">📖 Where to read this</div>
     <div id="where-list"></div>
+  </div>
+
+  <!-- Compatibility Score -->
+  <div class="compat-card" id="compat-card" style="display:none;">
+    <div class="compat-title">💞 Group Compatibility</div>
+    <div class="compat-score" id="compat-score">—</div>
+    <div class="compat-label" id="compat-label"></div>
+    <div class="compat-bar"><div class="compat-fill" id="compat-fill" style="width:0%"></div></div>
   </div>
 
   <!-- Taste profiles -->
@@ -1402,6 +1417,40 @@ function showWinner(book, room){
         <div class="where-info"><div class="where-name">${w.name}</div><div class="where-desc">${w.desc}</div></div>
         <span class="where-tag ${w.free?'tag-free':'tag-paid'}">${w.free?'Free':'Paid'}</span>
       </div>`).join('');
+  }
+
+  // Compatibility score
+  if(room){
+    const pids=Object.keys(room.players||{});
+    const votes=room.votes||{};
+    const books=room.books||[];
+    if(pids.length>=2 && books.length>0){
+      // Count books where ALL players agreed (all YES or all NO)
+      let agreed=0;
+      books.forEach(b=>{
+        const playerVotes=pids.map(pid=>votes[pid]?votes[pid][b.id]:null).filter(v=>v!==null);
+        if(playerVotes.length===pids.length){
+          const allYes=playerVotes.every(v=>v===true);
+          const allNo=playerVotes.every(v=>v===false);
+          if(allYes||allNo) agreed++;
+        }
+      });
+      const compat=Math.round((agreed/books.length)*100);
+
+      // Personality label based on score
+      let label='';
+      if(compat>=85) label='You two are basically the same person. Reading soulmates. 📚';
+      else if(compat>=70) label='Very aligned taste — you\'ll rarely argue about what to read next.';
+      else if(compat>=55) label='Good compatibility — you agree more than you disagree.';
+      else if(compat>=40) label='Mixed taste — the disagreements make the debate interesting.';
+      else if(compat>=25) label='Opposites attract — your reading tastes could not be more different.';
+      else label='Complete chaos. How did you even agree on a book? 😂';
+
+      $('compat-card').style.display='block';
+      $('compat-score').textContent=compat+'%';
+      $('compat-label').textContent=label;
+      setTimeout(()=>{ $('compat-fill').style.width=compat+'%'; }, 300);
+    }
   }
 
   // Taste profiles — unique per player
