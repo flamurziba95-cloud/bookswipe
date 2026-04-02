@@ -2081,6 +2081,15 @@ function spRenderCard(){
   cover.style.background='';
   renderBookCover(cover, b);
 
+  // Bestseller badge + gold aura
+  const card=$('sp-book-card');
+  card.classList.toggle('bestseller', !!b.isBestseller);
+  if(b.isBestseller && !cover.querySelector('.bestseller-badge')){
+    const bb=document.createElement('div');bb.className='bestseller-badge';
+    bb.innerHTML=`✦ NYT Bestseller${b.nytRank?' #'+b.nytRank:''}`;
+    cover.appendChild(bb);
+  }
+
   $('sp-card-genre').textContent=b.genre||'';
   $('sp-card-title').textContent=b.title;
   $('sp-card-author').textContent=b.author;
@@ -2092,7 +2101,6 @@ function spRenderCard(){
   $('sp-prog-fill').style.width=pct+'%';
   $('sp-prog-txt').textContent=`Book ${SP.idx+1} of ${SP.books.length}`;
 
-  const card=$('sp-book-card');
   card.style.transition='';card.style.transform='translate(0,0) rotate(0deg)';card.style.opacity='1';
   $('sp-lbl-y').style.opacity=0;$('sp-lbl-n').style.opacity=0;
   $('sp-btn-yes').disabled=false;$('sp-btn-no').disabled=false;
@@ -2132,12 +2140,11 @@ function spFinishSwiping(){
 
 // ─── ROUND ANNOUNCEMENT ────────────────────
 const ANNOUNCE_MSGS = [
-  // round 1→2
   { round:'Round 2', title:'Let\'s narrow it down', sub:'' },
-  // round 2→3
   { round:'Round 3', title:'You\'re getting closer!', sub:'Trust your instincts' },
-  // round 3→4 (should rarely happen)
-  { round:'Round 4', title:'Still deciding?', sub:'No rush — take your time' },
+  { round:'Round 4', title:'Still in the game!', sub:'The right book is in there' },
+  { round:'Round 5', title:'Almost there…', sub:'Go with your gut' },
+  { round:'Round 6', title:'Final round!', sub:'One of these will change your life' },
 ];
 const MOTIVATIONAL = [
   'The right book is in there somewhere.',
@@ -2226,14 +2233,14 @@ function spFinishShortlistRound(){
   // 4+ YES
   SP.slRound++;
 
-  // Round 4+ — show all yes books as a grid, no more swiping
-  if(SP.slRound>3){
+  // Round 7+ — show all yes books as a grid, no more swiping
+  if(SP.slRound>6){
     spShowAllBooks(yes);
     return;
   }
 
-  // Round 3 finished with 4+ — show "let me help" question before another round
-  if(SP.slRound===3){
+  // After round 3 — show "let me help" question before continuing
+  if(SP.slRound===4){
     spShowRound3Help(yes);
     return;
   }
