@@ -2019,7 +2019,7 @@ window.showModeSelect=showModeSelect;
 // ═══════════════════════════════════════════
 // SINGLE PLAYER STATE
 // ═══════════════════════════════════════════
-let SP = {
+window.SP = {
   mood: null,
   books: [],
   idx: 0,
@@ -2032,6 +2032,7 @@ let SP = {
   _finalists: [],
   _allBooks: [],
 };
+const SP = window.SP;
 
 const MOODS = [
   {id:'dark',     label:'Dark & Intense',    emoji:'🌑', desc:'Thriller, crime, psychological tension',    genres:['thriller','existential','crime','dystopia']},
@@ -2143,8 +2144,8 @@ const ANNOUNCE_MSGS = [
   { round:'Round 2', title:'Let\'s narrow it down', sub:'' },
   { round:'Round 3', title:'You\'re getting closer!', sub:'Trust your instincts' },
   { round:'Round 4', title:'Still in the game!', sub:'The right book is in there' },
-  { round:'Round 5', title:'Almost there…', sub:'Go with your gut' },
-  { round:'Round 6', title:'Final round!', sub:'One of these will change your life' },
+  { round:'Round 5', title:'You clearly have great taste', sub:'Just a little more narrowing down' },
+  { round:'Final Round', title:'This is it!', sub:'One of these will change your life' },
 ];
 const MOTIVATIONAL = [
   'The right book is in there somewhere.',
@@ -2171,7 +2172,7 @@ function spShowAnnouncement(callback){
 
   show('sp-announce');
   window.scrollTo({top:0,behavior:'instant'});
-  setTimeout(()=>{ callback(); }, 2000);
+  setTimeout(()=>{ callback(); }, 3000);
 }
 window.spShowAnnouncement=spShowAnnouncement;
 
@@ -2317,7 +2318,7 @@ function spShowAllBooks(books){
   window.scrollTo({top:0,behavior:'instant'});
   SP._allBooks=books;
   $('sp-all-books-grid').innerHTML=books.map((b,i)=>`
-    <div class="all-book-card" onclick="spShowPick(SP._allBooks[${i}])">
+    <div class="all-book-card" onclick="window.SP._allBooks&&spShowPick(window.SP._allBooks[${i}])">
       <div class="all-book-cover" id="sp-ab-${i}"></div>
       <div class="all-book-info">
         <div class="all-book-title">${b.title}</div>
@@ -2348,7 +2349,7 @@ function spShowFinalists(books, reasons=[]){
 
   $('sp-finalists-grid').className = books.length===2 ? 'finalists-grid-2' : 'finalists-grid-3';
   $('sp-finalists-grid').innerHTML=books.map((b,i)=>`
-    <div class="finalist-card" onclick="spShowPick(SP._finalists[${i}])">
+    <div class="finalist-card" onclick="window.SP._finalists&&spShowPick(window.SP._finalists[${i}])">
       <div class="finalist-cover" id="sp-fc-${i}"></div>
       <div class="finalist-info">
         <div style="font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;">${b.genre||''}</div>
@@ -2497,7 +2498,7 @@ window.spSurpriseMe=spSurpriseMe;
 
 function spPlayAgain(){
   _cleanRound3Help();
-  SP={mood:null,books:[],idx:0,yesBooks:[],slRound:0,slBooks:[],slIdx:0,slYes:[],swipeTimes:{},_finalists:[],_allBooks:[]};
+  Object.assign(window.SP,{mood:null,books:[],idx:0,yesBooks:[],slRound:0,slBooks:[],slIdx:0,slYes:[],swipeTimes:{},_finalists:[],_allBooks:[]});
   show('sp-mood');
 }
 window.spPlayAgain=spPlayAgain;
