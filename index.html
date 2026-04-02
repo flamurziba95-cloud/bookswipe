@@ -144,6 +144,12 @@ input::placeholder{color:var(--muted);}
 .profile-desc{font-size:0.78rem;color:var(--muted);line-height:1.5;}
 .profile-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;}
 .profile-tag{font-size:0.65rem;padding:0.15rem 0.5rem;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.2);border-radius:20px;color:var(--accent);}
+/* Enrichment badges */
+.enrich-badge{display:inline-flex;align-items:center;gap:3px;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.68rem;border:1px solid var(--border);background:var(--surface2);color:var(--muted);white-space:nowrap;}
+.enrich-badge.pages{border-color:rgba(232,200,122,0.25);color:var(--accent);}
+.enrich-badge.easy{border-color:rgba(76,175,135,0.3);color:var(--yes);}
+.enrich-badge.medium{border-color:rgba(232,200,122,0.3);color:var(--accent);}
+.enrich-badge.hard{border-color:rgba(224,92,92,0.3);color:var(--no);}
 /* Round announcement screen */
 .sp-announce-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:0.6rem;}
 .sp-announce-round{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);margin-bottom:0.3rem;}
@@ -254,7 +260,7 @@ input::placeholder{color:var(--muted);}
 /* Home */
 /* ─── HOME SCREEN REDESIGN ─── */
 .home-screen{
-  min-height:80dvh;display:flex;flex-direction:column;
+  min-height:80dvh;height:80dvh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   position:relative;overflow:hidden;padding:2rem 1.5rem;
   width:100%;max-width:440px;
@@ -263,12 +269,12 @@ input::placeholder{color:var(--muted);}
 .home-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
 .home-screen>*:not(.home-particles){position:relative;z-index:1;}
 .hero-btn,.secondary-home-btn,.home-divider,.home-tagline,.home-logo-wrap,.home-proof{pointer-events:auto;}
-.particle{position:absolute;font-size:1.2rem;opacity:0;animation:particleFloat linear infinite;}
+.particle{position:absolute;font-size:1.2rem;opacity:0;animation:particleFloat linear infinite;will-change:transform;}
 @keyframes particleFloat{
-  0%{opacity:0;transform:translateY(100vh) rotate(0deg);}
-  10%{opacity:0.15;}
-  90%{opacity:0.08;}
-  100%{opacity:0;transform:translateY(-100px) rotate(360deg);}
+  0%{opacity:0;transform:translateY(120%) rotate(0deg);}
+  8%{opacity:0.18;}
+  92%{opacity:0.08;}
+  100%{opacity:0;transform:translateY(-120px) rotate(360deg);}
 }
 /* Logo */
 .home-logo-wrap{text-align:center;margin-bottom:0.5rem;animation:fadeUp 0.8s ease both;}
@@ -2096,6 +2102,8 @@ function spRenderCard(){
   $('sp-card-title').textContent=b.title;
   $('sp-card-author').textContent=b.author;
   $('sp-card-desc').textContent=b.desc||'';
+  // Enrich description with Claude if bad/short
+  enrichCardDesc(b);
   if(b.rating){$('sp-card-rating').style.display='inline-flex';$('sp-card-rating').innerHTML=`⭐ ${b.rating} · Open Library`;}
   else{$('sp-card-rating').style.display='none';}
 
@@ -2177,7 +2185,91 @@ function spShowAnnouncement(callback){
 }
 window.spShowAnnouncement=spShowAnnouncement;
 
-// ─── SHORTLIST ROUNDS ──────────────────────
+// ─── CLAUDE API ENRICHMENT ─────────────────
+const ANTHROPIC_KEY = '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';
+const enrichCache = {}; // cache by title to avoid repeat calls
+
+async function enrichShortlistCard(book){
+  const cacheKey = book.title + '|' + book.author;
+  if(enrichCache[cacheKey]){
+    renderEnrichment(enrichCache[cacheKey]);
+    return;
+  }
+
+  // Show loading
+  $('sp-sl-loading').style.display='block';
+  $('sp-sl-enrichment').style.display='none';
+
+  try{
+    const prompt = `For the book "${book.title}" by ${book.author}, provide ONLY a JSON object with these exact fields (no markdown, no extra text):
+{
+  "pages": <number or null>,
+  "difficulty": "Easy" or "Medium" or "Challenging",
+  "impact": "<one punchy sentence about cultural/literary significance, max 12 words>",
+  "fact": "<one surprising or fascinating fact about the book or author, max 20 words>"
+}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    // Calculate reading time from pages
+    if(parsed.pages){
+      const days = Math.round(parsed.pages / 25);
+      parsed.readingTime = days <= 7 ? `~${days} days` :
+        days <= 14 ? '~1-2 weeks' :
+        days <= 21 ? '~2-3 weeks' :
+        days <= 30 ? '~3-4 weeks' : '~1 month+';
+    }
+
+    enrichCache[cacheKey] = parsed;
+    $('sp-sl-loading').style.display='none';
+    renderEnrichment(parsed);
+
+  } catch(e){
+    $('sp-sl-loading').style.display='none';
+  }
+}
+
+function renderEnrichment(data){
+  // Meta badges
+  const diffClass = data.difficulty==='Easy'?'easy':data.difficulty==='Challenging'?'hard':'medium';
+  const diffEmoji = data.difficulty==='Easy'?'🟢':data.difficulty==='Challenging'?'🔴':'🟡';
+  let badges = `<span class="enrich-badge ${diffClass}">${diffEmoji} ${data.difficulty}</span>`;
+  if(data.pages) badges += `<span class="enrich-badge pages">📖 ${data.pages} pages</span>`;
+  if(data.readingTime) badges += `<span class="enrich-badge">📅 ${data.readingTime}</span>`;
+  $('sp-sl-meta').innerHTML = badges;
+
+  // Cultural impact
+  if(data.impact){
+    $('sp-sl-impact').style.display='block';
+    $('sp-sl-impact').textContent = '🌍 ' + data.impact;
+  }
+
+  // Surprising fact
+  if(data.fact){
+    $('sp-sl-fact-ai').style.display='block';
+    $('sp-sl-fact-ai').textContent = '🤯 ' + data.fact;
+  }
+
+  $('sp-sl-enrichment').style.display='block';
+}
 function spStartShortlistRound(){
   SP.slIdx=0;
   SP.slYes=[];
@@ -2207,13 +2299,22 @@ function spRenderShortlist(){
   $('sp-sl-title').textContent=b.title;
   $('sp-sl-author').textContent=b.author;
   $('sp-sl-desc').textContent=b.desc||'';
-  if(b.quote){$('sp-sl-fact').style.display='block';$('sp-sl-fact').textContent=b.quote;}
-  else{$('sp-sl-fact').style.display='none';}
+
+  // Reset enrichment fields
+  $('sp-sl-enrichment').style.display='none';
+  $('sp-sl-loading').style.display='none';
+  $('sp-sl-meta').innerHTML='';
+  $('sp-sl-impact').style.display='none';
+  $('sp-sl-fact-ai').style.display='none';
+
+  // Fetch Claude enrichment async — loads while user reads desc
+  enrichShortlistCard(b);
+
   if(b.rating){$('sp-sl-rating').style.display='inline-flex';$('sp-sl-rating').innerHTML=`⭐ ${b.rating}`;}
   else{$('sp-sl-rating').style.display='none';}
   $('sp-sl-prog').textContent=`${SP.slIdx+1} of ${SP.slBooks.length}`;
-  const card=$('sp-sl-card');
-  card.style.transition='';card.style.transform='translate(0,0) rotate(0deg)';card.style.opacity='1';
+  const slCard=$('sp-sl-card');
+  slCard.style.transition='';slCard.style.transform='translate(0,0) rotate(0deg)';slCard.style.opacity='1';
   $('sp-sl-lbl-y').style.opacity=0;$('sp-sl-lbl-n').style.opacity=0;
   $('sp-sl-btn-yes').disabled=false;$('sp-sl-btn-no').disabled=false;
 }
@@ -2576,7 +2677,48 @@ function spSetupSlDrag(){
   window.onmouseup=end;
 }
 
-// ─── HOME PARTICLES ────────────────────────
+// ─── CLAUDE DESCRIPTION ENRICHMENT (Round 1) ─
+async function enrichCardDesc(book){
+  const cacheKey = 'desc|' + book.title + '|' + book.author;
+  if(enrichCache[cacheKey]) {
+    const el=$('sp-card-desc');
+    if(el) el.textContent = enrichCache[cacheKey];
+    return;
+  }
+  // Only enrich if desc is short/bad (under 120 chars) or starts with caps (first sentence)
+  const desc = book.desc || '';
+  const isBad = desc.length < 120 || /^[A-Z]{2,}/.test(desc) || desc.endsWith('.');
+  if(!isBad && desc.length > 150) return; // good desc, skip
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 120,
+        messages:[{ role:'user', content:
+          `Write a compelling 2-sentence description of "${book.title}" by ${book.author} for someone deciding whether to read it. Be specific, engaging, no spoilers. No quotes, no preamble, just the description.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content?.[0]?.text||'').trim();
+    if(text && text.length > 40){
+      enrichCache[cacheKey] = text;
+      // Only update if this book is still showing
+      const titleEl=$('sp-card-title');
+      if(titleEl && titleEl.textContent === book.title){
+        $('sp-card-desc').textContent = text;
+      }
+    }
+  } catch(e){ /* fail silently */ }
+}
 function initHomeParticles(){
   const container=$('home-particles');
   if(!container)return;
@@ -2673,7 +2815,13 @@ initHomeParticles();
         <div class="book-title" id="sp-sl-title"></div>
         <div class="book-author" id="sp-sl-author"></div>
         <div class="book-desc" id="sp-sl-desc"></div>
-        <div class="book-quote" id="sp-sl-fact" style="display:none;border-left-color:rgba(76,175,135,0.4);margin-top:0.4rem;"></div>
+        <!-- Claude API enrichment -->
+        <div id="sp-sl-enrichment" style="margin-top:0.7rem;display:none;">
+          <div id="sp-sl-meta" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.6rem;"></div>
+          <div id="sp-sl-impact" style="display:none;font-size:0.75rem;color:var(--accent);margin-bottom:0.4rem;line-height:1.5;"></div>
+          <div id="sp-sl-fact-ai" style="display:none;font-size:0.73rem;font-style:italic;color:var(--muted);border-left:2px solid rgba(232,200,122,0.3);padding-left:0.7rem;line-height:1.5;"></div>
+        </div>
+        <div id="sp-sl-loading" style="display:none;font-size:0.72rem;color:var(--muted);margin-top:0.5rem;opacity:0.6;">✨ Loading details…</div>
       </div>
     </div>
   </div>
