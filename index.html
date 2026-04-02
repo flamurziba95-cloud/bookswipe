@@ -144,6 +144,22 @@ input::placeholder{color:var(--muted);}
 .profile-desc{font-size:0.78rem;color:var(--muted);line-height:1.5;}
 .profile-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;}
 .profile-tag{font-size:0.65rem;padding:0.15rem 0.5rem;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.2);border-radius:20px;color:var(--accent);}
+/* Round announcement screen */
+.sp-announce-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:0.6rem;}
+.sp-announce-round{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);margin-bottom:0.3rem;}
+.sp-announce-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--text);line-height:1.2;}
+.sp-announce-sub{font-size:0.88rem;color:var(--muted);margin-top:0.3rem;}
+.sp-announce-bar{width:0;height:2px;background:var(--accent);border-radius:2px;margin:1rem auto 0;animation:expandBar 1.8s ease forwards;}
+@keyframes expandBar{from{width:0;opacity:0;}to{width:60px;opacity:1;}}
+/* All books grid (round 4+) */
+.all-books-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;width:100%;margin:0.8rem 0;}
+.all-book-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all 0.18s;touch-action:manipulation;}
+.all-book-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.all-book-card:active{transform:scale(0.97);}
+.all-book-cover{height:90px;position:relative;}
+.all-book-info{padding:0.55rem 0.65rem;}
+.all-book-title{font-family:'Playfair Display',serif;font-size:0.8rem;line-height:1.2;margin-bottom:0.12rem;}
+.all-book-author{font-size:0.65rem;color:var(--muted);}
 /* SP Pick Screen */
 .sp-pick-reveal{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);text-align:center;margin-bottom:1rem;opacity:0;animation:fadeUp 0.5s 0.1s ease forwards;}
 .sp-pick-book-card{
@@ -2005,14 +2021,16 @@ window.showModeSelect=showModeSelect;
 // ═══════════════════════════════════════════
 let SP = {
   mood: null,
-  books: [],            // all 20 books from round 1
-  idx: 0,               // current swipe index
-  yesBooks: [],         // books swiped YES in round 1 (with swipe timing)
-  slRound: 0,           // current shortlist round number
-  slBooks: [],          // books in current shortlist round
-  slIdx: 0,             // current shortlist swipe index
-  slYes: [],            // YES picks from current shortlist round
-  swipeTimes: {},       // title → timestamp when swiped YES (for escape hatch)
+  books: [],
+  idx: 0,
+  yesBooks: [],
+  slRound: 0,
+  slBooks: [],
+  slIdx: 0,
+  slYes: [],
+  swipeTimes: {},
+  _finalists: [],
+  _allBooks: [],
 };
 
 const MOODS = [
@@ -2107,19 +2125,54 @@ window.spShowPick=spShowPick;
 function spFinishSwiping(){
   if(SP.yesBooks.length===0){ show('sp-empty'); return; }
   if(SP.yesBooks.length===1){ spShowPick(SP.yesBooks[0]); return; }
-  // Start shortlist rounds
   SP.slRound=1;
   SP.slBooks=[...SP.yesBooks];
-  spStartShortlistRound();
+  spShowAnnouncement(()=>spStartShortlistRound());
 }
+
+// ─── ROUND ANNOUNCEMENT ────────────────────
+const ANNOUNCE_MSGS = [
+  // round 1→2
+  { round:'Round 2', title:'Let\'s narrow it down', sub:'' },
+  // round 2→3
+  { round:'Round 3', title:'You\'re getting closer!', sub:'Trust your instincts' },
+  // round 3→4 (should rarely happen)
+  { round:'Round 4', title:'Still deciding?', sub:'No rush — take your time' },
+];
+const MOTIVATIONAL = [
+  'The right book is in there somewhere.',
+  'Your next favourite is closer than you think.',
+  'Go with your gut.',
+  'One of these will change your life.',
+];
+
+function spShowAnnouncement(callback){
+  const msg = ANNOUNCE_MSGS[Math.min(SP.slRound-1, ANNOUNCE_MSGS.length-1)];
+  const count = SP.slBooks.length;
+
+  $('sp-announce-round').textContent = msg.round;
+  $('sp-announce-title').textContent =
+    SP.slRound===1
+      ? `You liked ${count} book${count!==1?'s':''} — let's narrow it down`
+      : msg.title;
+  $('sp-announce-sub').textContent =
+    msg.sub || MOTIVATIONAL[Math.floor(Math.random()*MOTIVATIONAL.length)];
+
+  // Reset bar animation
+  const bar = document.querySelector('.sp-announce-bar');
+  if(bar){ bar.style.animation='none'; bar.offsetHeight; bar.style.animation=''; }
+
+  show('sp-announce');
+  window.scrollTo({top:0,behavior:'instant'});
+  setTimeout(()=>{ callback(); }, 2000);
+}
+window.spShowAnnouncement=spShowAnnouncement;
 
 // ─── SHORTLIST ROUNDS ──────────────────────
 function spStartShortlistRound(){
   SP.slIdx=0;
   SP.slYes=[];
-  const count=SP.slBooks.length;
-  const roundLabel = SP.slRound===1 ? `You liked ${count} books — narrow it down` : `Round ${SP.slRound} — ${count} books left`;
-  $('sp-shortlist-sub').textContent=roundLabel;
+  $('sp-shortlist-sub').textContent=`${SP.slBooks.length} books — swipe to narrow down`;
   spRenderShortlist();
   show('sp-shortlist');
   window.scrollTo({top:0,behavior:'instant'});
@@ -2130,23 +2183,17 @@ function spRenderShortlist(){
   if(SP.slIdx>=SP.slBooks.length){ spFinishShortlistRound(); return; }
   const b=SP.slBooks[SP.slIdx];
   const cover=$('sp-sl-cover');
-  cover.innerHTML='';
-  cover.style.background='';
+  cover.innerHTML='';cover.style.background='';
   renderBookCover(cover,b);
-
   $('sp-sl-genre').textContent=b.genre||'';
   $('sp-sl-title').textContent=b.title;
   $('sp-sl-author').textContent=b.author;
   $('sp-sl-desc').textContent=b.desc||'';
-
   if(b.quote){$('sp-sl-fact').style.display='block';$('sp-sl-fact').textContent=b.quote;}
   else{$('sp-sl-fact').style.display='none';}
-
   if(b.rating){$('sp-sl-rating').style.display='inline-flex';$('sp-sl-rating').innerHTML=`⭐ ${b.rating}`;}
   else{$('sp-sl-rating').style.display='none';}
-
   $('sp-sl-prog').textContent=`${SP.slIdx+1} of ${SP.slBooks.length}`;
-
   const card=$('sp-sl-card');
   card.style.transition='';card.style.transform='translate(0,0) rotate(0deg)';card.style.opacity='1';
   $('sp-sl-lbl-y').style.opacity=0;$('sp-sl-lbl-n').style.opacity=0;
@@ -2169,50 +2216,119 @@ window.spSlSwipe=spSlSwipe;
 function spFinishShortlistRound(){
   const yes=SP.slYes;
 
-  // 0 YES this round — use all books from this round (didn't narrow down)
-  if(yes.length===0){
-    spShowFinalists(SP.slBooks);
-    return;
-  }
+  // 0 YES — show all books from this round as grid
+  if(yes.length===0){ spShowAllBooks(SP.slBooks); return; }
   // 1 YES — straight to winner
-  if(yes.length===1){
-    spShowPick(yes[0]);
-    return;
-  }
-  // 2-3 YES — show final layout
-  if(yes.length<=3){
-    spShowFinalists(yes);
-    return;
-  }
-  // 4+ YES — escape hatch after round 3, otherwise another round
-  if(SP.slRound>=3){
-    // Pick top 3 using escape hatch logic
-    spEscapeHatch(yes);
-    return;
-  }
-  // Another round
+  if(yes.length===1){ spShowPick(yes[0]); return; }
+  // 2-3 YES — finalists screen
+  if(yes.length<=3){ spShowFinalists(yes); return; }
+
+  // 4+ YES
   SP.slRound++;
+
+  // Round 4+ — show all yes books as a grid, no more swiping
+  if(SP.slRound>3){
+    spShowAllBooks(yes);
+    return;
+  }
+
+  // Round 3 finished with 4+ — show "let me help" question before another round
+  if(SP.slRound===3){
+    spShowRound3Help(yes);
+    return;
+  }
+
+  // Otherwise another round with announcement
   SP.slBooks=[...yes];
-  spStartShortlistRound();
+  spShowAnnouncement(()=>spStartShortlistRound());
 }
 
-// ─── ESCAPE HATCH — pick top 3 with reasons ─
-function spEscapeHatch(books){
-  // Sort by: fastest YES swipe in round 1 first
-  const withReasons = books.map(b=>{
-    const swipeTime = SP.swipeTimes[b.title] || 999999;
-    const keptRounds = SP.slRound; // survived multiple rounds
-    return {book:b, swipeTime, keptRounds};
-  }).sort((a,b)=>a.swipeTime-b.swipeTime);
+// ─── ROUND 3 HELP SCREEN ───────────────────
+function spShowRound3Help(books){
+  SP.slBooks=[...books];
+  // Show the announcement screen but with a different message + two buttons
+  $('sp-announce-round').textContent='Still deciding?';
+  $('sp-announce-title').textContent=`${books.length} books left`;
+  $('sp-announce-sub').textContent='';
 
-  const top3 = withReasons.slice(0,3);
-  const reasons = [
-    'You swiped yes instantly — your gut loved this one',
-    'You kept choosing this — clearly it stuck with you',
-    'A strong contender across every round',
+  // Temporarily replace bar with two action buttons
+  const bar=document.querySelector('.sp-announce-bar');
+  if(bar) bar.style.display='none';
+
+  const helpDiv=document.createElement('div');
+  helpDiv.id='sp-round3-help';
+  helpDiv.style.cssText='display:flex;flex-direction:column;gap:0.7rem;width:100%;margin-top:1.2rem;';
+  helpDiv.innerHTML=`
+    <button class="hero-btn" style="justify-content:center;" onclick="spPickTop3ForMe()">
+      ✨ Pick my top 3
+    </button>
+    <button class="secondary-home-btn" style="justify-content:center;" onclick="spContinueRound3()">
+      Keep swiping →
+    </button>`;
+
+  const screen=$('s-sp-announce');
+  screen.querySelector('.sp-announce-screen').appendChild(helpDiv);
+
+  show('sp-announce');
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+function spPickTop3ForMe(){
+  _cleanRound3Help();
+  // Sort by fastest swipe time — gut reaction
+  const sorted=[...SP.slBooks].sort((a,b)=>{
+    const ta=SP.swipeTimes[a.title]||999999;
+    const tb=SP.swipeTimes[b.title]||999999;
+    return ta-tb;
+  });
+  const top3=sorted.slice(0,3);
+  const reasons=[
+    'You swiped yes instantly — gut reaction wins',
+    'Kept showing up — clearly it resonated',
+    'A consistent favourite across every round',
   ];
-  spShowFinalists(top3.map(x=>x.book), reasons);
+  spShowFinalists(top3, reasons);
 }
+window.spPickTop3ForMe=spPickTop3ForMe;
+
+function spContinueRound3(){
+  _cleanRound3Help();
+  spShowAnnouncement(()=>spStartShortlistRound());
+}
+window.spContinueRound3=spContinueRound3;
+
+function _cleanRound3Help(){
+  const h=$('sp-round3-help');
+  if(h) h.remove();
+  const bar=document.querySelector('.sp-announce-bar');
+  if(bar) bar.style.display='';
+}
+
+// ─── ALL BOOKS GRID (round 4+) ─────────────
+function spShowAllBooks(books){
+  show('sp-allbooks');
+  window.scrollTo({top:0,behavior:'instant'});
+  SP._allBooks=books;
+  $('sp-all-books-grid').innerHTML=books.map((b,i)=>`
+    <div class="all-book-card" onclick="spShowPick(SP._allBooks[${i}])">
+      <div class="all-book-cover" id="sp-ab-${i}"></div>
+      <div class="all-book-info">
+        <div class="all-book-title">${b.title}</div>
+        <div class="all-book-author">${b.author}</div>
+      </div>
+    </div>`).join('');
+  books.forEach((b,i)=>{
+    const el=$('sp-ab-'+i);
+    if(el) renderBookCover(el,b);
+  });
+}
+
+function spSurpriseAll(){
+  if(!SP._allBooks||SP._allBooks.length===0) return;
+  const pick=SP._allBooks[Math.floor(Math.random()*SP._allBooks.length)];
+  spShowPick(pick);
+}
+window.spSurpriseAll=spSurpriseAll;
 
 // ─── FINAL LAYOUT — 2 or 3 cards ───────────
 function spShowFinalists(books, reasons=[]){
@@ -2373,7 +2489,8 @@ function spSurpriseMe(){
 window.spSurpriseMe=spSurpriseMe;
 
 function spPlayAgain(){
-  SP={mood:null,books:[],idx:0,yesBooks:[],slRound:0,slBooks:[],slIdx:0,slYes:[],swipeTimes:{},_finalists:[]};
+  _cleanRound3Help();
+  SP={mood:null,books:[],idx:0,yesBooks:[],slRound:0,slBooks:[],slIdx:0,slYes:[],swipeTimes:{},_finalists:[],_allBooks:[]};
   show('sp-mood');
 }
 window.spPlayAgain=spPlayAgain;
@@ -2503,6 +2620,24 @@ initHomeParticles();
     <button class="act-btn act-yes" id="sp-btn-yes" onclick="spSwipe('yes')"><span>✓</span><span class="act-lbl">yes!</span></button>
   </div>
   <div class="swipe-hint">No rush — take your time</div>
+</div>
+
+<!-- SP: ROUND ANNOUNCEMENT -->
+<div id="s-sp-announce" class="screen">
+  <div class="sp-announce-screen">
+    <div class="sp-announce-round" id="sp-announce-round">Round 2</div>
+    <div class="sp-announce-title" id="sp-announce-title">Let's narrow it down</div>
+    <div class="sp-announce-sub" id="sp-announce-sub"></div>
+    <div class="sp-announce-bar"></div>
+  </div>
+</div>
+
+<!-- SP: ALL BOOKS (round 4+) -->
+<div id="s-sp-allbooks" class="screen" style="padding-top:0.5rem;">
+  <div class="h2" style="margin-top:0;">All your picks</div>
+  <div class="sub">You clearly love books — just tap the one you want</div>
+  <div class="all-books-grid" id="sp-all-books-grid"></div>
+  <button class="surprise-btn" onclick="spSurpriseAll()">🎲 Surprise me!</button>
 </div>
 
 <!-- SP: SHORTLIST -->
