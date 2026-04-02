@@ -98,7 +98,17 @@ input::placeholder{color:var(--muted);}
 /* Waiting */
 .pulse-orb{width:76px;height:76px;border-radius:50%;background:rgba(232,200,122,0.08);display:flex;align-items:center;justify-content:center;font-size:2.2rem;animation:pulse 2s ease-in-out infinite;margin:1.5rem auto;}
 @keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(232,200,122,0.25);}50%{transform:scale(1.06);box-shadow:0 0 0 18px rgba(232,200,122,0);}}
-.status-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0.6rem 0;}
+.status-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;width:100%;margin:0.8rem 0;}
+.player-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:0.8rem 1rem;display:flex;align-items:center;gap:0.7rem;transition:all 0.3s ease;}
+.player-card.done{border-color:rgba(76,175,135,0.4);background:rgba(76,175,135,0.05);}
+.player-card.pend{border-color:var(--border);}
+.player-card-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.player-card.done .player-card-dot{background:var(--yes);}
+.player-card.pend .player-card-dot{background:var(--muted);animation:dotPulse 1.5s ease-in-out infinite;}
+@keyframes dotPulse{0%,100%{opacity:0.4;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+.player-card-name{font-size:0.85rem;font-weight:500;flex:1;}
+.player-card-status{font-size:0.7rem;color:var(--muted);}
+.player-card.done .player-card-status{color:var(--yes);}
 .schip{padding:0.28rem 0.7rem;border-radius:50px;font-size:0.73rem;border:1px solid var(--border);}
 .schip.done{background:rgba(76,175,135,0.12);border-color:rgba(76,175,135,0.3);color:var(--yes);}
 .schip.pend{background:var(--surface2);color:var(--muted);}
@@ -111,6 +121,8 @@ input::placeholder{color:var(--muted);}
 .m-tag{font-size:0.69rem;color:var(--yes);}
 /* Winner */
 .winner-card{background:linear-gradient(135deg,#1a1600,#201a00);border:2px solid var(--accent);border-radius:var(--r);padding:2rem 1.5rem;text-align:center;width:100%;animation:popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275);}
+.winner-card.veto-active{border-color:rgba(224,92,92,0.6);animation:popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275),vetoPulse 2s ease-in-out infinite;}
+@keyframes vetoPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,92,92,0);}50%{box-shadow:0 0 0 6px rgba(224,92,92,0.12);}}
 @keyframes popIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}
 .where-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem 1.2rem;width:100%;margin-top:0.8rem;}
 .where-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.6rem;}
@@ -132,20 +144,74 @@ input::placeholder{color:var(--muted);}
 .profile-desc{font-size:0.78rem;color:var(--muted);line-height:1.5;}
 .profile-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;}
 .profile-tag{font-size:0.65rem;padding:0.15rem 0.5rem;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.2);border-radius:20px;color:var(--accent);}
-/* Compatibility */
+/* SP Pick Screen */
+.sp-pick-reveal{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent);text-align:center;margin-bottom:1rem;opacity:0;animation:fadeUp 0.5s 0.1s ease forwards;}
+.sp-pick-book-card{
+  width:100%;background:linear-gradient(145deg,#1a1500,#201900);
+  border:2px solid var(--accent);border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;position:relative;overflow:hidden;
+  opacity:0;animation:pickReveal 0.7s 0.3s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+  box-shadow:0 0 40px rgba(232,200,122,0.12);
+}
+@keyframes pickReveal{
+  0%{opacity:0;transform:scale(0.85) translateY(20px);}
+  100%{opacity:1;transform:scale(1) translateY(0);}
+}
+.sp-pick-book-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(232,200,122,0.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.sp-pick-emoji{font-size:4.5rem;line-height:1;margin-bottom:0.8rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));display:block;}
+.sp-pick-genre{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);margin-bottom:0.5rem;}
+.sp-pick-title{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--accent);line-height:1.2;margin-bottom:0.4rem;letter-spacing:-0.3px;}
+.sp-pick-author{font-size:0.82rem;color:var(--muted);margin-bottom:0.8rem;}
+.sp-pick-rating{display:inline-flex;align-items:center;gap:4px;background:rgba(232,200,122,0.1);border:1px solid rgba(232,200,122,0.2);border-radius:20px;padding:0.2rem 0.7rem;font-size:0.72rem;color:var(--accent);margin-bottom:0.8rem;}
+.sp-pick-desc{font-size:0.8rem;color:rgba(240,237,232,0.6);line-height:1.7;text-align:left;}
+.sp-pick-quote{font-size:0.73rem;font-style:italic;color:var(--muted);border-left:2px solid rgba(232,200,122,0.35);padding-left:0.7rem;text-align:left;line-height:1.5;margin-top:0.9rem;}
+.sp-pick-details{opacity:0;animation:fadeUp 0.5s 0.9s ease forwards;width:100%;}
+.sp-pick-actions{display:flex;gap:0.6rem;width:100%;margin-top:0.8rem;opacity:0;animation:fadeUp 0.5s 1.1s ease forwards;}
+.sp-pick-action-btn{flex:1;padding:0.8rem;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.18s;}
+.sp-pick-action-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.finalist-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all 0.18s;touch-action:manipulation;}
+.finalist-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.finalist-card:active{transform:scale(0.97);}
+.finalist-cover{height:120px;position:relative;flex-shrink:0;}
+.finalist-info{padding:0.7rem 0.75rem;}
+.finalists-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;width:100%;margin:0.8rem 0;}
+.finalists-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;width:100%;margin:0.8rem 0;}
+.surprise-btn{width:100%;padding:0.9rem;background:none;border:1.5px dashed rgba(232,200,122,0.3);border-radius:14px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.18s;margin-top:0.3rem;}
+.surprise-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,200,122,0.05);}
+
 .compat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.2rem;width:100%;margin-top:0.8rem;text-align:center;}
 .compat-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.6rem;}
 .compat-score{font-family:'Playfair Display',serif;font-size:2.4rem;color:var(--accent);line-height:1;margin-bottom:0.3rem;}
 .compat-label{font-size:0.78rem;color:var(--muted);margin-bottom:0.7rem;line-height:1.5;}
 .compat-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
 .compat-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--no),var(--accent),var(--yes));transition:width 1.2s ease;}
+/* Toast notification */
+.toast{position:fixed;top:1.2rem;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:0.6rem 1.2rem;font-size:0.82rem;color:var(--text);z-index:9998;transition:transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.veto{border-color:rgba(224,92,92,0.4);background:#1a0a0a;}
+.toast.success{border-color:rgba(76,175,135,0.4);background:#0a1a10;}
+/* Winner gold final pulse */
+@keyframes winnerFinalPulse{0%{box-shadow:0 0 0 0 rgba(232,200,122,0.8);}100%{box-shadow:0 0 0 30px rgba(232,200,122,0);}}
+.winner-final-pulse{animation:winnerFinalPulse 0.8s ease-out forwards!important;}
+/* Winner grey when veto passes */
+.winner-card.vetoed{filter:grayscale(1);opacity:0.5;transition:all 0.5s ease;}
 /* Veto */
-.veto-section{width:100%;margin-top:1rem;}
-.veto-btn-wrap{position:relative;}
-.veto-progress{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:0.5rem;}
+.veto-inline-btn{
+  width:100%;padding:0.7rem;background:none;
+  border:1.5px dashed rgba(224,92,92,0.3);border-radius:12px;
+  color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.82rem;
+  cursor:pointer;transition:all 0.18s;text-align:center;
+}
+.veto-inline-btn:hover{border-color:var(--no);color:var(--no);background:rgba(224,92,92,0.05);}
+.veto-inline-btn:disabled{opacity:0.4;cursor:default;border-style:solid;}
 .veto-chip{padding:0.25rem 0.65rem;border-radius:50px;font-size:0.72rem;border:1px solid var(--border);background:var(--surface2);color:var(--muted);}
 .veto-chip.voted{background:rgba(224,92,92,0.12);border-color:rgba(224,92,92,0.3);color:var(--no);}
-.veto-need{font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.4rem;}
+.veto-need{font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.35rem;}
 /* Gold bestseller card */
 .book-card.bestseller{
   border:2px solid rgba(232,200,122,0.8) !important;
@@ -170,6 +236,84 @@ input::placeholder{color:var(--muted);}
 /* Confetti */
 .confetti-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;}
 /* Home */
+/* ─── HOME SCREEN REDESIGN ─── */
+.home-screen{
+  min-height:100dvh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  position:relative;overflow:hidden;padding:2rem 1.5rem;
+  width:100%;max-width:440px;
+}
+/* Animated background particles */
+.home-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.particle{position:absolute;font-size:1.2rem;opacity:0;animation:particleFloat linear infinite;}
+@keyframes particleFloat{
+  0%{opacity:0;transform:translateY(100vh) rotate(0deg);}
+  10%{opacity:0.15;}
+  90%{opacity:0.08;}
+  100%{opacity:0;transform:translateY(-100px) rotate(360deg);}
+}
+/* Logo */
+.home-logo-wrap{text-align:center;margin-bottom:0.5rem;animation:fadeUp 0.8s ease both;}
+.home-logo{font-family:'Playfair Display',serif;font-size:3.2rem;font-weight:700;letter-spacing:-2px;
+  background:linear-gradient(135deg,#e8c87a 0%,#f5dc98 50%,#e8c87a 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1;
+}
+.home-logo-sub{font-size:0.7rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);margin-top:0.4rem;}
+/* Tagline */
+.home-tagline{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:1.05rem;color:rgba(240,237,232,0.7);text-align:center;
+  margin:1.2rem 0 2rem;line-height:1.5;
+  animation:fadeUp 0.8s 0.15s ease both;
+}
+.home-tagline span{color:var(--accent);font-style:normal;}
+/* Hero button - single player */
+.hero-btn{
+  width:100%;padding:1.1rem 1.5rem;
+  background:linear-gradient(135deg,#e8c87a,#d4a840);
+  border:none;border-radius:16px;cursor:pointer;
+  font-family:'Playfair Display',serif;font-size:1.1rem;
+  font-weight:700;color:#1a1000;letter-spacing:-0.3px;
+  transition:all 0.2s ease;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:0.7rem;
+  animation:fadeUp 0.8s 0.3s ease both;
+  box-shadow:0 4px 24px rgba(232,200,122,0.25);
+}
+.hero-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,200,122,0.4);}
+.hero-btn:active{transform:scale(0.98);}
+.hero-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.hero-btn-label{font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:400;opacity:0.7;letter-spacing:0.04em;}
+.hero-btn-arrow{font-size:1.3rem;opacity:0.8;}
+/* Secondary button - multiplayer */
+.secondary-home-btn{
+  width:100%;padding:0.9rem 1.2rem;
+  background:var(--surface);border:1.5px solid rgba(255,255,255,0.08);
+  border-radius:16px;cursor:pointer;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:500;
+  transition:all 0.2s ease;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:space-between;
+  animation:fadeUp 0.8s 0.45s ease both;
+}
+.secondary-home-btn:hover{border-color:rgba(232,200,122,0.3);background:rgba(232,200,122,0.04);}
+.secondary-home-btn:active{transform:scale(0.98);}
+.secondary-home-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.secondary-home-btn-sub{font-size:0.68rem;color:var(--muted);font-weight:400;}
+/* Divider line */
+.home-divider{
+  width:100%;display:flex;align-items:center;gap:0.8rem;
+  margin:0.5rem 0;animation:fadeUp 0.8s 0.4s ease both;
+}
+.home-divider-line{flex:1;height:1px;background:rgba(255,255,255,0.06);}
+.home-divider-text{font-size:0.68rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;}
+/* Social proof */
+.home-proof{
+  font-size:0.72rem;color:var(--muted);text-align:center;
+  margin-top:1.5rem;line-height:1.6;
+  animation:fadeUp 0.8s 0.6s ease both;
+}
+.home-proof span{color:var(--accent);}
 .mode-btn{
   width:100%;height:80px;background:var(--surface);border:1.5px solid var(--border);
   border-radius:var(--r);cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;
@@ -180,6 +324,7 @@ input::placeholder{color:var(--muted);}
 .mode-btn:active{transform:scale(0.97);}
 .back-btn{background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;padding:0.3rem 0;margin-bottom:0.8rem;font-family:'DM Sans',sans-serif;align-self:flex-start;}
 .home-art{font-size:4.5rem;margin-bottom:1.5rem;animation:float 3s ease-in-out infinite;}
+
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 .err{color:var(--no);font-size:0.8rem;text-align:center;min-height:1.1rem;margin-bottom:0.3rem;}
 .winner-genres{font-size:0.77rem;color:var(--accent);text-align:center;margin-bottom:0.75rem;padding:0.5rem;background:rgba(232,200,122,0.07);border-radius:8px;border:1px solid rgba(232,200,122,0.15);}
@@ -199,25 +344,53 @@ input::placeholder{color:var(--muted);}
 
 <!-- HOME -->
 <div id="s-home" class="screen active">
-  <div class="home-art">📚</div>
-  <div class="logo">BookSwipe</div>
-  <div class="tagline">Swipe together · Read together</div>
+  <div class="home-screen">
 
-  <div style="width:100%;display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.2rem;">
-    <button class="mode-btn" onclick="showModeSelect('single')">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <span style="font-size:1.4rem;">📖</span>
-        <span style="font-size:0.98rem;font-weight:500;">Single Player</span>
-        <span style="font-size:0.7rem;opacity:0.55;font-weight:400;">Just you · Your pace · Your picks</span>
+    <!-- Floating book particles background -->
+    <div class="home-particles" id="home-particles"></div>
+
+    <!-- Logo -->
+    <div class="home-logo-wrap">
+      <div class="home-logo">BookSwipe</div>
+      <div class="home-logo-sub">Find your next read</div>
+    </div>
+
+    <!-- Tagline -->
+    <div class="home-tagline">
+      The fastest way to pick your next book —<br>
+      <span>alone or with friends</span>
+    </div>
+
+    <!-- Hero CTA — Single Player -->
+    <button class="hero-btn" onclick="showModeSelect('single')">
+      <div class="hero-btn-text">
+        <span style="font-size:1rem;">📖 Solo Discovery</span>
+        <span class="hero-btn-label">Just you · Your mood · Your pace</span>
       </div>
+      <span class="hero-btn-arrow">→</span>
     </button>
-    <button class="mode-btn" onclick="showModeSelect('multi')">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <span style="font-size:1.4rem;">👥</span>
-        <span style="font-size:0.98rem;font-weight:500;">Multiplayer</span>
-        <span style="font-size:0.7rem;opacity:0.55;font-weight:400;">Play with friends · Vote together</span>
+
+    <!-- Divider -->
+    <div class="home-divider">
+      <div class="home-divider-line"></div>
+      <div class="home-divider-text">or</div>
+      <div class="home-divider-line"></div>
+    </div>
+
+    <!-- Secondary — Multiplayer -->
+    <button class="secondary-home-btn" onclick="showModeSelect('multi')">
+      <div class="secondary-home-btn-text">
+        <span>👥 Play with friends</span>
+        <span class="secondary-home-btn-sub">Vote together · Pick as a group</span>
       </div>
+      <span style="color:var(--muted);font-size:1rem;">→</span>
     </button>
+
+    <!-- Social proof -->
+    <div class="home-proof">
+      ✦ Free · No account needed · Works on any device
+    </div>
+
   </div>
   <div class="err" id="home-err"></div>
 </div>
@@ -286,7 +459,6 @@ input::placeholder{color:var(--muted);}
 <div id="s-vwait" class="screen">
   <div class="h2" id="vw-title">Collecting votes…</div>
   <div class="sub" id="vw-sub">Hang tight</div>
-  <div class="pulse-orb" id="vw-orb">🗳️</div>
   <div class="status-row" id="vw-status"></div>
   <div class="quote-box" id="vwait-quote"></div>
 </div>
@@ -331,11 +503,10 @@ input::placeholder{color:var(--muted);}
 
 <!-- WAITING OTHERS -->
 <div id="s-others" class="screen">
-  <div class="h2">All done! 🎉</div>
-  <div class="sub">Waiting for others to finish swiping…</div>
-  <div class="pulse-orb">📖</div>
+  <div class="h2">You're done! 🎉</div>
+  <div class="sub" id="oth-sub">Waiting for the others…</div>
   <div class="status-row" id="oth-status"></div>
-  <div style="font-size:0.78rem;color:var(--muted);text-align:center;" id="oth-msg"></div>
+  <div style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.3rem;" id="oth-msg"></div>
   <div class="quote-box" id="others-quote"></div>
 </div>
 
@@ -354,6 +525,13 @@ input::placeholder{color:var(--muted);}
 <!-- WINNER -->
 <div id="s-winner" class="screen">
   <div class="winner-card" id="winner-card"></div>
+
+  <!-- Veto — right below winner card, visible immediately -->
+  <div id="veto-section" style="width:100%;margin-top:0.7rem;">
+    <div id="veto-progress" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:0.4rem;"></div>
+    <button class="veto-inline-btn" id="veto-btn" onclick="pressVeto()">🚫 Not feeling this one? Request a veto</button>
+    <div class="veto-need" id="veto-need"></div>
+  </div>
 
   <!-- Where to read -->
   <div id="where-card" class="where-card" style="display:none;">
@@ -375,15 +553,11 @@ input::placeholder{color:var(--muted);}
     <div id="profile-list"></div>
   </div>
 
-  <!-- Veto -->
-  <div class="veto-section">
-    <button class="btn btn-danger" id="veto-btn" onclick="pressVeto()">🚫 Veto this book</button>
-    <div class="veto-progress" id="veto-progress"></div>
-    <div class="veto-need" id="veto-need"></div>
-  </div>
-
   <button class="btn btn-secondary" style="margin-top:0.6rem;" onclick="location.reload()">↩ New game</button>
 </div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
 
 <!-- Confetti canvas lives outside all screens so it doesn't affect layout -->
 <canvas class="confetti-canvas" id="confetti-canvas"></canvas>
@@ -689,12 +863,17 @@ async function fetchBooksForGenre(genreId, count=8){
         ? `${w.ratings_average.toFixed(1)} (${w.ratings_count.toLocaleString()} ratings)`
         : null;
       const coverId = w.cover_i || w.cover_id || null;
+
+      // Validate genre — use book's actual subjects to assign best matching genre
+      const bookSubjects = (w.subject||[]).map(s=>s.toLowerCase());
+      const assignedGenre = assignGenreFromSubjects(bookSubjects, genreName);
+
       return {
         id: 'ol_'+genreId+'_'+i+'_'+Date.now(),
         title,
         author: w.author_name[0],
         coverId,
-        genre: genreName,
+        genre: assignedGenre,
         desc,
         isFunDesc: !realDesc,
         quote: null,
@@ -734,7 +913,33 @@ function extractDesc(w){
   return null;
 }
 
-// Fun satirical descriptions when no real one is found
+// Assign the most accurate genre label based on a book's actual subjects
+function assignGenreFromSubjects(subjects, fallback){
+  if(!subjects||subjects.length===0) return fallback;
+  const s = subjects.join(' ');
+
+  // Check subjects for clear genre signals — most specific first
+  if(/science fiction|sci-fi|space opera|cyberpunk|dystopi|utopi|alien|robot|artificial intelligence/.test(s)) return 'Sci-Fi';
+  if(/dystopi|totalitarian|surveillance|post.apocalyptic/.test(s)) return 'Dystopia';
+  if(/detective|mystery|crime fiction|murder|thriller|suspense|noir/.test(s)) return 'Crime / Detective';
+  if(/psychological fiction|psychological thriller/.test(s)) return 'Thriller';
+  if(/horror|ghost|supernatural|vampire|occult|haunted/.test(s)) return 'Thriller';
+  if(/romance|love story|love stories|romantic/.test(s)) return 'Romance';
+  if(/coming.of.age|bildungsroman|young adult|adolescen|teen/.test(s)) return 'Coming of Age';
+  if(/philosophy|philosophical|ethics|metaphysic|epistemology/.test(s)) return 'Philosophy';
+  if(/existentialism|existential|absurdism/.test(s)) return 'Existentialism';
+  if(/psychology|psychoanalysis|mental health|cognitive/.test(s)) return 'Psychology';
+  if(/spiritual|religion|meditation|buddhism|hinduism|mysticism|faith/.test(s)) return 'Spiritual';
+  if(/biography|autobiography|memoir|personal narrative/.test(s)) return 'Biography / Memoir';
+  if(/history|historical fiction|war fiction|medieval|ancient/.test(s)) return 'Historical';
+  if(/adventure|quest|exploration|travel/.test(s)) return 'Adventure';
+  if(/magic realism|magical realism|fantasy|fairy tale/.test(s)) return 'Magic Realism';
+  if(/short stories|essays|essay|literary collection/.test(s)) return 'Essay / Stories';
+  if(/classic|english literature|american literature|nineteenth century fiction/.test(s)) return 'Classic Fiction';
+
+  // Fall back to what we searched for
+  return fallback;
+}
 function makeFunDesc(title, genre){
   const t = title||'Unknown';
   const g = (genre||'').toLowerCase();
@@ -1002,7 +1207,14 @@ async function submitGenre(){
   listenRoom(room=>{
     if(!room)return;
     const players=Object.entries(room.players||{});
-    $('vw-status').innerHTML=players.map(([,p])=>`<span class="schip ${p.doneGenre?'done':'pend'}">${p.doneGenre?'✓':'…'} ${p.name}</span>`).join('');
+    $('vw-status').innerHTML=players.map(([,p])=>`
+      <div class="player-card ${p.doneGenre?'done':'pend'}">
+        <div class="player-card-dot"></div>
+        <div style="flex:1;">
+          <div class="player-card-name">${p.name}</div>
+          <div class="player-card-status">${p.doneGenre?'Voted ✓':'Choosing…'}</div>
+        </div>
+      </div>`).join('');
     if(players.filter(([,p])=>p.doneGenre).length===players.length){stopListener();computeGenres(room);}
   });
 }
@@ -1043,7 +1255,14 @@ async function submitLength(){
   listenRoom(room=>{
     if(!room)return;
     const players=Object.entries(room.players||{});
-    $('vw-status').innerHTML=players.map(([,p])=>`<span class="schip ${p.doneLength?'done':'pend'}">${p.doneLength?'✓':'…'} ${p.name}</span>`).join('');
+    $('vw-status').innerHTML=players.map(([,p])=>`
+      <div class="player-card ${p.doneLength?'done':'pend'}">
+        <div class="player-card-dot"></div>
+        <div style="flex:1;">
+          <div class="player-card-name">${p.name}</div>
+          <div class="player-card-status">${p.doneLength?'Voted ✓':'Choosing…'}</div>
+        </div>
+      </div>`).join('');
     if(players.filter(([,p])=>p.doneLength).length===players.length){stopListener();computeLength(room);}
   });
 }
@@ -1293,8 +1512,18 @@ async function finishSwiping(){
     if(!room)return;
     const players=Object.entries(room.players||{});
     const done=players.filter(([,p])=>p.doneVoting).length;
-    $('oth-status').innerHTML=players.map(([,p])=>`<span class="schip ${p.doneVoting?'done':'pend'}">${p.doneVoting?'✓':'…'} ${p.name}</span>`).join('');
-    $('oth-msg').textContent=`${done} of ${players.length} done`;
+    const remaining=players.length-done;
+    $('oth-status').innerHTML=players.map(([,p])=>`
+      <div class="player-card ${p.doneVoting?'done':'pend'}">
+        <div class="player-card-dot"></div>
+        <div style="flex:1;">
+          <div class="player-card-name">${p.name}</div>
+          <div class="player-card-status">${p.doneVoting?'Done swiping ✓':'Still reading…'}</div>
+        </div>
+      </div>`).join('');
+    $('oth-msg').textContent = remaining===0 ? 'Everyone is done!' :
+      remaining===1 ? 'Waiting for 1 more reader…' :
+      `Waiting for ${remaining} more readers…`;
     if(done===players.length){stopListener();computeResults(room);}
   });
 }
@@ -1346,7 +1575,7 @@ function showResults(room,matches,noMatch){
     $('res-sub').textContent=`Everyone liked these — round ${rnd+1} will narrow it down.`;
     $('res-list').innerHTML=matches.map(b=>`
       <div class="match-card">
-        <div class="m-emoji">${b.emoji||'📖'}</div>
+        <div class="m-emoji">${getBookEmoji(b.title, b.genre)}</div>
         <div class="m-info">
           <div class="m-title">${b.title}</div>
           <div class="m-author">${b.author}</div>
@@ -1529,35 +1758,134 @@ function vetoThreshold(nPlayers){
   return Math.ceil(nPlayers*0.6);
 }
 
+// ─── TOAST ─────────────────────────────────
+let toastTimeout=null;
+function showToast(msg, type='', duration=4000){
+  const el=$('toast');
+  el.textContent=msg;
+  el.className='toast'+(type?' '+type:'');
+  setTimeout(()=>el.classList.add('show'),10);
+  if(toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout=setTimeout(()=>el.classList.remove('show'),duration);
+}
+
+// ─── VETO SYSTEM ───────────────────────────
+let vetoTimer=null;
+let vetoEndTime=0;
+let vetoTimerInterval=null;
+let vetoPrevCount=0;
+
+function vetoThreshold(nPlayers){
+  return Math.ceil(nPlayers*0.6);
+}
+
 function setupVeto(room){
   const players=Object.entries(room.players||{});
   const n=players.length;
-  const needed=vetoThreshold(n);
-  const currentVetos=Object.keys(room.vetoVotes||{}).length;
-  $('veto-need').textContent=`${currentVetos}/${needed} players have vetoed · Need ${needed} to restart`;
-  renderVetoProgress(room);
+  if(n<=1){ $('veto-section').style.display='none'; return; }
+  $('veto-section').style.display='block';
+  vetoPrevCount=Object.keys(room.vetoVotes||{}).length;
+  renderVetoProgress(room, n);
+
   listenRoom(r=>{
-    if(!r)return;
-    const vetos=Object.keys(r.vetoVotes||{}).length;
-    renderVetoProgress(r);
-    $('veto-need').textContent=`${vetos}/${needed} players have vetoed · Need ${needed} to restart`;
+    if(!r) return;
+    const vetoVotes=r.vetoVotes||{};
+    const vetos=Object.keys(vetoVotes).length;
+    const needed=vetoThreshold(n);
+
+    // New vote just came in
+    if(vetos>vetoPrevCount){
+      if(vetoPrevCount===0){
+        // First veto — start timer at 10 seconds
+        vetoEndTime=Date.now()+(10000);
+        startVetoTimer(r, needed, n);
+        showToast('🚫 Someone vetoed this book — do you agree?','veto',5000);
+      } else {
+        // Additional vote — add 5 seconds
+        vetoEndTime+=5000;
+        showToast(`🚫 Another veto! +5 seconds added`,'veto',3000);
+      }
+      vetoPrevCount=vetos;
+    }
+
+    renderVetoProgress(r, n);
+
+    // Veto passed — enough votes
     if(vetos>=needed){
+      stopVetoTimer();
       stopListener();
-      // Restart with same genres, new books
-      restartWithVeto(r);
+      vetoPass(r);
     }
   });
 }
 
-function renderVetoProgress(room){
+function startVetoTimer(room, needed, n){
+  stopVetoTimer();
+  vetoTimerInterval=setInterval(()=>{
+    const remaining=Math.max(0,Math.ceil((vetoEndTime-Date.now())/1000));
+    const vetos=Object.keys(room.vetoVotes||{}).length;
+    $('veto-need').textContent=`${vetos} of ${needed} needed · ${remaining}s remaining`;
+    if(remaining<=0){
+      stopVetoTimer();
+      // Check if enough votes
+      getR().then(r=>{
+        const finalVetos=Object.keys(r.vetoVotes||{}).length;
+        if(finalVetos>=needed){
+          stopListener();
+          vetoPass(r);
+        } else {
+          vetoFail();
+        }
+      });
+    }
+  },500);
+}
+
+function stopVetoTimer(){
+  if(vetoTimerInterval){ clearInterval(vetoTimerInterval); vetoTimerInterval=null; }
+}
+
+function vetoPass(room){
+  // Grey out winner card
+  $('winner-card').classList.add('vetoed');
+  $('winner-card').classList.remove('veto-active');
+  showToast('✅ Veto passed! Finding new books…','success',3000);
+  setTimeout(()=>restartWithVeto(room), 1500);
+}
+
+function vetoFail(){
+  // Remove red pulse, add one big gold pulse
+  const wc=$('winner-card');
+  wc.classList.remove('veto-active');
+  wc.classList.add('winner-final-pulse');
+  setTimeout(()=>wc.classList.remove('winner-final-pulse'),1000);
+  // Hide veto section
+  $('veto-section').style.display='none';
+  showToast('❌ Veto failed — this is your book! 📚','',4000);
+}
+
+function renderVetoProgress(room, n){
   const players=Object.entries(room.players||{});
   const vetoVotes=room.vetoVotes||{};
-  $('veto-progress').innerHTML=players.map(([pid,p])=>`
-    <span class="veto-chip ${vetoVotes[pid]?'voted':''}">${vetoVotes[pid]?'🚫':''} ${p.name}</span>`).join('');
+  const anyVoted=Object.keys(vetoVotes).length>0;
   const myVoted=vetoVotes[S.id];
-  $('veto-btn').textContent=myVoted?'✓ Veto cast':'🚫 Veto this book';
+  const needed=vetoThreshold(n||players.length);
+
+  if(anyVoted){
+    $('veto-progress').style.display='flex';
+    $('veto-progress').innerHTML=players.map(([pid,p])=>`
+      <span class="veto-chip ${vetoVotes[pid]?'voted':''}">${vetoVotes[pid]?'🚫':''} ${p.name}</span>`).join('');
+  } else {
+    $('veto-progress').style.display='none';
+    $('veto-need').textContent='If the majority disagrees, fresh books will be found automatically';
+  }
+
+  $('veto-btn').textContent=myVoted?'✓ Your veto is cast':'🚫 Not feeling this one? Request a veto';
   $('veto-btn').disabled=!!myVoted;
-  $('veto-btn').style.opacity=myVoted?'0.5':'1';
+
+  const wc=$('winner-card');
+  if(anyVoted) wc.classList.add('veto-active');
+  else wc.classList.remove('veto-active');
 }
 
 async function pressVeto(){
@@ -1660,7 +1988,6 @@ function stopQuotes(elId){
 function showVWait(title,sub,orb){
   $('vw-title').textContent=title;
   $('vw-sub').textContent=sub;
-  $('vw-orb').textContent=orb;
   $('vw-status').innerHTML='';
   show('vwait');
   setTimeout(()=>showQuote('vwait-quote'), 100);
@@ -1684,13 +2011,15 @@ window.showModeSelect=showModeSelect;
 // SINGLE PLAYER STATE
 // ═══════════════════════════════════════════
 let SP = {
-  mood: null,           // selected mood id
-  books: [],            // all books fetched
+  mood: null,
+  books: [],            // all 20 books from round 1
   idx: 0,               // current swipe index
-  yesBooks: [],         // books swiped YES
-  slBooks: [],          // shortlist books for round 2
-  slIdx: 0,             // shortlist swipe index
-  superYes: [],         // final super yes picks
+  yesBooks: [],         // books swiped YES in round 1 (with swipe timing)
+  slRound: 0,           // current shortlist round number
+  slBooks: [],          // books in current shortlist round
+  slIdx: 0,             // current shortlist swipe index
+  slYes: [],            // YES picks from current shortlist round
+  swipeTimes: {},       // title → timestamp when swiped YES (for escape hatch)
 };
 
 const MOODS = [
@@ -1764,7 +2093,11 @@ function spRenderCard(){
 function spSwipe(dir){
   if(SP.idx>=SP.books.length||$('sp-btn-yes').disabled)return;
   $('sp-btn-yes').disabled=true;$('sp-btn-no').disabled=true;
-  if(dir==='yes') SP.yesBooks.push(SP.books[SP.idx]);
+  const b=SP.books[SP.idx];
+  if(dir==='yes'){
+    SP.yesBooks.push(b);
+    SP.swipeTimes[b.title]=Date.now(); // track when they swiped YES
+  }
   const card=$('sp-book-card');
   const tx=dir==='yes'?430:-430, rot=dir==='yes'?22:-22;
   card.style.transition='transform 0.3s ease,opacity 0.3s ease';
@@ -1776,23 +2109,32 @@ window.spSwipe=spSwipe;
 
 function spFinishEarly(){ spFinishSwiping(); }
 window.spFinishEarly=spFinishEarly;
+window.spShowPick=spShowPick;
 
 function spFinishSwiping(){
   if(SP.yesBooks.length===0){ show('sp-empty'); return; }
   if(SP.yesBooks.length===1){ spShowPick(SP.yesBooks[0]); return; }
+  // Start shortlist rounds
+  SP.slRound=1;
   SP.slBooks=[...SP.yesBooks];
+  spStartShortlistRound();
+}
+
+// ─── SHORTLIST ROUNDS ──────────────────────
+function spStartShortlistRound(){
   SP.slIdx=0;
-  SP.superYes=[];
-  $('sp-shortlist-sub').textContent=`You liked ${SP.slBooks.length} books — now go deeper`;
+  SP.slYes=[];
+  const count=SP.slBooks.length;
+  const roundLabel = SP.slRound===1 ? `You liked ${count} books — narrow it down` : `Round ${SP.slRound} — ${count} books left`;
+  $('sp-shortlist-sub').textContent=roundLabel;
   spRenderShortlist();
   show('sp-shortlist');
   window.scrollTo({top:0,behavior:'instant'});
   spSetupSlDrag();
 }
 
-// ─── SHORTLIST SWIPE ───────────────────────
 function spRenderShortlist(){
-  if(SP.slIdx>=SP.slBooks.length){ spFinishShortlist(); return; }
+  if(SP.slIdx>=SP.slBooks.length){ spFinishShortlistRound(); return; }
   const b=SP.slBooks[SP.slIdx];
   const cover=$('sp-sl-cover');
   cover.innerHTML='';
@@ -1802,17 +2144,10 @@ function spRenderShortlist(){
   $('sp-sl-genre').textContent=b.genre||'';
   $('sp-sl-title').textContent=b.title;
   $('sp-sl-author').textContent=b.author;
-
-  // Shortlist shows a different/longer description
   $('sp-sl-desc').textContent=b.desc||'';
 
-  // Show quote as an interesting fact if available
-  if(b.quote){
-    $('sp-sl-fact').style.display='block';
-    $('sp-sl-fact').textContent=b.quote;
-  } else {
-    $('sp-sl-fact').style.display='none';
-  }
+  if(b.quote){$('sp-sl-fact').style.display='block';$('sp-sl-fact').textContent=b.quote;}
+  else{$('sp-sl-fact').style.display='none';}
 
   if(b.rating){$('sp-sl-rating').style.display='inline-flex';$('sp-sl-rating').innerHTML=`⭐ ${b.rating}`;}
   else{$('sp-sl-rating').style.display='none';}
@@ -1828,7 +2163,7 @@ function spRenderShortlist(){
 function spSlSwipe(dir){
   if(SP.slIdx>=SP.slBooks.length||$('sp-sl-btn-yes').disabled)return;
   $('sp-sl-btn-yes').disabled=true;$('sp-sl-btn-no').disabled=true;
-  if(dir==='yes') SP.superYes.push(SP.slBooks[SP.slIdx]);
+  if(dir==='yes') SP.slYes.push(SP.slBooks[SP.slIdx]);
   const card=$('sp-sl-card');
   const tx=dir==='yes'?430:-430, rot=dir==='yes'?22:-22;
   card.style.transition='transform 0.3s ease,opacity 0.3s ease';
@@ -1838,21 +2173,103 @@ function spSlSwipe(dir){
 }
 window.spSlSwipe=spSlSwipe;
 
-function spFinishShortlist(){
-  // Pick first YES from shortlist, or first book if none picked
-  const pick = SP.superYes.length>0 ? SP.superYes[0] : SP.slBooks[0];
-  spShowPick(pick);
+function spFinishShortlistRound(){
+  const yes=SP.slYes;
+
+  // 0 YES this round — use all books from this round (didn't narrow down)
+  if(yes.length===0){
+    spShowFinalists(SP.slBooks);
+    return;
+  }
+  // 1 YES — straight to winner
+  if(yes.length===1){
+    spShowPick(yes[0]);
+    return;
+  }
+  // 2-3 YES — show final layout
+  if(yes.length<=3){
+    spShowFinalists(yes);
+    return;
+  }
+  // 4+ YES — escape hatch after round 3, otherwise another round
+  if(SP.slRound>=3){
+    // Pick top 3 using escape hatch logic
+    spEscapeHatch(yes);
+    return;
+  }
+  // Another round
+  SP.slRound++;
+  SP.slBooks=[...yes];
+  spStartShortlistRound();
+}
+
+// ─── ESCAPE HATCH — pick top 3 with reasons ─
+function spEscapeHatch(books){
+  // Sort by: fastest YES swipe in round 1 first
+  const withReasons = books.map(b=>{
+    const swipeTime = SP.swipeTimes[b.title] || 999999;
+    const keptRounds = SP.slRound; // survived multiple rounds
+    return {book:b, swipeTime, keptRounds};
+  }).sort((a,b)=>a.swipeTime-b.swipeTime);
+
+  const top3 = withReasons.slice(0,3);
+  const reasons = [
+    'You swiped yes instantly — your gut loved this one',
+    'You kept choosing this — clearly it stuck with you',
+    'A strong contender across every round',
+  ];
+  spShowFinalists(top3.map(x=>x.book), reasons);
+}
+
+// ─── FINAL LAYOUT — 2 or 3 cards ───────────
+function spShowFinalists(books, reasons=[]){
+  show('sp-finalists');
+  window.scrollTo({top:0,behavior:'instant'});
+
+  $('sp-finalists-sub').textContent=
+    books.length===2 ? 'Two books made it — pick your winner' :
+    'Three finalists — which one is it?';
+
+  $('sp-finalists-grid').className = books.length===2 ? 'finalists-grid-2' : 'finalists-grid-3';
+  $('sp-finalists-grid').innerHTML=books.map((b,i)=>`
+    <div class="finalist-card" onclick="spShowPick(SP._finalists[${i}])">
+      <div class="finalist-cover" id="sp-fc-${i}"></div>
+      <div class="finalist-info">
+        <div style="font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;">${b.genre||''}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:0.9rem;margin-bottom:0.15rem;line-height:1.2;">${b.title}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.3rem;">${b.author}</div>
+        ${reasons[i]?`<div style="font-size:0.68rem;color:var(--yes);font-style:italic;line-height:1.4;">"${reasons[i]}"</div>`:''}
+      </div>
+    </div>`).join('');
+
+  // Store finalists for onclick access
+  SP._finalists = books;
+
+  // Render covers
+  books.forEach((b,i)=>{
+    const el=$('sp-fc-'+i);
+    if(el) renderBookCover(el,b);
+  });
 }
 
 // ─── YOUR PICK ─────────────────────────────
 function spShowPick(book){
+  const emoji = getBookEmoji(book.title, book.genre);
+
   $('sp-pick-card').innerHTML=`
-    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:0.3rem;">${book.genre||''}</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--accent);margin:0.4rem 0 0.2rem;">${book.title}</div>
-    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.7rem;">by ${book.author}</div>
-    ${book.rating?`<div style="font-size:0.74rem;color:var(--accent);margin-bottom:0.7rem;">⭐ ${book.rating}</div>`:''}
-    <div style="font-size:0.78rem;color:var(--muted);line-height:1.65;">${book.desc||''}</div>
-    ${book.quote?`<div style="font-size:0.73rem;font-style:italic;color:var(--muted);border-left:2px solid rgba(232,200,122,0.4);padding-left:0.7rem;text-align:left;line-height:1.5;margin-top:0.8rem;">${book.quote}</div>`:''}`;
+    <span class="sp-pick-emoji">${emoji}</span>
+    <div class="sp-pick-genre">${book.genre||''}</div>
+    <div class="sp-pick-title">${book.title}</div>
+    <div class="sp-pick-author">by ${book.author}</div>
+    ${book.rating?`<div class="sp-pick-rating">⭐ ${book.rating}</div>`:''}
+    <div class="sp-pick-desc">${book.desc||''}</div>
+    ${book.quote?`<div class="sp-pick-quote">${book.quote}</div>`:''}`;
+
+  // Reset animation on card so it replays each time
+  const card=$('sp-pick-card');
+  card.style.animation='none';
+  card.offsetHeight; // force reflow
+  card.style.animation='';
 
   // Where to read
   if(book.where&&book.where.length){
@@ -1865,14 +2282,52 @@ function spShowPick(book){
       </div>`).join('');
   }
 
-  // Save to Want to Read list
   saveToWTR(book);
   renderWTR();
 
   show('sp-pick');
-  document.documentElement.scrollTop=0;
-  document.body.scrollTop=0;
-  setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),50);
+
+  // Soft gold confetti burst after card appears
+  setTimeout(()=>launchSoftConfetti(), 500);
+}
+
+function launchSoftConfetti(){
+  const canvas=$('confetti-canvas');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const pieces=[];
+  const colors=['#e8c87a','#f5dc98','#d4a840','#f0ede8','#e8d4a0'];
+  // Fewer, gentler pieces than multiplayer
+  for(let i=0;i<60;i++){
+    const cx=window.innerWidth/2;
+    pieces.push({
+      x:cx+(Math.random()-0.5)*80,
+      y:window.innerHeight*0.35,
+      w:4+Math.random()*6,h:6+Math.random()*8,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      vx:(Math.random()-0.5)*6,
+      vy:-(3+Math.random()*5),
+      rot:Math.random()*360,vrot:(Math.random()-0.5)*6,
+      opacity:1,gravity:0.18
+    });
+  }
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;
+      p.rot+=p.vrot;
+      if(frame>40)p.opacity=Math.max(0,p.opacity-0.018);
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha=p.opacity;ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+    });
+    frame++;
+    if(frame<180)requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
 }
 
 // ─── WANT TO READ ──────────────────────────
@@ -1908,8 +2363,24 @@ window.removeFromWTR=function(i){
   renderWTR();
 };
 
+function spSurpriseMe(){
+  if(!SP._finalists||SP._finalists.length===0) return;
+  const pick=SP._finalists[Math.floor(Math.random()*SP._finalists.length)];
+  // Fun shake animation before revealing
+  const grid=$('sp-finalists-grid');
+  grid.style.animation='none';
+  grid.style.transform='scale(0.97)';
+  grid.style.opacity='0.5';
+  setTimeout(()=>{
+    grid.style.transform='';
+    grid.style.opacity='';
+    spShowPick(pick);
+  },400);
+}
+window.spSurpriseMe=spSurpriseMe;
+
 function spPlayAgain(){
-  SP={mood:null,books:[],idx:0,yesBooks:[],slBooks:[],slIdx:0,superYes:[]};
+  SP={mood:null,books:[],idx:0,yesBooks:[],slRound:0,slBooks:[],slIdx:0,slYes:[],swipeTimes:{},_finalists:[]};
   show('sp-mood');
 }
 window.spPlayAgain=spPlayAgain;
@@ -1977,8 +2448,28 @@ function spSetupSlDrag(){
   window.onmouseup=end;
 }
 
-// Init mood screen on load
+// ─── HOME PARTICLES ────────────────────────
+function initHomeParticles(){
+  const container=$('home-particles');
+  if(!container)return;
+  const books=['📚','📖','📕','📗','📘','📙','✨','🔖','📝','🌟'];
+  for(let i=0;i<12;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    p.textContent=books[Math.floor(Math.random()*books.length)];
+    p.style.cssText=`
+      left:${Math.random()*100}%;
+      animation-duration:${8+Math.random()*12}s;
+      animation-delay:${Math.random()*8}s;
+      font-size:${0.8+Math.random()*1}rem;
+    `;
+    container.appendChild(p);
+  }
+}
+
+// Init mood screen and particles on load
 initMoodScreen();
+initHomeParticles();
 </script>
 <!-- ═══════════════════════════════════════
      SINGLE PLAYER SCREENS
@@ -2049,21 +2540,41 @@ initMoodScreen();
 </div>
 
 <!-- SP: YOUR PICK -->
-<div id="s-sp-pick" class="screen" style="padding-top:0.5rem;">
-  <div class="winner-card" id="sp-pick-card"></div>
-  <div class="where-card" id="sp-where-card" style="display:none;">
-    <div class="where-title">📖 Where to read this</div>
-    <div id="sp-where-list"></div>
+<div id="s-sp-pick" class="screen" style="padding-top:0.8rem;">
+
+  <!-- Reveal label -->
+  <div class="sp-pick-reveal">✦ Your next read ✦</div>
+
+  <!-- Main book card -->
+  <div class="sp-pick-book-card" id="sp-pick-card"></div>
+
+  <!-- Details — fade in after card -->
+  <div class="sp-pick-details">
+    <div class="where-card" id="sp-where-card" style="display:none;margin-top:0.8rem;">
+      <div class="where-title">📖 Where to read this</div>
+      <div id="sp-where-list"></div>
+    </div>
+    <div class="where-card" id="sp-wtr-card" style="margin-top:0.8rem;">
+      <div class="where-title">📚 Your want to read list</div>
+      <div id="sp-wtr-list"></div>
+    </div>
   </div>
-  <!-- Want to Read list -->
-  <div class="where-card" id="sp-wtr-card" style="margin-top:0.8rem;">
-    <div class="where-title">📚 Your want to read list</div>
-    <div id="sp-wtr-list"></div>
+
+  <!-- Actions -->
+  <div class="sp-pick-actions">
+    <button class="sp-pick-action-btn" onclick="spPlayAgain()">↩ Play again</button>
+    <button class="sp-pick-action-btn" onclick="show('home')">🏠 Home</button>
   </div>
-  <div style="display:flex;gap:0.6rem;width:100%;margin-top:0.8rem;">
-    <button class="mode-btn" style="flex:1;height:56px;" onclick="spPlayAgain()">↩ Play again</button>
-    <button class="mode-btn" style="flex:1;height:56px;" onclick="show('home')">🏠 Home</button>
-  </div>
+
+</div>
+
+<!-- SP: FINALISTS -->
+<div id="s-sp-finalists" class="screen" style="padding-top:0.5rem;">
+  <div class="h2" style="margin-top:0;">Your finalists</div>
+  <div class="sub" id="sp-finalists-sub">Pick your winner</div>
+  <div id="sp-finalists-grid"></div>
+  <button class="surprise-btn" onclick="spSurpriseMe()">🎲 Can't decide? Surprise me!</button>
+  <button class="back-btn" style="margin-top:0.8rem;align-self:center;" onclick="spPlayAgain()">↩ Start over</button>
 </div>
 
 <!-- SP: NO PICKS -->
