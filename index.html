@@ -256,12 +256,13 @@ input::placeholder{color:var(--muted);}
 .home-screen{
   min-height:80dvh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  position:relative;padding:2rem 1.5rem;
+  position:relative;overflow:hidden;padding:2rem 1.5rem;
   width:100%;max-width:440px;
 }
 /* Animated background particles */
-.home-particles{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.home-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
 .home-screen>*:not(.home-particles){position:relative;z-index:1;}
+.hero-btn,.secondary-home-btn,.home-divider,.home-tagline,.home-logo-wrap,.home-proof{pointer-events:auto;}
 .particle{position:absolute;font-size:1.2rem;opacity:0;animation:particleFloat linear infinite;}
 @keyframes particleFloat{
   0%{opacity:0;transform:translateY(100vh) rotate(0deg);}
@@ -2193,6 +2194,15 @@ function spRenderShortlist(){
   const cover=$('sp-sl-cover');
   cover.innerHTML='';cover.style.background='';
   renderBookCover(cover,b);
+
+  // Bestseller badge + gold aura on shortlist too
+  const card=$('sp-sl-card');
+  card.classList.toggle('bestseller', !!b.isBestseller);
+  if(b.isBestseller && !cover.querySelector('.bestseller-badge')){
+    const bb=document.createElement('div');bb.className='bestseller-badge';
+    bb.innerHTML=`✦ NYT Bestseller${b.nytRank?' #'+b.nytRank:''}`;
+    cover.appendChild(bb);
+  }
   $('sp-sl-genre').textContent=b.genre||'';
   $('sp-sl-title').textContent=b.title;
   $('sp-sl-author').textContent=b.author;
