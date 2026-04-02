@@ -1751,14 +1751,6 @@ function buildProfile(topYes, topNo, yesCount, maybeCount, noCount, decisiveness
   return {desc:desc+rejectLine, stats:statsLine};
 }
 
-// ═══════════════════════════════════════════
-// VETO — 60% majority
-// ═══════════════════════════════════════════
-function vetoThreshold(nPlayers){
-  // 60% majority, rounded up
-  return Math.ceil(nPlayers*0.6);
-}
-
 // ─── TOAST ─────────────────────────────────
 let toastTimeout=null;
 function showToast(msg, type='', duration=4000){
