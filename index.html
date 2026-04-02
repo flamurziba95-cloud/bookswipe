@@ -2196,18 +2196,12 @@ async function enrichShortlistCard(book){
     return;
   }
 
-  // Show loading
   $('sp-sl-loading').style.display='block';
   $('sp-sl-enrichment').style.display='none';
 
   try{
-    const prompt = `For the book "${book.title}" by ${book.author}, provide ONLY a JSON object with these exact fields (no markdown, no extra text):
-{
-  "pages": <number or null>,
-  "difficulty": "Easy" or "Medium" or "Challenging",
-  "impact": "<one punchy sentence about cultural/literary significance, max 12 words>",
-  "fact": "<one surprising or fascinating fact about the book or author, max 20 words>"
-}`;
+    const prompt = `For the book "${book.title}" by ${book.author}, respond with ONLY a JSON object, no markdown, no explanation:
+{"pages":number_or_null,"difficulty":"Easy" or "Medium" or "Challenging","impact":"one sentence max 12 words","fact":"one surprising fact max 20 words"}`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -2225,11 +2219,9 @@ async function enrichShortlistCard(book){
     });
 
     const data = await res.json();
-    const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
+    const text = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
 
-    // Calculate reading time from pages
     if(parsed.pages){
       const days = Math.round(parsed.pages / 25);
       parsed.readingTime = days <= 7 ? `~${days} days` :
@@ -2244,6 +2236,7 @@ async function enrichShortlistCard(book){
 
   } catch(e){
     $('sp-sl-loading').style.display='none';
+    console.error('Enrichment error:', e);
   }
 }
 
