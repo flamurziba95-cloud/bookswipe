@@ -2192,7 +2192,7 @@ const enrichCache = {}; // cache by title to avoid repeat calls
 async function enrichShortlistCard(book){
   const cacheKey = book.title + '|' + book.author;
   if(enrichCache[cacheKey]){
-    renderEnrichment(enrichCache[cacheKey]);
+    renderEnrichment(enrichCache[cacheKey], book.title);
     return;
   }
 
@@ -2232,7 +2232,7 @@ async function enrichShortlistCard(book){
 
     enrichCache[cacheKey] = parsed;
     $('sp-sl-loading').style.display='none';
-    renderEnrichment(parsed);
+    renderEnrichment(parsed, book.title);
 
   } catch(e){
     $('sp-sl-loading').style.display='none';
@@ -2240,8 +2240,10 @@ async function enrichShortlistCard(book){
   }
 }
 
-function renderEnrichment(data){
-  // Meta badges
+function renderEnrichment(data, bookTitle){
+  // Don't render if user has already moved to next book
+  if(SP._currentSlBook !== bookTitle) return;
+
   const diffClass = data.difficulty==='Easy'?'easy':data.difficulty==='Challenging'?'hard':'medium';
   const diffEmoji = data.difficulty==='Easy'?'🟢':data.difficulty==='Challenging'?'🔴':'🟡';
   let badges = `<span class="enrich-badge ${diffClass}">${diffEmoji} ${data.difficulty}</span>`;
@@ -2249,18 +2251,14 @@ function renderEnrichment(data){
   if(data.readingTime) badges += `<span class="enrich-badge">📅 ${data.readingTime}</span>`;
   $('sp-sl-meta').innerHTML = badges;
 
-  // Cultural impact
   if(data.impact){
     $('sp-sl-impact').style.display='block';
     $('sp-sl-impact').textContent = '🌍 ' + data.impact;
   }
-
-  // Surprising fact
   if(data.fact){
     $('sp-sl-fact-ai').style.display='block';
     $('sp-sl-fact-ai').textContent = '🤯 ' + data.fact;
   }
-
   $('sp-sl-enrichment').style.display='block';
 }
 function spStartShortlistRound(){
@@ -2299,6 +2297,9 @@ function spRenderShortlist(){
   $('sp-sl-meta').innerHTML='';
   $('sp-sl-impact').style.display='none';
   $('sp-sl-fact-ai').style.display='none';
+
+  // Track current book so async response only renders if still on same book
+  SP._currentSlBook = b.title;
 
   // Fetch Claude enrichment async — loads while user reads desc
   enrichShortlistCard(b);
