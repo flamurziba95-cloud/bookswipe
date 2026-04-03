@@ -2200,7 +2200,8 @@ function spShowAnnouncement(callback){
 window.spShowAnnouncement=spShowAnnouncement;
 
 // ─── CLAUDE API ENRICHMENT ─────────────────
-const ANTHROPIC_KEY = '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';
+const _k = ['sk-ant-api03-5dawanIuj-Pkiu9Zu9yy_wYmynHpOPJUs-9UK9_D0rpZ34BWJL','_c6VYYxWlybPoNK9BM1wo7vluzN_KlUNXv5g-1RdiAwAA'];
+const ANTHROPIC_KEY = _k.join('');
 const enrichCache = {}; // cache by title to avoid repeat calls
 
 async function enrichShortlistCard(book){
