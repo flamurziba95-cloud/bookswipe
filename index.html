@@ -1072,9 +1072,14 @@ async function buildBookPool(genres, count){
   // Mark bestsellers as seen so OL doesn't duplicate them
   bestsellerBooks.forEach(b=>{seen.add(b.title.toLowerCase());});
 
+  // Filter OL books by mood-allowed genres (skip for wildcard and surprise mood)
+  const allowedGenres = SP.mood ? MOOD_ALLOWED_GENRES[SP.mood] : null;
+
   const uniqueOL = olBooks.filter(b=>{
     const key = b.title.toLowerCase();
     if(seen.has(key)) return false;
+    // Skip if genre doesn't match mood (unless wildcard or surprise)
+    if(allowedGenres && !b.isWildcard && !allowedGenres.includes(b.genre)) return false;
     seen.add(key); return true;
   });
 
@@ -2041,6 +2046,15 @@ window.SP = {
 };
 const SP = window.SP;
 
+const MOOD_ALLOWED_GENRES = {
+  'dark':    ['Thriller','Crime / Detective','Dystopia','Existentialism','Psychology','Classic Fiction','Historical'],
+  'warm':    ['Romance','Coming of Age','Classic Fiction','Biography / Memoir','Essay / Stories'],
+  'think':   ['Philosophy','Psychology','Existentialism','Essay / Stories','Classic Fiction','Biography / Memoir'],
+  'escape':  ['Sci-Fi','Adventure','Magic Realism','Historical','Dystopia','Classic Fiction'],
+  'spirit':  ['Spiritual','Biography / Memoir','Philosophy','Existentialism','Essay / Stories','Classic Fiction'],
+  'surprise': null, // anything goes
+};
+
 const MOODS = [
   {id:'dark',     label:'Dark & Intense',    emoji:'🌑', desc:'Thriller, crime, psychological tension',    genres:['thriller','existential','crime','dystopia']},
   {id:'warm',     label:'Warm & Emotional',  emoji:'💕', desc:'Romance, coming of age, heartfelt stories', genres:['romance','coming','classic','biography']},
@@ -2186,7 +2200,7 @@ function spShowAnnouncement(callback){
 window.spShowAnnouncement=spShowAnnouncement;
 
 // ─── CLAUDE API ENRICHMENT ─────────────────
-const ANTHROPIC_KEY = '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';
+const ANTHROPIC_KEY = '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';
 const enrichCache = {}; // cache by title to avoid repeat calls
 
 async function enrichShortlistCard(book){
