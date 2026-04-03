@@ -2200,11 +2200,11 @@ function spShowAnnouncement(callback){
 window.spShowAnnouncement=spShowAnnouncement;
 
 // ─── CLAUDE API ENRICHMENT ─────────────────
-const _k = ['sk-ant-api03-5dawanIuj-Pkiu9Zu9yy_wYmynHpOPJUs-9UK9_D0rpZ34BWJL','_c6VYYxWlybPoNK9BM1wo7vluzN_KlUNXv5g-1RdiAwAA'];
-const ANTHROPIC_KEY = _k.join('');
+const ANTHROPIC_KEY = '';
 const enrichCache = {}; // cache by title to avoid repeat calls
 
 async function enrichShortlistCard(book){
+  if(!ANTHROPIC_KEY) return; // No API key — skip enrichment
   const cacheKey = book.title + '|' + book.author;
   if(enrichCache[cacheKey]){
     renderEnrichment(enrichCache[cacheKey], book.title);
@@ -2688,6 +2688,7 @@ function spSetupSlDrag(){
 
 // ─── CLAUDE DESCRIPTION ENRICHMENT (Round 1) ─
 async function enrichCardDesc(book){
+  if(!ANTHROPIC_KEY) return; // No API key — skip
   const cacheKey = 'desc|' + book.title + '|' + book.author;
   if(enrichCache[cacheKey]) {
     const el=$('sp-card-desc');
