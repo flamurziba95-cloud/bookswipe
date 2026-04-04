@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V3.3</title>
+<title>BookSwipe V3.4</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -641,11 +641,15 @@ input::placeholder{color:var(--muted);}
           <button class="btn btn-primary" style="margin:0 auto;padding:0.55rem 1rem;min-height:36px;font-size:0.78rem;border-radius:50px;" onclick="document.getElementById('pdf-upload-input').click()">＋ Add book</button>
         </div>
 
-        <!-- Book carousel (shown when books exist) -->
-        <div id="mybooks-carousel" style="display:none;text-align:center;">
-          <div id="mybooks-current-book" style="margin-bottom:0.5rem;"></div>
+        <!-- Book carousel -->
+        <div id="mybooks-carousel" style="display:none;">
           <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
-          <button style="background:none;border:none;color:var(--accent);font-size:0.72rem;cursor:pointer;text-decoration:underline;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
+          <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -0.9rem;padding:0 0.9rem;">
+            <div id="mybooks-track" style="display:flex;gap:0.6rem;padding:0.3rem 0;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:0.4rem;margin-top:0.6rem;" id="mybooks-dots"></div>
+          <button style="background:none;border:none;color:var(--accent);font-size:0.7rem;cursor:pointer;text-decoration:underline;display:block;margin:0.5rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
         </div>
       </div>
 
@@ -1031,7 +1035,7 @@ function handlePdfUpload(event) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     const arrayBuffer = e.target.result;
     const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
     const newId = Date.now();
@@ -1044,8 +1048,8 @@ function handlePdfUpload(event) {
       totalPages: null,
       isReading: books.length === 0,
     };
-    // Store PDF data in memory (not localStorage)
-    pdfMemoryStore[newId] = new Uint8Array(arrayBuffer);
+    // Store PDF in IndexedDB (persistent, no size limit)
+    await idbStorePdf(newId, arrayBuffer);
     books.unshift(newBook);
     localStorage.setItem('bs_my_books', JSON.stringify(books));
     renderMyBooks();
@@ -1053,6 +1057,53 @@ function handlePdfUpload(event) {
   reader.readAsArrayBuffer(file);
   event.target.value = '';
 }
+
+// ── IndexedDB for PDF storage ─────────────────
+const IDB_NAME = 'bookswipe_pdfs';
+const IDB_STORE = 'pdfs';
+let idbInstance = null;
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    if (idbInstance) { resolve(idbInstance); return; }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess = e => { idbInstance = e.target.result; resolve(idbInstance); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbStorePdf(id, arrayBuffer) {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(arrayBuffer, id);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGetPdf(id) {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbDeletePdf(id) {
+  const db = await openIDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+    tx.oncomplete = resolve;
+  });
+}
+
+// ── Book Carousel ─────────────────────────────
+let carouselIdx = 0;
 
 function renderMyBooks() {
   const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
@@ -1063,31 +1114,90 @@ function renderMyBooks() {
   if (books.length === 0) {
     empty.style.display = 'block';
     carousel.style.display = 'none';
-  } else {
-    empty.style.display = 'none';
-    carousel.style.display = 'block';
-    const current = books[0];
-    const isReading = current.isReading;
-    const inMemory = !!pdfMemoryStore[current.id];
-    const bookEl = document.getElementById('mybooks-current-book');
-    bookEl.innerHTML = `
-      <div style="cursor:${inMemory ? 'pointer' : 'default'};" ${inMemory ? `onclick="openReader(${current.id})"` : ''}>
-        <div style="width:70px;height:95px;border-radius:8px;background:var(--surface2);
-          border:2px solid ${isReading ? 'var(--accent)' : 'rgba(255,255,255,0.08)'};
-          ${isReading ? 'box-shadow:0 0 14px rgba(240,208,128,0.3);' : ''}
+    return;
+  }
+
+  empty.style.display = 'none';
+  carousel.style.display = 'block';
+  carouselIdx = Math.min(carouselIdx, books.length - 1);
+
+  const bookColors = ['📕','📗','📘','📙','📒'];
+  const html = books.map((b, i) => {
+    const isActive = i === carouselIdx;
+    const emoji = bookColors[i % bookColors.length];
+    const progress = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
+    return `
+      <div onclick="openReaderById(${b.id})" style="
+        flex-shrink:0;width:80px;cursor:pointer;text-align:center;
+        transition:transform 0.2s;transform:${isActive ? 'scale(1.08)' : 'scale(0.92)'};
+        opacity:${isActive ? '1' : '0.6'};
+      ">
+        <div style="
+          width:62px;height:85px;border-radius:8px;background:var(--surface2);
+          border:2px solid ${b.isReading ? 'var(--accent)' : 'rgba(255,255,255,0.08)'};
+          ${b.isReading ? 'box-shadow:0 0 12px rgba(240,208,128,0.25);' : ''}
           display:flex;align-items:center;justify-content:center;
-          margin:0 auto 0.5rem;font-size:1.8rem;">📕</div>
-        <div style="font-size:0.72rem;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:0.2rem;word-break:break-word;">${current.title}</div>
-        ${current.currentPage > 1 ? `<div style="font-size:0.62rem;color:var(--muted);">Page ${current.currentPage}</div>` : ''}
-        ${isReading ? '<div style="font-size:0.62rem;color:var(--accent);margin-top:0.1rem;">● Reading</div>' : ''}
-        ${!inMemory ? '<div style="font-size:0.6rem;color:var(--muted);margin-top:0.2rem;">Re-upload to read</div>' : ''}
+          margin:0 auto 0.4rem;font-size:1.6rem;
+        ">${emoji}</div>
+        <div style="font-size:0.62rem;color:${isActive ? 'var(--text)' : 'var(--muted)'};line-height:1.3;word-break:break-word;padding:0 2px;">${b.title.length > 18 ? b.title.slice(0,16)+'…' : b.title}</div>
+        ${b.currentPage > 1 ? `<div style="font-size:0.58rem;color:var(--muted);margin-top:2px;">p.${b.currentPage}</div>` : ''}
+        ${b.isReading ? '<div style="font-size:0.58rem;color:var(--accent);">● Reading</div>' : ''}
       </div>
     `;
-  }
+  }).join('');
+
+  document.getElementById('mybooks-track').innerHTML = html;
+
+  // Dots
+  const dots = books.map((_, i) =>
+    `<div onclick="carouselGoTo(${i})" style="
+      width:${i === carouselIdx ? '16px' : '6px'};height:6px;border-radius:3px;
+      background:${i === carouselIdx ? 'var(--accent)' : 'rgba(255,255,255,0.2)'};
+      cursor:pointer;transition:all 0.2s;
+    "></div>`
+  ).join('');
+  document.getElementById('mybooks-dots').innerHTML = dots;
 }
+
+function carouselGoTo(idx) {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  carouselIdx = Math.max(0, Math.min(idx, books.length - 1));
+  renderMyBooks();
+}
+
+async function openReaderById(id) {
+  const pdfData = await idbGetPdf(id);
+  if (!pdfData) {
+    // Need to re-upload — show file picker
+    const input = document.getElementById('pdf-upload-reopen');
+    input.dataset.bookId = id;
+    input.click();
+    return;
+  }
+  pdfMemoryStore[id] = new Uint8Array(pdfData);
+  openReader(id);
+}
+
+window.carouselGoTo = carouselGoTo;
+window.openReaderById = openReaderById;
 
 window.handlePdfUpload = handlePdfUpload;
 window.renderMyBooks = renderMyBooks;
+
+async function handleReopenPdf(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const bookId = parseInt(event.target.dataset.bookId);
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    await idbStorePdf(bookId, e.target.result);
+    pdfMemoryStore[bookId] = new Uint8Array(e.target.result);
+    openReader(bookId);
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+window.handleReopenPdf = handleReopenPdf;
 
 // ── PDF READER ────────────────────────────────
 let readerPdf = null;
@@ -1113,7 +1223,18 @@ async function openReader(bookId) {
   const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
   const book = books.find(b => b.id === id);
   if (!book) { alert('Book not found.'); return; }
-  if (!pdfMemoryStore[id]) { alert('Please re-upload the PDF — it was cleared from memory.'); return; }
+
+  // Load from IndexedDB if not in memory
+  if (!pdfMemoryStore[id]) {
+    const data = await idbGetPdf(id);
+    if (!data) {
+      const input = document.getElementById('pdf-upload-reopen');
+      input.dataset.bookId = id;
+      input.click();
+      return;
+    }
+    pdfMemoryStore[id] = new Uint8Array(data);
+  }
 
   readerBookId = id;
   readerSecondsElapsed = 0;
@@ -1124,6 +1245,12 @@ async function openReader(bookId) {
   document.getElementById('reader-pause-btn').textContent = '⏸';
   document.getElementById('reader-loading').style.display = 'flex';
   document.getElementById('reader-canvas').style.display = 'none';
+
+  // Reset quest bar
+  const bar = document.getElementById('quest-bar');
+  const cd = document.getElementById('quest-countdown');
+  if (bar) { bar.style.width = '0%'; bar.style.background = 'linear-gradient(90deg,var(--accent),#f5e49a)'; }
+  if (cd) cd.textContent = '10:00';
 
   show('reader');
 
