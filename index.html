@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V3.1</title>
+<title>BookSwipe V3.2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -392,6 +392,42 @@ input::placeholder{color:var(--muted);}
 
 .spinner{width:32px;height:32px;border:3px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Dashboard calendar strip */
+.dash-calendar-wrap{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:0.9rem;
+}
+.dash-calendar-label{
+  font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;
+  color:var(--muted);margin-bottom:0.75rem;
+}
+.dash-calendar-strip{
+  display:flex;justify-content:space-between;align-items:center;width:100%;
+}
+.dash-day{
+  display:flex;flex-direction:column;align-items:center;gap:0.3rem;flex:1;
+}
+.dash-day-name{
+  font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;
+}
+.dash-day-circle{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.82rem;font-weight:500;font-family:'DM Sans',sans-serif;
+  transition:all 0.2s;
+}
+.dash-day-circle.future{color:var(--muted);background:transparent;}
+.dash-day-circle.today{
+  color:var(--accent);background:rgba(240,208,128,0.08);
+  border:2px solid var(--accent);
+  box-shadow:0 0 10px rgba(240,208,128,0.2);
+}
+.dash-day-circle.read{color:#1a1000;background:var(--accent);font-weight:700;}
+.dash-day-circle.missed{
+  color:rgba(138,134,128,0.4);background:transparent;
+  border:2px solid rgba(138,134,128,0.2);
+}
 </style>
 </head>
 <body>
@@ -477,7 +513,7 @@ input::placeholder{color:var(--muted);}
 
 <!-- LOGIN SCREEN -->
 <div id="s-login" class="screen">
-  <button class="back-btn" onclick="show('home')">← Back</button>
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="home-logo" style="font-size:2.2rem;margin-bottom:0.2rem;">BookSwipe</div>
   <div class="h2" style="margin-top:1rem;">Welcome back</div>
   <div class="sub">Log in to your reading journey</div>
@@ -496,7 +532,7 @@ input::placeholder{color:var(--muted);}
 
 <!-- SIGNUP SCREEN -->
 <div id="s-signup" class="screen">
-  <button class="back-btn" onclick="show('home')">← Back</button>
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="home-logo" style="font-size:2.2rem;margin-bottom:0.2rem;">BookSwipe</div>
   <div class="h2" style="margin-top:1rem;">Start your journey</div>
   <div class="sub">Create your free account</div>
@@ -517,7 +553,7 @@ input::placeholder{color:var(--muted);}
 
 <!-- MY READING LIST -->
 <div id="s-togoboks" class="screen">
-  <button class="back-btn" onclick="show('home')">← Back</button>
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="h2" style="margin-top:0.5rem;">🔖 My Reading List</div>
   <div class="sub">Books you saved from your swipe sessions</div>
   <div id="togo-list" style="width:100%;"></div>
@@ -528,30 +564,78 @@ input::placeholder{color:var(--muted);}
   </div>
 </div>
 
-<!-- DASHBOARD (placeholder — full version coming soon) -->
+<!-- DASHBOARD -->
 <div id="s-dashboard" class="screen">
-  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+
+  <!-- Top bar -->
+  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;padding-top:1rem;">
     <div style="display:flex;align-items:center;gap:0.7rem;">
-      <div id="dash-avatar" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f0d080,#c9a830);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;color:#1a1000;font-size:1.1rem;"></div>
+      <div id="dash-avatar" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f0d080,#c9a830);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;color:#1a1000;font-size:1.1rem;flex-shrink:0;"></div>
       <div>
-        <div style="font-size:0.72rem;color:var(--muted);letter-spacing:0.04em;">WELCOME BACK</div>
-        <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);"></div>
+        <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">Welcome back</div>
+        <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--text);line-height:1.2;"></div>
       </div>
     </div>
-    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.35rem 0.8rem;font-size:0.75rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;">Log out</button>
+    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.35rem 0.8rem;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
   </div>
-  <div class="card-panel" style="text-align:center;padding:2rem;">
-    <div style="font-size:2.5rem;margin-bottom:0.8rem;">🌱</div>
-    <div class="h2" style="font-size:1.2rem;">Dashboard coming soon</div>
-    <div class="sub">Goals, streaks, forest and more.<br>We're building it right now.</div>
+
+  <!-- Weekly Calendar Strip -->
+  <div class="dash-calendar-wrap">
+    <div class="dash-calendar-label">This week</div>
+    <div class="dash-calendar-strip" id="dash-calendar"></div>
   </div>
-  <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="showModeSelect('single')">📖 Pick a book</button>
+
+  <!-- Placeholder cards -->
+  <div class="card-panel" style="text-align:center;padding:1.5rem;margin-top:0.5rem;">
+    <div style="font-size:2rem;margin-bottom:0.6rem;">🎯</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.25rem;">Daily Goal</div>
+    <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Coming soon — quests & coin rewards</div>
+  </div>
+
+  <div class="card-panel" style="text-align:center;padding:1.5rem;">
+    <div style="font-size:2rem;margin-bottom:0.6rem;">📚</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.25rem;">My Books</div>
+    <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Track what you're reading — coming soon</div>
+  </div>
+
+  <div class="card-panel" style="text-align:center;padding:1.5rem;">
+    <div style="font-size:2rem;margin-bottom:0.6rem;">🌱</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.25rem;">My Forest</div>
+    <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Your reading forest grows here — coming soon</div>
+  </div>
+
+  <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="show('pick-choice')">📖 Pick a book</button>
   <button class="btn btn-secondary" onclick="showToGoBooks()">🔖 My Reading List</button>
+
+</div>
+
+<!-- PICK A BOOK CHOICE (from dashboard) -->
+<div id="s-pick-choice" class="screen">
+  <button class="back-btn" onclick="showDashboard(currentUser)">← Back</button>
+  <div class="h2" style="margin-top:0.5rem;">Pick a book</div>
+  <div class="sub">How would you like to choose?</div>
+  <button class="hero-btn" onclick="showModeSelect('single')" style="margin-top:0.5rem;">
+    <div class="hero-btn-text">
+      <span style="font-size:1rem;">📖 Solo Discovery</span>
+      <span class="hero-btn-label">Just you · Your mood · Your pace</span>
+    </div>
+  </button>
+  <div class="home-divider">
+    <div class="home-divider-line"></div>
+    <div class="home-divider-text">or</div>
+    <div class="home-divider-line"></div>
+  </div>
+  <button class="secondary-home-btn" onclick="showModeSelect('multi')">
+    <div class="secondary-home-btn-text">
+      <span>👥 Play with friends</span>
+      <span class="secondary-home-btn-sub">Vote together · Pick as a group</span>
+    </div>
+  </button>
 </div>
 
 <!-- MODE: MULTIPLAYER SETUP -->
 <div id="s-multi-setup" class="screen">
-  <button class="back-btn" onclick="show('home')">← Back</button>
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="logo" style="font-size:1.8rem;">BookSwipe</div>
   <div class="sub" style="margin-bottom:1.2rem;">Multiplayer</div>
   <div class="card-panel">
@@ -741,9 +825,10 @@ let currentUser = null;
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (user) {
-    // If on home/login/signup → go to dashboard
+    // Always show dashboard if logged in — on any non-game screen
     const active = document.querySelector('.screen.active');
-    if (active && ['s-home','s-login','s-signup'].includes(active.id)) {
+    const gameScreens = ['s-sp-swipe','s-sp-shortlist','s-sp-pick','s-sp-finalists','s-sp-empty','s-sp-mood','s-multi-setup','s-wait','s-genre-vote','s-length-vote','s-swiping','s-others','s-results','s-winner'];
+    if (active && !gameScreens.includes(active.id)) {
       showDashboard(user);
     }
   }
@@ -754,7 +839,46 @@ function showDashboard(user) {
   const initials = name.slice(0,2).toUpperCase();
   document.getElementById('dash-avatar').textContent = initials;
   document.getElementById('dash-name').textContent = name;
+  renderCalendarStrip();
   show('dashboard');
+}
+
+function renderCalendarStrip() {
+  const strip = document.getElementById('dash-calendar');
+  if (!strip) return;
+  const days = ['M','T','W','T','F','S','S'];
+  const today = new Date();
+  const todayDow = today.getDay(); // 0=Sun,1=Mon...6=Sat
+  // Convert to Mon=0 ... Sun=6
+  const todayIdx = todayDow === 0 ? 6 : todayDow - 1;
+
+  // Load read days from localStorage (will be populated by timer later)
+  const readDays = JSON.parse(localStorage.getItem('bs_read_days') || '[]');
+  // readDays is array of date strings like "2026-04-04"
+
+  // Get dates for this week (Mon to Sun)
+  const weekDates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - todayIdx + i);
+    weekDates.push(d);
+  }
+
+  strip.innerHTML = weekDates.map((d, i) => {
+    const dateStr = d.toISOString().split('T')[0];
+    const dayNum = d.getDate();
+    let state = 'future';
+    if (i === todayIdx) state = 'today';
+    else if (i < todayIdx) {
+      state = readDays.includes(dateStr) ? 'read' : 'missed';
+    }
+    return `
+      <div class="dash-day">
+        <div class="dash-day-name">${days[i]}</div>
+        <div class="dash-day-circle ${state}">${dayNum}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function doLogin() {
@@ -841,6 +965,9 @@ window.doSignup = doSignup;
 window.doLogout = doLogout;
 window.showToGoBooks = showToGoBooks;
 window.removeToGoBook = removeToGoBook;
+window.renderCalendarStrip = renderCalendarStrip;
+window.showDashboard = showDashboard;
+Object.defineProperty(window, 'currentUser', { get: () => currentUser });
 
 // ═══════════════════════════════════════════
 // GENRE DEFINITIONS — 16 genres
@@ -2986,7 +3113,7 @@ initHomeParticles();
 
 <!-- SP: MOOD SELECTOR -->
 <div id="s-sp-mood" class="screen">
-  <button class="back-btn" onclick="show('home')">← Back</button>
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="h2" style="margin-top:0.5rem;">What are you in the mood for?</div>
   <div class="sub">Pick one and we'll find the perfect books</div>
   <div class="genre-grid" id="sp-mood-grid" style="margin-top:0.5rem;"></div>
@@ -3096,7 +3223,7 @@ initHomeParticles();
   <!-- Actions -->
   <div class="sp-pick-actions">
     <button class="sp-pick-action-btn" onclick="spPlayAgain()">↩ Play again</button>
-    <button class="sp-pick-action-btn" onclick="show('home')">🏠 Home</button>
+    <button class="sp-pick-action-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">🏠 Home</button>
   </div>
 
 </div>
@@ -3116,7 +3243,7 @@ initHomeParticles();
   <div class="h2">Nothing grabbed you</div>
   <div class="sub">You passed on everything this round.<br>Try a different mood?</div>
   <button class="btn btn-primary" onclick="show('sp-mood')" style="margin-top:1rem;">Try a different mood</button>
-  <button class="btn btn-secondary" onclick="show('home')">← Home</button>
+  <button class="btn btn-secondary" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Home</button>
 </div>
 
 </body>
