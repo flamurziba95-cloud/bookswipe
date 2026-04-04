@@ -1187,14 +1187,28 @@ function readerPrevPage() {
   }
 }
 
+const QUEST_SECS = 600; // 10 minutes
+
 function startReaderTimer() {
   clearInterval(readerTimerInterval);
   readerTimerInterval = setInterval(() => {
     if (!readerIsPaused) {
       readerSecondsElapsed++;
+
+      // Reading timer (top right)
       const m = Math.floor(readerSecondsElapsed / 60);
       const s = readerSecondsElapsed % 60;
       document.getElementById('reader-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+
+      // 10-min countdown bar
+      const remaining = Math.max(QUEST_SECS - readerSecondsElapsed, 0);
+      const qm = Math.floor(remaining / 60);
+      const qs = remaining % 60;
+      const cd = document.getElementById('quest-countdown');
+      const bar = document.getElementById('quest-bar');
+      if (cd) cd.textContent = remaining > 0 ? `${qm}:${qs.toString().padStart(2,'0')}` : '✓';
+      if (bar) bar.style.width = Math.min((readerSecondsElapsed / QUEST_SECS) * 100, 100) + '%';
+      if (remaining === 0 && bar) bar.style.background = 'var(--yes)';
     }
   }, 1000);
 }
@@ -1218,6 +1232,12 @@ function saveReaderProgress(pageNum) {
 function closeReader() {
   clearInterval(readerTimerInterval);
 
+  // Reset countdown bar for next session
+  const bar = document.getElementById('quest-bar');
+  const cd = document.getElementById('quest-countdown');
+  if (bar) { bar.style.width = '0%'; bar.style.background = 'linear-gradient(90deg,var(--accent),#f5e49a)'; }
+  if (cd) cd.textContent = '10:00';
+
   // Save today as a read day if read for more than 60 seconds
   if (readerSecondsElapsed >= 60) {
     const today = new Date().toISOString().split('T')[0];
@@ -1229,6 +1249,8 @@ function closeReader() {
   }
 
   readerPdf = null;
+  readerSecondsElapsed = 0;
+
   if (currentUser) {
     renderCalendarStrip();
     renderMyBooks();
@@ -3616,14 +3638,20 @@ initHomeParticles();
   <div id="reader-topbar" style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
     <button onclick="closeReader()" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0.2rem;">← Back</button>
     <div id="reader-title" style="font-family:'Playfair Display',serif;font-size:0.9rem;color:var(--text);text-align:center;flex:1;padding:0 0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-    <div style="width:60px;"></div>
+    <!-- Timer in blue square position -->
+    <div style="display:flex;align-items:center;gap:0.4rem;flex-shrink:0;">
+      <div id="reader-timer" style="font-size:0.85rem;color:var(--accent);font-weight:700;min-width:36px;text-align:right;">0:00</div>
+      <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.65rem;color:var(--accent);">⏸</button>
+    </div>
   </div>
 
-  <!-- Simple timer strip -->
-  <div style="width:100%;max-width:440px;background:rgba(240,208,128,0.06);border-bottom:1px solid rgba(240,208,128,0.15);padding:0.45rem 1rem;display:flex;align-items:center;justify-content:center;gap:0.7rem;">
-    <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;">Reading</div>
-    <div id="reader-timer" style="font-size:0.88rem;color:var(--accent);font-weight:700;min-width:42px;text-align:center;">0:00</div>
-    <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.65rem;color:var(--accent);">⏸</button>
+  <!-- 10 min countdown bar (red square position) -->
+  <div style="width:100%;max-width:440px;background:var(--surface);border-bottom:1px solid var(--border);padding:0.35rem 1rem;display:flex;align-items:center;gap:0.7rem;">
+    <div style="font-size:0.65rem;color:var(--muted);letter-spacing:0.04em;white-space:nowrap;">🎯 <span id="quest-countdown">10:00</span></div>
+    <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+      <div id="quest-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#f5e49a);border-radius:3px;transition:width 1s linear;"></div>
+    </div>
+    <div style="font-size:0.65rem;color:var(--accent);font-weight:600;white-space:nowrap;">🪙 30</div>
   </div>
 
   <!-- Book progress bar -->
