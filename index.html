@@ -334,10 +334,35 @@ input::placeholder{color:var(--muted);}
 /* Social proof */
 .home-proof{
   font-size:0.72rem;color:var(--muted);text-align:center;
-  margin-top:1.5rem;line-height:1.6;
+  margin-top:1rem;line-height:1.6;
   animation:fadeUp 0.8s 0.6s ease both;
 }
 .home-proof span{color:var(--accent);}
+/* Login button — gold like hero */
+.login-home-btn{
+  width:100%;padding:0.95rem 1.2rem;
+  background:linear-gradient(135deg,#e8c87a,#d4a840);
+  border:none;border-radius:16px;cursor:pointer;
+  font-family:'Playfair Display',serif;font-size:1rem;
+  font-weight:700;color:#1a1000;
+  transition:all 0.2s ease;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:0.5rem;
+  animation:fadeUp 0.8s 0.5s ease both;
+  box-shadow:0 4px 24px rgba(232,200,122,0.2);
+}
+.login-home-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,200,122,0.35);}
+.login-home-btn:active{transform:scale(0.98);}
+.login-home-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.login-home-btn-label{font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:400;opacity:0.7;letter-spacing:0.04em;}
+/* Sign up link */
+.signup-home-link{
+  font-size:0.78rem;color:var(--muted);text-align:center;
+  margin-bottom:0.8rem;
+  animation:fadeUp 0.8s 0.55s ease both;
+}
+.signup-home-link span{color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.signup-home-link span:hover{opacity:0.8;}
 .mode-btn{
   width:100%;height:80px;background:var(--surface);border:1.5px solid var(--border);
   border-radius:var(--r);cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;
@@ -410,6 +435,36 @@ input::placeholder{color:var(--muted);}
       <span style="color:var(--muted);font-size:1rem;">→</span>
     </button>
 
+    <!-- My To-Go Books -->
+    <button class="secondary-home-btn" onclick="showToGoBooks()" style="margin-top:0.4rem;">
+      <div class="secondary-home-btn-text">
+        <span>📚 My To-Go Books</span>
+        <span class="secondary-home-btn-sub">Your saved picks · Ready to read</span>
+      </div>
+      <span style="color:var(--muted);font-size:1rem;">→</span>
+    </button>
+
+    <!-- Divider -->
+    <div class="home-divider" style="margin-top:0.8rem;">
+      <div class="home-divider-line"></div>
+      <div class="home-divider-text">your journey</div>
+      <div class="home-divider-line"></div>
+    </div>
+
+    <!-- Log In button -->
+    <button class="login-home-btn" onclick="show('s-login')">
+      <div class="login-home-btn-text">
+        <span style="font-size:0.95rem;">🔑 Log In</span>
+        <span class="login-home-btn-label">Access your dashboard · Goals · Forest</span>
+      </div>
+      <span style="font-size:1.3rem;opacity:0.8;">→</span>
+    </button>
+
+    <!-- Sign Up link -->
+    <div class="signup-home-link">
+      New here? <span onclick="show('s-signup')">Create a free account</span>
+    </div>
+
     <!-- Social proof -->
     <div class="home-proof">
       ✦ Free · No account needed · Works on any device
@@ -417,6 +472,80 @@ input::placeholder{color:var(--muted);}
 
   </div>
   <div class="err" id="home-err"></div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="s-login" class="screen">
+  <button class="back-btn" onclick="show('home')">← Back</button>
+  <div class="home-logo" style="font-size:2.2rem;margin-bottom:0.2rem;">BookSwipe</div>
+  <div class="h2" style="margin-top:1rem;">Welcome back</div>
+  <div class="sub">Log in to your reading journey</div>
+  <div class="card-panel" style="margin-top:0.5rem;">
+    <label>Email</label>
+    <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email"/>
+    <label>Password</label>
+    <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password"/>
+    <button class="btn btn-primary" onclick="doLogin()" style="margin-top:0.3rem;">🔑 Log In</button>
+  </div>
+  <div class="err" id="login-err"></div>
+  <div class="signup-home-link" style="margin-top:0.5rem;">
+    No account yet? <span onclick="show('s-signup')">Sign up free</span>
+  </div>
+</div>
+
+<!-- SIGNUP SCREEN -->
+<div id="s-signup" class="screen">
+  <button class="back-btn" onclick="show('home')">← Back</button>
+  <div class="home-logo" style="font-size:2.2rem;margin-bottom:0.2rem;">BookSwipe</div>
+  <div class="h2" style="margin-top:1rem;">Start your journey</div>
+  <div class="sub">Create your free account</div>
+  <div class="card-panel" style="margin-top:0.5rem;">
+    <label>Your name</label>
+    <input type="text" id="signup-name" placeholder="e.g. Flamur" maxlength="30" autocomplete="off"/>
+    <label>Email</label>
+    <input type="email" id="signup-email" placeholder="your@email.com" autocomplete="email"/>
+    <label>Password</label>
+    <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password"/>
+    <button class="btn btn-primary" onclick="doSignup()" style="margin-top:0.3rem;">✦ Create Account</button>
+  </div>
+  <div class="err" id="signup-err"></div>
+  <div class="signup-home-link" style="margin-top:0.5rem;">
+    Already have an account? <span onclick="show('s-login')">Log in</span>
+  </div>
+</div>
+
+<!-- MY TO-GO BOOKS -->
+<div id="s-togoboks" class="screen">
+  <button class="back-btn" onclick="show('home')">← Back</button>
+  <div class="h2" style="margin-top:0.5rem;">📚 My To-Go Books</div>
+  <div class="sub">Books you saved from your swipe sessions</div>
+  <div id="togo-list" style="width:100%;"></div>
+  <div id="togo-empty" style="display:none;text-align:center;margin-top:2rem;">
+    <div style="font-size:3rem;margin-bottom:1rem;">📖</div>
+    <div class="sub">No books saved yet.<br>Swipe solo or with friends to build your list.</div>
+    <button class="btn btn-primary" style="margin-top:1rem;" onclick="showModeSelect('single')">📖 Start Swiping</button>
+  </div>
+</div>
+
+<!-- DASHBOARD (placeholder — full version coming soon) -->
+<div id="s-dashboard" class="screen">
+  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+    <div style="display:flex;align-items:center;gap:0.7rem;">
+      <div id="dash-avatar" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#e8c87a,#d4a840);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;color:#1a1000;font-size:1.1rem;"></div>
+      <div>
+        <div style="font-size:0.72rem;color:var(--muted);letter-spacing:0.04em;">WELCOME BACK</div>
+        <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);"></div>
+      </div>
+    </div>
+    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.35rem 0.8rem;font-size:0.75rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;">Log out</button>
+  </div>
+  <div class="card-panel" style="text-align:center;padding:2rem;">
+    <div style="font-size:2.5rem;margin-bottom:0.8rem;">🌱</div>
+    <div class="h2" style="font-size:1.2rem;">Dashboard coming soon</div>
+    <div class="sub">Goals, streaks, forest and more.<br>We're building it right now.</div>
+  </div>
+  <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="showModeSelect('single')">📖 Pick a book</button>
+  <button class="btn btn-secondary" onclick="show('s-togoboks')">📚 My To-Go Books</button>
 </div>
 
 <!-- MODE: MULTIPLAYER SETUP -->
@@ -590,6 +719,7 @@ input::placeholder{color:var(--muted);}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBwk0AGsLLXHjekG0GspnJEVF8a9P5h7gc",
@@ -602,6 +732,112 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
+
+// ── AUTH STATE ───────────────────────────────
+let currentUser = null;
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  if (user) {
+    // If on home/login/signup → go to dashboard
+    const active = document.querySelector('.screen.active');
+    if (active && ['s-home','s-login','s-signup'].includes(active.id)) {
+      showDashboard(user);
+    }
+  }
+});
+
+function showDashboard(user) {
+  const name = user.displayName || user.email.split('@')[0];
+  const initials = name.slice(0,2).toUpperCase();
+  document.getElementById('dash-avatar').textContent = initials;
+  document.getElementById('dash-name').textContent = name;
+  show('s-dashboard');
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const err   = document.getElementById('login-err');
+  err.textContent = '';
+  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    showDashboard(cred.user);
+  } catch(e) {
+    err.textContent = e.code === 'auth/invalid-credential' ? 'Wrong email or password.' : 'Login failed. Try again.';
+  }
+}
+
+async function doSignup() {
+  const name  = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-password').value;
+  const err   = document.getElementById('signup-err');
+  err.textContent = '';
+  if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(cred.user, { displayName: name });
+    // Save user to database
+    await set(ref(db, 'users/' + cred.user.uid), {
+      name, email, createdAt: Date.now(), coins: 0, streak: 0
+    });
+    showDashboard(cred.user);
+  } catch(e) {
+    err.textContent = e.code === 'auth/email-already-in-use' ? 'Email already in use.' : 'Signup failed. Try again.';
+  }
+}
+
+async function doLogout() {
+  await signOut(auth);
+  show('home');
+}
+
+function showToGoBooks() {
+  const saved = JSON.parse(localStorage.getItem('bs_wtr') || '[]');
+  const list  = document.getElementById('togo-list');
+  const empty = document.getElementById('togo-empty');
+  list.innerHTML = '';
+  if (!saved.length) {
+    empty.style.display = 'block';
+    list.style.display  = 'none';
+  } else {
+    empty.style.display = 'none';
+    list.style.display  = 'block';
+    saved.forEach((b, i) => {
+      const el = document.createElement('div');
+      el.className = 'card-panel';
+      el.style.cssText = 'display:flex;align-items:center;gap:0.8rem;padding:0.9rem 1rem;margin-bottom:0.5rem;';
+      el.innerHTML = `
+        <div style="font-size:2rem;flex-shrink:0;">${b.emoji || '📖'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Playfair Display',serif;font-size:0.95rem;margin-bottom:0.1rem;">${b.title}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${b.author || ''}</div>
+        </div>
+        <button onclick="removeToGoBook(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0.2rem;">✕</button>
+      `;
+      list.appendChild(el);
+    });
+  }
+  show('s-togoboks');
+}
+
+function removeToGoBook(index) {
+  const saved = JSON.parse(localStorage.getItem('bs_wtr') || '[]');
+  saved.splice(index, 1);
+  localStorage.setItem('bs_wtr', JSON.stringify(saved));
+  showToGoBooks();
+}
+
+// Expose to global scope
+window.doLogin = doLogin;
+window.doSignup = doSignup;
+window.doLogout = doLogout;
+window.showToGoBooks = showToGoBooks;
+window.removeToGoBook = removeToGoBook;
 
 // ═══════════════════════════════════════════
 // GENRE DEFINITIONS — 16 genres
