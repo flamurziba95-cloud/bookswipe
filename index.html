@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V3.9</title>
+<title>BookSwipe V4.0</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -428,6 +428,7 @@ input::placeholder{color:var(--muted);}
   color:rgba(138,134,128,0.4);background:transparent;
   border:2px solid rgba(138,134,128,0.2);
 }
+.forest-legend-item{font-size:0.68rem;color:var(--muted);background:var(--surface2);border-radius:20px;padding:0.25rem 0.7rem;display:flex;align-items:center;gap:0.3rem;}
 </style>
 </head>
 <body>
@@ -672,29 +673,46 @@ input::placeholder{color:var(--muted);}
 
   </div>
 
-  <!-- Forest card -->
-  <div class="card-panel" style="padding:1rem;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;">
+  <!-- Forest card — tap to open full forest -->
+  <div class="card-panel" style="padding:0;overflow:hidden;cursor:pointer;" onclick="showForest()">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem 0.6rem;">
       <div style="font-family:'Playfair Display',serif;font-size:1rem;">🌿 My Forest</div>
-      <div id="forest-coins" style="font-size:0.78rem;color:var(--accent);font-weight:600;">🪙 0 coins</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div id="forest-coins" style="font-size:0.75rem;color:var(--accent);font-weight:600;">🪙 0</div>
+        <div style="font-size:0.72rem;color:var(--muted);">→</div>
+      </div>
     </div>
-    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.9rem;line-height:1.5;">
-      Your reading journey grows here. Every book, challenge and streak plants something new.
-    </div>
-    <!-- Forest grid -->
-    <div id="forest-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;"></div>
-    <!-- Legend -->
-    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.9rem;">
-      <div style="font-size:0.62rem;color:var(--muted);display:flex;align-items:center;gap:0.25rem;"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#c9a830"/></svg>Oak — finished book</div>
-      <div style="font-size:0.62rem;color:var(--muted);display:flex;align-items:center;gap:0.25rem;"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#4caf87"/></svg>Pine — club book</div>
-      <div style="font-size:0.62rem;color:var(--muted);display:flex;align-items:center;gap:0.25rem;"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#e05c7a"/></svg>Flower — challenge</div>
-      <div style="font-size:0.62rem;color:var(--muted);display:flex;align-items:center;gap:0.25rem;"><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#a07840"/></svg>Mushroom — streak</div>
-    </div>
+    <!-- Mini forest preview canvas -->
+    <canvas id="forest-preview-canvas" style="width:100%;display:block;" height="160"></canvas>
   </div>
 
   <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="show('pick-choice')">📖 Pick a book</button>
   <button class="btn btn-secondary" onclick="showToGoBooks()">🔖 My Reading List</button>
 
+</div>
+
+<!-- FULL FOREST SCREEN -->
+<div id="s-forest" class="screen" style="padding:0;">
+  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem;position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:1px solid var(--border);">
+    <button onclick="currentUser ? showDashboard(currentUser) : show('home')" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;">← Back</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;">My Forest</div>
+    <div id="forest-coins-full" style="font-size:0.78rem;color:var(--accent);font-weight:600;">🪙 0</div>
+  </div>
+
+  <!-- Island count -->
+  <div id="forest-island-nav" style="display:flex;justify-content:center;gap:0.5rem;padding:0.6rem 1rem;"></div>
+
+  <!-- Full forest canvas -->
+  <canvas id="forest-full-canvas" style="width:100%;display:block;max-width:440px;" height="420"></canvas>
+
+  <!-- Plant legend -->
+  <div style="padding:0.8rem 1rem;display:flex;flex-wrap:wrap;gap:0.6rem;">
+    <div style="font-size:0.68rem;color:var(--muted);width:100%;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.06em;">Species</div>
+    <div class="forest-legend-item"><span style="color:#c9a830;">🌳</span> Oak — finished book</div>
+    <div class="forest-legend-item"><span style="color:#4caf87;">🌲</span> Pine — club book</div>
+    <div class="forest-legend-item"><span style="color:#e05c7a;">🌸</span> Flower — challenge</div>
+    <div class="forest-legend-item"><span style="color:#c49050;">🍄</span> Mushroom — 7-day streak</div>
+  </div>
 </div>
 
 <!-- PICK A BOOK CHOICE (from dashboard) -->
@@ -930,8 +948,9 @@ function showDashboard(user) {
   renderCalendarStrip();
   renderMyBooks();
   forestAddTestPlants();
-  renderForest();
   show('dashboard');
+  // Render forest after layout paint so canvas has correct width
+  setTimeout(() => renderForest(), 50);
 }
 
 function renderCalendarStrip() {
@@ -1410,6 +1429,337 @@ function forestAddTestPlants() {
 
 window.renderForest = renderForest;
 window.forestAddPlant = forestAddPlant;
+
+// ── ISOMETRIC FOREST ──────────────────────────
+const GRID = 4; // 4x4 per island
+let forestIslandIdx = 0;
+
+function getForest() {
+  return JSON.parse(localStorage.getItem('bs_forest') || '[]');
+}
+
+function showForest() {
+  forestIslandIdx = 0;
+  renderForestFull();
+  updateForestNav();
+  show('forest');
+}
+window.showForest = showForest;
+
+function updateForestNav() {
+  const forest = getForest();
+  const islands = Math.max(1, Math.ceil(forest.length / (GRID*GRID)));
+  const nav = document.getElementById('forest-island-nav');
+  if (!nav) return;
+  nav.innerHTML = Array.from({length: islands}, (_, i) =>
+    `<div onclick="forestIslandIdx=${i};renderForestFull();updateForestNav();" style="
+      width:${i===forestIslandIdx?'20px':'8px'};height:8px;border-radius:4px;
+      background:${i===forestIslandIdx?'var(--accent)':'rgba(255,255,255,0.2)'};
+      cursor:pointer;transition:all 0.2s;
+    "></div>`
+  ).join('');
+}
+window.updateForestNav = updateForestNav;
+
+function renderForestFull() {
+  const canvas = document.getElementById('forest-full-canvas');
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 400;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = 420 * window.devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  drawIsland(ctx, W, 420, forestIslandIdx, true);
+}
+
+function renderForest() {
+  // Update coins display
+  const coins = parseInt(localStorage.getItem('bs_coins') || '0');
+  ['forest-coins','forest-coins-full'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `🪙 ${coins}`;
+  });
+
+  // Draw mini preview
+  const canvas = document.getElementById('forest-preview-canvas');
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 400;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = 160 * window.devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  drawIsland(ctx, W, 160, 0, false);
+}
+
+function drawIsland(ctx, W, H, islandIdx, full) {
+  const forest = getForest();
+  const startSlot = islandIdx * GRID * GRID;
+  const plants = forest.slice(startSlot, startSlot + GRID*GRID);
+  const scale = full ? 1 : 0.55;
+
+  // Background
+  ctx.fillStyle = '#0e0e10';
+  ctx.fillRect(0, 0, W, H);
+
+  // Isometric island base
+  const cx = W / 2;
+  const cy = full ? H * 0.52 : H * 0.58;
+  const tileW = (full ? 52 : 38) * scale;
+  const tileH = tileW * 0.5;
+  const depth = full ? 18 : 12;
+
+  // Draw dirt sides
+  ctx.fillStyle = '#5c3d1a';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + tileH * 2);
+  ctx.lineTo(cx - tileW * 2, cy);
+  ctx.lineTo(cx - tileW * 2, cy + depth);
+  ctx.lineTo(cx, cy + tileH * 2 + depth);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#7a5225';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + tileH * 2);
+  ctx.lineTo(cx + tileW * 2, cy);
+  ctx.lineTo(cx + tileW * 2, cy + depth);
+  ctx.lineTo(cx, cy + tileH * 2 + depth);
+  ctx.closePath();
+  ctx.fill();
+
+  // Draw grass tiles (4x4)
+  const rows = GRID, cols = GRID;
+  const tilePositions = [];
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const tx = cx + (col - row) * tileW;
+      const ty = cy + (col + row) * tileH - tileH * (rows - 1);
+
+      // Grass tile
+      const shade = ((row + col) % 2 === 0) ? '#3a8a3a' : '#358535';
+      ctx.fillStyle = shade;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx + tileW, ty + tileH);
+      ctx.lineTo(tx, ty + tileH * 2);
+      ctx.lineTo(tx - tileW, ty + tileH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Subtle edge
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      tilePositions.push({ tx, ty, row, col, slotIdx: row * cols + col });
+    }
+  }
+
+  // Draw plants on tiles
+  tilePositions.forEach(({ tx, ty, slotIdx }) => {
+    const plant = plants[slotIdx];
+    if (plant) {
+      drawIsometricPlant(ctx, tx, ty + tileH, plant.type, plant.stage || 3, tileW, full);
+    }
+  });
+}
+
+function drawIsometricPlant(ctx, x, y, type, stage, tileW, full) {
+  const s = full ? 1 : 0.7;
+  ctx.save();
+  ctx.translate(x, y);
+
+  switch(type) {
+    case 'oak': drawOak(ctx, stage, s, tileW); break;
+    case 'pine': drawPine(ctx, stage, s, tileW); break;
+    case 'flower': drawFlower(ctx, stage, s, tileW); break;
+    case 'mushroom': drawMushroom(ctx, stage, s, tileW); break;
+  }
+
+  ctx.restore();
+}
+
+function drawOak(ctx, stage, s, tw) {
+  const h = (8 + stage * 5) * s;
+  const r = (6 + stage * 4) * s;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, tw*0.4, tw*0.15, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Trunk
+  ctx.fillStyle = '#6b3d1e';
+  ctx.fillRect(-2*s, -h, 4*s, h);
+
+  // Canopy layers
+  const colors = ['#2d6b1a','#3a8025','#4a9030'];
+  for (let i = 0; i < Math.min(stage+1, 3); i++) {
+    ctx.fillStyle = colors[i];
+    ctx.beginPath();
+    ctx.ellipse(0, -h - r*0.4*i, r*(1-i*0.15), r*0.7*(1-i*0.15), 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Gold glow for mature
+  if (stage >= 4) {
+    ctx.fillStyle = 'rgba(240,208,128,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(0, -h - r*0.3, r*1.3, r, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Acorns
+    ctx.fillStyle = '#c9a830';
+    ctx.beginPath(); ctx.arc(-r*0.5, -h - r*0.1, 2*s, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(r*0.4, -h - r*0.2, 2*s, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawPine(ctx, stage, s, tw) {
+  const layers = Math.min(stage + 2, 5);
+  const h = (10 + stage * 4) * s;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, tw*0.3, tw*0.1, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = '#5a3418';
+  ctx.fillRect(-1.5*s, -8*s, 3*s, 8*s);
+
+  for (let i = 0; i < layers; i++) {
+    const w = (12 - i*1.5) * s;
+    const ly = -h * (0.3 + i * 0.15);
+    ctx.fillStyle = i % 2 === 0 ? '#1a5c2d' : '#1f7038';
+    ctx.beginPath();
+    ctx.moveTo(0, ly - 12*s);
+    ctx.lineTo(-w, ly);
+    ctx.lineTo(w, ly);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  if (stage >= 4) {
+    // Star on top
+    ctx.fillStyle = '#f0d080';
+    ctx.beginPath();
+    ctx.arc(0, -h - 14*s, 3*s, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(240,208,128,0.15)';
+    ctx.beginPath();
+    ctx.arc(0, -h - 10*s, 8*s, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawFlower(ctx, stage, s, tw) {
+  const stemH = (8 + stage * 4) * s;
+  const petalR = (4 + stage * 1.5) * s;
+  const petals = Math.min(4 + stage, 8);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, tw*0.25, tw*0.08, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Stem
+  ctx.strokeStyle = '#2d7a2d';
+  ctx.lineWidth = 2*s;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -stemH);
+  ctx.stroke();
+
+  // Leaf
+  if (stage > 1) {
+    ctx.fillStyle = '#2d7a2d';
+    ctx.beginPath();
+    ctx.ellipse(-5*s, -stemH*0.5, 5*s, 2.5*s, -0.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Petals
+  for (let i = 0; i < petals; i++) {
+    const angle = (i / petals) * Math.PI * 2;
+    ctx.fillStyle = stage >= 3 ? '#e05c7a' : '#e8a0b0';
+    ctx.save();
+    ctx.translate(0, -stemH);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.ellipse(0, -petalR, petalR*0.5, petalR, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Center
+  if (petals > 0) {
+    ctx.fillStyle = '#f0d080';
+    ctx.beginPath();
+    ctx.arc(0, -stemH, petalR*0.4, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawMushroom(ctx, stage, s, tw) {
+  const stemH = (6 + stage * 3) * s;
+  const capW = (8 + stage * 3) * s;
+  const capH = (5 + stage * 2) * s;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, capW*0.8, capW*0.25, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Stem
+  ctx.fillStyle = '#d4c4a0';
+  ctx.beginPath();
+  ctx.ellipse(0, -stemH*0.3, capW*0.4, stemH*0.6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Cap
+  ctx.fillStyle = '#a07840';
+  ctx.beginPath();
+  ctx.ellipse(0, -stemH, capW, capH, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Lighter top
+  ctx.fillStyle = '#c49050';
+  ctx.beginPath();
+  ctx.ellipse(0, -stemH - capH*0.2, capW*0.7, capH*0.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // White spots
+  if (stage >= 2) {
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    [[-capW*0.3, -stemH-capH*0.1], [capW*0.25, -stemH-capH*0.25], [0, -stemH-capH*0.35]].forEach(([wx,wy]) => {
+      ctx.beginPath();
+      ctx.arc(wx, wy, 2*s, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  if (stage >= 4) {
+    ctx.fillStyle = 'rgba(160,120,64,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(0, -stemH, capW*1.4, capH*1.2, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function forestAddTestPlants() {
+  const existing = getForest();
+  if (existing.length > 0) return;
+  const samples = [
+    {type:'oak', stage:5, label:'Tender is the Night'},
+    {type:'pine', stage:3, label:'Club: Dune'},
+    {type:'flower', stage:4, label:'Daily Quest'},
+    {type:'mushroom', stage:4, label:'7-day streak'},
+    {type:'oak', stage:2, label:'In Progress'},
+    {type:'flower', stage:2, label:'Challenge'},
+  ];
+  localStorage.setItem('bs_forest', JSON.stringify(samples.map(p => ({...p, addedAt: Date.now()}))));
+}
 window.rouletteStart = rouletteStart;
 window.rouletteMove = rouletteMove;
 window.rouletteEnd = rouletteEnd;
