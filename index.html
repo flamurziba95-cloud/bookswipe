@@ -300,29 +300,29 @@ input::placeholder{color:var(--muted);}
   font-family:'Playfair Display',serif;font-size:1.1rem;
   font-weight:700;color:#1a1000;letter-spacing:-0.3px;
   transition:all 0.2s ease;touch-action:manipulation;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:center;
   margin-bottom:0.7rem;
   animation:fadeUp 0.8s 0.3s ease both;
   box-shadow:0 4px 24px rgba(232,200,122,0.25);
 }
 .hero-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,200,122,0.4);}
 .hero-btn:active{transform:scale(0.98);}
-.hero-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.hero-btn-text{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
 .hero-btn-label{font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:400;opacity:0.7;letter-spacing:0.04em;}
-.hero-btn-arrow{font-size:1.3rem;opacity:0.8;}
-/* Secondary button - multiplayer */
+.hero-btn-arrow{display:none;}
+/* Secondary button - multiplayer & reading list */
 .secondary-home-btn{
   width:100%;padding:0.9rem 1.2rem;
   background:var(--surface);border:1.5px solid rgba(255,255,255,0.08);
   border-radius:16px;cursor:pointer;color:var(--text);
   font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:500;
   transition:all 0.2s ease;touch-action:manipulation;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:center;
   animation:fadeUp 0.8s 0.45s ease both;
 }
 .secondary-home-btn:hover{border-color:rgba(232,200,122,0.3);background:rgba(232,200,122,0.04);}
 .secondary-home-btn:active{transform:scale(0.98);}
-.secondary-home-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.secondary-home-btn-text{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
 .secondary-home-btn-sub{font-size:0.68rem;color:var(--muted);font-weight:400;}
 /* Divider line */
 .home-divider{
@@ -338,23 +338,28 @@ input::placeholder{color:var(--muted);}
   animation:fadeUp 0.8s 0.6s ease both;
 }
 .home-proof span{color:var(--accent);}
-/* Login button — gold like hero */
+/* Login button — dark surface + gold border glow */
 .login-home-btn{
-  width:100%;padding:0.95rem 1.2rem;
-  background:linear-gradient(135deg,#e8c87a,#d4a840);
-  border:none;border-radius:16px;cursor:pointer;
-  font-family:'Playfair Display',serif;font-size:1rem;
-  font-weight:700;color:#1a1000;
+  width:100%;padding:1rem 1.2rem;
+  background:var(--surface);
+  border:1.5px solid rgba(232,200,122,0.45);
+  border-radius:16px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:0.9rem;
+  font-weight:500;color:var(--text);
   transition:all 0.2s ease;touch-action:manipulation;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:center;
   margin-bottom:0.5rem;
   animation:fadeUp 0.8s 0.5s ease both;
-  box-shadow:0 4px 24px rgba(232,200,122,0.2);
+  box-shadow:0 0 20px rgba(232,200,122,0.1), 0 0 40px rgba(232,200,122,0.06);
 }
-.login-home-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,200,122,0.35);}
+.login-home-btn:hover{
+  border-color:rgba(232,200,122,0.75);
+  box-shadow:0 0 28px rgba(232,200,122,0.2), 0 0 60px rgba(232,200,122,0.1);
+  background:rgba(232,200,122,0.04);
+}
 .login-home-btn:active{transform:scale(0.98);}
-.login-home-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
-.login-home-btn-label{font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:400;opacity:0.7;letter-spacing:0.04em;}
+.login-home-btn-text{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;}
+.login-home-btn-label{font-size:0.67rem;font-family:'DM Sans',sans-serif;font-weight:400;color:var(--muted);letter-spacing:0.03em;line-height:1.4;}
 /* Sign up link */
 .signup-home-link{
   font-size:0.78rem;color:var(--muted);text-align:center;
@@ -393,7 +398,7 @@ input::placeholder{color:var(--muted);}
 
 <!-- HOME -->
 <div id="s-home" class="screen active">
-  <div class="home-screen">
+  <div class="home-screen" style="padding-top:3rem;">
 
     <!-- Floating book particles background -->
     <div class="home-particles" id="home-particles"></div>
@@ -435,35 +440,34 @@ input::placeholder{color:var(--muted);}
       <span style="color:var(--muted);font-size:1rem;">→</span>
     </button>
 
-    <!-- My To-Go Books -->
-    <button class="secondary-home-btn" onclick="showToGoBooks()" style="margin-top:0.4rem;">
-      <div class="secondary-home-btn-text">
-        <span>📚 My To-Go Books</span>
-        <span class="secondary-home-btn-sub">Your saved picks · Ready to read</span>
-      </div>
-      <span style="color:var(--muted);font-size:1rem;">→</span>
-    </button>
-
-    <!-- Divider -->
-    <div class="home-divider" style="margin-top:0.8rem;">
+    <!-- Divider — Your Journey -->
+    <div class="home-divider" style="margin-top:1.8rem;">
       <div class="home-divider-line"></div>
       <div class="home-divider-text">your journey</div>
       <div class="home-divider-line"></div>
     </div>
 
-    <!-- Log In button -->
-    <button class="login-home-btn" onclick="show('s-login')">
+    <!-- Log In button — dark + gold glow -->
+    <button class="login-home-btn" onclick="show('login')">
       <div class="login-home-btn-text">
         <span style="font-size:0.95rem;">🔑 Log In</span>
-        <span class="login-home-btn-label">Access your dashboard · Goals · Forest</span>
+        <span class="login-home-btn-label">Dashboard · Book Club · Goals · Tracking · Rewards</span>
       </div>
-      <span style="font-size:1.3rem;opacity:0.8;">→</span>
     </button>
 
     <!-- Sign Up link -->
     <div class="signup-home-link">
-      New here? <span onclick="show('s-signup')">Create a free account</span>
+      New here? <span onclick="show('signup')">Create a free account</span>
     </div>
+
+    <!-- Reading List -->
+    <button class="secondary-home-btn" onclick="showToGoBooks()" style="margin-top:0.3rem;">
+      <div class="secondary-home-btn-text">
+        <span>🔖 My Reading List</span>
+        <span class="secondary-home-btn-sub">Books you saved · Ready when you are</span>
+      </div>
+      <span style="color:var(--muted);font-size:1rem;">→</span>
+    </button>
 
     <!-- Social proof -->
     <div class="home-proof">
@@ -489,7 +493,7 @@ input::placeholder{color:var(--muted);}
   </div>
   <div class="err" id="login-err"></div>
   <div class="signup-home-link" style="margin-top:0.5rem;">
-    No account yet? <span onclick="show('s-signup')">Sign up free</span>
+    No account yet? <span onclick="show('signup')">Sign up free</span>
   </div>
 </div>
 
@@ -510,14 +514,14 @@ input::placeholder{color:var(--muted);}
   </div>
   <div class="err" id="signup-err"></div>
   <div class="signup-home-link" style="margin-top:0.5rem;">
-    Already have an account? <span onclick="show('s-login')">Log in</span>
+    Already have an account? <span onclick="show('login')">Log in</span>
   </div>
 </div>
 
-<!-- MY TO-GO BOOKS -->
+<!-- MY READING LIST -->
 <div id="s-togoboks" class="screen">
   <button class="back-btn" onclick="show('home')">← Back</button>
-  <div class="h2" style="margin-top:0.5rem;">📚 My To-Go Books</div>
+  <div class="h2" style="margin-top:0.5rem;">🔖 My Reading List</div>
   <div class="sub">Books you saved from your swipe sessions</div>
   <div id="togo-list" style="width:100%;"></div>
   <div id="togo-empty" style="display:none;text-align:center;margin-top:2rem;">
@@ -545,7 +549,7 @@ input::placeholder{color:var(--muted);}
     <div class="sub">Goals, streaks, forest and more.<br>We're building it right now.</div>
   </div>
   <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="showModeSelect('single')">📖 Pick a book</button>
-  <button class="btn btn-secondary" onclick="show('s-togoboks')">📚 My To-Go Books</button>
+  <button class="btn btn-secondary" onclick="show('togoboks')">📚 My To-Go Books</button>
 </div>
 
 <!-- MODE: MULTIPLAYER SETUP -->
@@ -753,7 +757,7 @@ function showDashboard(user) {
   const initials = name.slice(0,2).toUpperCase();
   document.getElementById('dash-avatar').textContent = initials;
   document.getElementById('dash-name').textContent = name;
-  show('s-dashboard');
+  show('dashboard');
 }
 
 async function doLogin() {
@@ -822,7 +826,7 @@ function showToGoBooks() {
       list.appendChild(el);
     });
   }
-  show('s-togoboks');
+  show('togoboks');
 }
 
 function removeToGoBook(index) {
