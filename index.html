@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.8</title>
+<title>BookSwipe V4.9</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1826,33 +1826,46 @@ async function loadUserClubs() {
   const snap = await get(ref(db, `users/${currentUser.uid}/clubs`));
   const clubIds = snap.val() || [];
 
-  const emptyEl  = document.getElementById('club-card-empty');
-  const listEl   = document.getElementById('club-card-list');
+  const emptyEl = document.getElementById('club-card-empty');
+  const listEl  = document.getElementById('club-card-list');
 
   if (clubIds.length === 0) {
     emptyEl.style.display = 'block';
-    listEl.style.display = 'none';
+    listEl.style.display  = 'none';
     return;
   }
 
   emptyEl.style.display = 'none';
-  listEl.style.display = 'block';
+  listEl.style.display  = 'block';
 
   // Load first club preview
-  const firstClubSnap = await get(ref(db, clubIds[0]));
-  if (firstClubSnap.exists()) {
-    const club = firstClubSnap.val();
-    const memberCount = Object.keys(club.members || {}).length;
-    listEl.innerHTML = `
-      <div style="cursor:pointer;" onclick="openClubDashboard('${clubIds[0]}', ${JSON.stringify(club).replace(/'/g,"&#39;")})">
-        <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.2rem;">${club.name}</div>
-        <div style="font-size:0.65rem;color:var(--muted);">👥 ${memberCount} members · ${club.currentBook ? '📖 '+club.currentBook.title.slice(0,15)+'…' : 'No book yet'}</div>
-      </div>
-      ${clubIds.length > 1 ? `<div style="font-size:0.65rem;color:var(--accent);margin-top:0.4rem;cursor:pointer;" onclick="show('club-list')">+${clubIds.length-1} more clubs →</div>` : ''}
-      <button style="background:none;border:none;color:var(--accent);font-size:0.65rem;cursor:pointer;text-decoration:underline;margin-top:0.3rem;display:block;" onclick="show('club-create')">✦ New club</button>
-    `;
+  const firstId = clubIds[0];
+  const firstSnap = await get(ref(db, firstId));
+  if (!firstSnap.exists()) {
+    emptyEl.style.display = 'block';
+    listEl.style.display  = 'none';
+    return;
   }
+
+  const club = firstSnap.val();
+  const memberCount = Object.keys(club.members || {}).length;
+
+  listEl.innerHTML = `
+    <div style="cursor:pointer;" onclick="openClubById('${firstId}')">
+      <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.2rem;">${club.name}</div>
+      <div style="font-size:0.65rem;color:var(--muted);">👥 ${memberCount} members · ${club.currentBook ? '📖 '+club.currentBook.title.slice(0,15)+'…' : 'No book yet'}</div>
+    </div>
+    ${clubIds.length > 1 ? `<div style="font-size:0.65rem;color:var(--accent);margin-top:0.4rem;cursor:pointer;" onclick="show('club-list')">+${clubIds.length-1} more clubs →</div>` : ''}
+    <button style="background:none;border:none;color:var(--accent);font-size:0.65rem;cursor:pointer;text-decoration:underline;margin-top:0.3rem;display:block;" onclick="show('club-create')">✦ New club</button>
+  `;
 }
+
+async function openClubById(clubId) {
+  const snap = await get(ref(db, clubId));
+  if (snap.exists()) openClubDashboard(clubId, snap.val());
+}
+
+window.openClubById = openClubById;
 
 window.createClub = createClub;
 window.joinClub = joinClub;
