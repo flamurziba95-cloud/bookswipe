@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.4</title>
+<title>BookSwipe V4.5</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -2302,9 +2302,6 @@ function startReaderTimer() {
 }
 
 function toggleReaderTimer() {
-  readerIsPaused = !readerIsPaused;
-  document.getElementById('reader-pause-btn').textContent = readerIsPaused ? '▶' : '⏸';
-}
   readerIsPaused = !readerIsPaused;
   document.getElementById('reader-pause-btn').textContent = readerIsPaused ? '▶' : '⏸';
 }
