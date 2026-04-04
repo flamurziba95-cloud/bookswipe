@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V3.5</title>
+<title>BookSwipe V3.6</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -625,49 +625,49 @@ input::placeholder{color:var(--muted);}
     <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Coming soon — quests & coin rewards</div>
   </div>
 
-  <!-- My Books + Book Club card -->
-  <div class="card-panel" style="padding:0;overflow:hidden;">
-    <div style="display:flex;min-height:180px;">
+  <!-- My Books + Book Club — two separate cards side by side -->
+  <div style="display:flex;gap:0.7rem;width:100%;margin-bottom:0.9rem;">
 
-      <!-- Left: My Books -->
-      <div style="flex:1;padding:1rem 0.9rem;border-right:1px solid var(--border);">
-        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;margin-bottom:0.75rem;">📚 My Books</div>
-
-        <!-- Empty state -->
-        <div id="mybooks-empty" style="text-align:center;">
-          <div style="font-size:1.8rem;margin-bottom:0.4rem;">📄</div>
-          <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.7rem;line-height:1.5;">Upload a PDF<br>to start reading</div>
-          <input type="file" id="pdf-upload-input" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
-          <button class="btn btn-primary" style="margin:0 auto;padding:0.55rem 1rem;min-height:36px;font-size:0.78rem;border-radius:50px;" onclick="document.getElementById('pdf-upload-input').click()">＋ Add book</button>
-        </div>
-
-        <!-- Book carousel / roulette -->
-        <div id="mybooks-carousel" style="display:none;">
-          <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
-          <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
-          <!-- Roulette display -->
-          <div id="mybooks-roulette" style="position:relative;height:130px;overflow:hidden;touch-action:pan-y;" 
-            onpointerdown="rouletteStart(event)" onpointermove="rouletteMove(event)" onpointerup="rouletteEnd(event)">
-            <!-- Books rendered by JS -->
-          </div>
-          <!-- Dots -->
-          <div style="display:flex;justify-content:center;gap:0.4rem;margin-top:0.4rem;" id="mybooks-dots"></div>
-          <button style="background:none;border:none;color:var(--accent);font-size:0.7rem;cursor:pointer;text-decoration:underline;display:block;margin:0.4rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
-        </div>
+    <!-- My Books card -->
+    <div class="card-panel" style="flex:1;padding:0.9rem 0.8rem;min-width:0;margin-bottom:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;">📚 My Books</div>
+        <button onclick="showBookLibrary()" style="background:none;border:none;cursor:pointer;padding:0.15rem;display:flex;flex-direction:column;gap:3px;">
+          <span style="display:block;width:16px;height:2px;background:#8a8680;border-radius:2px;"></span>
+          <span style="display:block;width:16px;height:2px;background:#8a8680;border-radius:2px;"></span>
+          <span style="display:block;width:16px;height:2px;background:#8a8680;border-radius:2px;"></span>
+        </button>
       </div>
 
-      <!-- Right: Book Club -->
-      <div style="flex:1;padding:1rem 0.9rem;">
-        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;margin-bottom:0.75rem;">👥 Book Club</div>
-        <div style="text-align:center;">
-          <div style="font-size:1.8rem;margin-bottom:0.4rem;">👥</div>
-          <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.7rem;line-height:1.5;">Read together<br>with friends</div>
-          <button class="btn btn-primary" style="margin:0 auto;padding:0.55rem 1rem;min-height:36px;font-size:0.78rem;border-radius:50px;">✦ Create</button>
-          <button class="btn btn-secondary" style="margin:0.3rem auto 0;padding:0.55rem 1rem;min-height:36px;font-size:0.78rem;border-radius:50px;">→ Join</button>
-        </div>
+      <!-- Empty state -->
+      <div id="mybooks-empty" style="text-align:center;">
+        <div style="font-size:1.6rem;margin-bottom:0.3rem;">📄</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.5;">Upload a PDF<br>to start reading</div>
+        <input type="file" id="pdf-upload-input" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
+        <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;" onclick="document.getElementById('pdf-upload-input').click()">＋ Add</button>
       </div>
 
+      <!-- Roulette -->
+      <div id="mybooks-carousel" style="display:none;">
+        <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
+        <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
+        <div id="mybooks-roulette" style="position:relative;height:120px;overflow:hidden;touch-action:pan-y;"
+          onpointerdown="rouletteStart(event)" onpointermove="rouletteMove(event)" onpointerup="rouletteEnd(event)">
+        </div>
+        <div style="display:flex;justify-content:center;gap:0.3rem;margin-top:0.35rem;" id="mybooks-dots"></div>
+        <button style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;display:block;margin:0.35rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
+      </div>
     </div>
+
+    <!-- Book Club card -->
+    <div class="card-panel" style="flex:1;padding:0.9rem 0.8rem;min-width:0;margin-bottom:0;text-align:center;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;margin-bottom:0.7rem;text-align:left;">👥 Book Club</div>
+      <div style="font-size:1.6rem;margin-bottom:0.35rem;">👥</div>
+      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.5;">Read together<br>with friends</div>
+      <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;">✦ Create</button>
+      <button class="btn btn-secondary" style="margin:0.3rem auto 0;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;">→ Join</button>
+    </div>
+
   </div>
 
   <div class="card-panel" style="text-align:center;padding:1.5rem;">
@@ -1113,7 +1113,12 @@ let rouletteDragging = false;
 const bookEmojis = ['📕','📗','📘','📙','📒'];
 
 function renderMyBooks() {
-  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  let books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  // Deduplicate by id
+  const seen = new Set();
+  books = books.filter(b => { if(seen.has(b.id)) return false; seen.add(b.id); return true; });
+  localStorage.setItem('bs_my_books', JSON.stringify(books));
+
   const empty = document.getElementById('mybooks-empty');
   const carousel = document.getElementById('mybooks-carousel');
   if (!empty) return;
@@ -1135,13 +1140,17 @@ function renderRoulette(books) {
   const dots = document.getElementById('mybooks-dots');
   if (!roulette) return;
 
-  const total = books.length;
-  roulette.innerHTML = books.map((b, i) => {
+  // Deduplicate books by id just in case
+  const seen = new Set();
+  const unique = books.filter(b => { if(seen.has(b.id)) return false; seen.add(b.id); return true; });
+
+  roulette.innerHTML = unique.map((b, i) => {
     const offset = i - carouselIdx;
-    const scale = offset === 0 ? 1 : 0.7;
-    const opacity = offset === 0 ? 1 : Math.abs(offset) === 1 ? 0.5 : 0;
-    const x = offset * 75; // px shift per step
+    const scale = offset === 0 ? 1 : 0.68;
+    const opacity = offset === 0 ? 1 : Math.abs(offset) === 1 ? 0.45 : 0;
+    const x = offset * 72;
     const emoji = bookEmojis[i % bookEmojis.length];
+    const isCurrentlyReading = b.isReading && offset === 0;
     return `
       <div style="
         position:absolute;left:50%;top:50%;
@@ -1150,33 +1159,61 @@ function renderRoulette(books) {
         transition:transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease;
         text-align:center;cursor:${offset === 0 ? 'pointer' : 'default'};
         pointer-events:${offset === 0 ? 'auto' : 'none'};
-        width:80px;
+        width:72px;
       " ${offset === 0 ? `onclick="openReaderById(${b.id})"` : ''}>
         <div style="
-          width:60px;height:82px;border-radius:8px;background:var(--surface2);
-          border:2px solid ${b.isReading && offset === 0 ? 'var(--accent)' : 'rgba(255,255,255,0.1)'};
-          ${b.isReading && offset === 0 ? 'box-shadow:0 0 14px rgba(240,208,128,0.3);' : ''}
+          width:56px;height:76px;border-radius:8px;background:var(--surface2);
+          border:2px solid ${isCurrentlyReading ? 'var(--accent)' : 'rgba(255,255,255,0.1)'};
+          ${isCurrentlyReading ? 'box-shadow:0 0 14px rgba(240,208,128,0.35);' : ''}
           display:flex;align-items:center;justify-content:center;
-          margin:0 auto 0.35rem;font-size:1.5rem;
+          margin:0 auto 0.3rem;font-size:1.4rem;
         ">${emoji}</div>
         ${offset === 0 ? `
-          <div style="font-size:0.65rem;color:var(--text);line-height:1.3;font-weight:600;">${b.title.length > 14 ? b.title.slice(0,13)+'…' : b.title}</div>
-          ${b.currentPage > 1 ? `<div style="font-size:0.58rem;color:var(--muted);">p.${b.currentPage}</div>` : ''}
-          ${b.isReading ? '<div style="font-size:0.58rem;color:var(--accent);">● Reading</div>' : ''}
+          <div style="font-size:0.62rem;color:var(--text);line-height:1.3;font-weight:600;">${b.title.length > 12 ? b.title.slice(0,11)+'…' : b.title}</div>
+          ${b.currentPage > 1 ? `<div style="font-size:0.55rem;color:var(--muted);">p.${b.currentPage}</div>` : ''}
         ` : ''}
       </div>
     `;
   }).join('');
 
-  // Dots
-  if (dots) dots.innerHTML = books.map((_, i) =>
+  // Correct number of dots
+  if (dots) dots.innerHTML = unique.map((_, i) =>
     `<div onclick="rouletteGoTo(${i})" style="
-      width:${i === carouselIdx ? '14px' : '5px'};height:5px;border-radius:3px;
+      width:${i === carouselIdx ? '12px' : '5px'};height:5px;border-radius:3px;
       background:${i === carouselIdx ? 'var(--accent)' : 'rgba(255,255,255,0.2)'};
       cursor:pointer;transition:all 0.2s;
     "></div>`
   ).join('');
 }
+
+function showBookLibrary() {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const seen = new Set();
+  const unique = books.filter(b => { if(seen.has(b.id)) return false; seen.add(b.id); return true; });
+  const list = document.getElementById('book-library-list');
+  if (!list) return;
+  list.innerHTML = unique.length === 0
+    ? '<div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:1rem;">No books yet</div>'
+    : unique.map((b, i) => `
+      <div style="display:flex;align-items:center;gap:0.7rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:1.6rem;flex-shrink:0;">${bookEmojis[i % bookEmojis.length]}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.85rem;font-family:'Playfair Display',serif;">${b.title}</div>
+          ${b.currentPage > 1 ? `<div style="font-size:0.7rem;color:var(--muted);">Page ${b.currentPage}</div>` : ''}
+          ${b.isReading ? '<div style="font-size:0.68rem;color:var(--accent);">● Currently reading</div>' : ''}
+        </div>
+        <button onclick="rouletteGoTo(${i});closeBookLibrary();" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.72rem;color:var(--accent);cursor:pointer;white-space:nowrap;">Open</button>
+      </div>
+    `).join('');
+  document.getElementById('book-library-modal').style.display = 'flex';
+}
+
+function closeBookLibrary() {
+  document.getElementById('book-library-modal').style.display = 'none';
+}
+
+window.showBookLibrary = showBookLibrary;
+window.closeBookLibrary = closeBookLibrary;
 
 function rouletteGoTo(idx) {
   const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
@@ -3845,6 +3882,19 @@ initHomeParticles();
     <button onclick="readerNextPage()" id="reader-next" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">Next ›</button>
   </div>
 
+</div>
+
+<!-- Book Library Modal -->
+<div id="book-library-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);padding:1.2rem 1.2rem 2rem;width:100%;max-width:440px;max-height:70vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">📚 My Library</div>
+      <button onclick="closeBookLibrary()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="book-library-list"></div>
+    <input type="file" id="pdf-upload-library" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
+    <button class="btn btn-primary" style="margin-top:1rem;" onclick="document.getElementById('pdf-upload-library').click()">＋ Add new book</button>
+  </div>
 </div>
 
 </body>
