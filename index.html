@@ -1187,36 +1187,14 @@ function readerPrevPage() {
   }
 }
 
-const QUEST_DURATION = 600; // 10 minutes in seconds
-
 function startReaderTimer() {
   clearInterval(readerTimerInterval);
   readerTimerInterval = setInterval(() => {
     if (!readerIsPaused) {
       readerSecondsElapsed++;
-      // Main timer
       const m = Math.floor(readerSecondsElapsed / 60);
       const s = readerSecondsElapsed % 60;
       document.getElementById('reader-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-
-      // Quest bar
-      const questPct = Math.min((readerSecondsElapsed / QUEST_DURATION) * 100, 100);
-      document.getElementById('quest-bar').style.width = questPct + '%';
-
-      // Quest countdown
-      const remaining = Math.max(QUEST_DURATION - readerSecondsElapsed, 0);
-      const qm = Math.floor(remaining / 60);
-      const qs = remaining % 60;
-      document.getElementById('quest-timer-label').textContent = remaining > 0
-        ? `${qm}:${qs.toString().padStart(2,'0')}`
-        : '✓ Done!';
-
-      // Quest complete
-      if (readerSecondsElapsed === QUEST_DURATION) {
-        document.getElementById('quest-icon').textContent = '🐣';
-        document.getElementById('quest-label').textContent = 'EGG HATCHED! QUEST COMPLETE';
-        document.getElementById('quest-bar').style.background = 'var(--yes)';
-      }
     }
   }, 1000);
 }
@@ -3638,36 +3616,17 @@ initHomeParticles();
   <div id="reader-topbar" style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
     <button onclick="closeReader()" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0.2rem;">← Back</button>
     <div id="reader-title" style="font-family:'Playfair Display',serif;font-size:0.9rem;color:var(--text);text-align:center;flex:1;padding:0 0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-    <div style="display:flex;align-items:center;gap:0.5rem;">
-      <!-- Timer -->
-      <div id="reader-timer" style="font-size:0.78rem;color:var(--accent);font-weight:600;min-width:38px;text-align:right;">0:00</div>
-      <!-- Pause/Play -->
-      <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:none;border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.7rem;color:var(--accent);">⏸</button>
-    </div>
+    <div style="width:60px;"></div>
   </div>
 
-  <!-- Quest Timer Strip -->
-  <div id="reader-quest-strip" style="width:100%;max-width:440px;background:var(--surface);border-bottom:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:0.8rem;">
-    <!-- Quest icon + name -->
-    <div id="quest-icon" style="font-size:1.2rem;flex-shrink:0;">🥚</div>
-    <div style="flex:1;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;">
-        <div id="quest-label" style="font-size:0.68rem;color:var(--muted);letter-spacing:0.04em;">HATCH THE EGG · READ FOR 10 MIN</div>
-        <div id="quest-timer-label" style="font-size:0.68rem;color:var(--accent);font-weight:600;" id="quest-countdown">10:00</div>
-      </div>
-      <!-- Animated quest progress bar -->
-      <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">
-        <div id="quest-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#f5e49a);border-radius:3px;transition:width 1s linear;"></div>
-      </div>
-    </div>
-    <!-- Reward badge -->
-    <div style="flex-shrink:0;text-align:center;">
-      <div style="font-size:0.65rem;color:var(--muted);">reward</div>
-      <div style="font-size:0.78rem;color:var(--accent);font-weight:700;">🪙 30</div>
-    </div>
+  <!-- Simple timer strip -->
+  <div style="width:100%;max-width:440px;background:rgba(240,208,128,0.06);border-bottom:1px solid rgba(240,208,128,0.15);padding:0.45rem 1rem;display:flex;align-items:center;justify-content:center;gap:0.7rem;">
+    <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;">Reading</div>
+    <div id="reader-timer" style="font-size:0.88rem;color:var(--accent);font-weight:700;min-width:42px;text-align:center;">0:00</div>
+    <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.65rem;color:var(--accent);">⏸</button>
   </div>
 
-  <!-- Book progress bar (thin, below quest) -->
+  <!-- Book progress bar -->
   <div style="width:100%;max-width:440px;height:2px;background:var(--surface2);">
     <div id="reader-progress" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;"></div>
   </div>
