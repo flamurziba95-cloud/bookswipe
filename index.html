@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V5.1</title>
+<title>BookSwipe V5.2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -806,7 +806,10 @@ input::placeholder{color:var(--muted);}
 
   <!-- Current book -->
   <div class="card-panel" id="club-book-card">
-    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.7rem;">📖 Current Book</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">📖 Current Book</div>
+      <button onclick="showManualBookEntry()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.2rem 0.6rem;font-size:0.65rem;color:var(--muted);cursor:pointer;">✏️ Add manually</button>
+    </div>
     <div id="club-current-book-display">
       <div style="text-align:center;padding:0.5rem 0;">
         <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">No book selected yet</div>
@@ -848,7 +851,7 @@ input::placeholder{color:var(--muted);}
 
 <!-- MODE: MULTIPLAYER SETUP -->
 <div id="s-multi-setup" class="screen">
-  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+  <button class="back-btn" onclick="window._multiLaunchSource==='club' && currentClubId ? openClubById(currentClubId) : currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="logo" style="font-size:1.8rem;">BookSwipe</div>
   <div class="sub" style="margin-bottom:1.2rem;">Multiplayer</div>
   <div class="card-panel">
@@ -1005,6 +1008,7 @@ input::placeholder{color:var(--muted);}
   </div>
 
   <button class="btn btn-secondary" style="margin-top:0.6rem;" onclick="location.reload()">↩ New game</button>
+  <button id="winner-back-club-btn" class="btn btn-primary" style="display:none;margin-top:0.5rem;" onclick="openClubById(currentClubId);window._multiLaunchSource=null;">← Back to Club</button>
 
 </div>
 
@@ -1804,7 +1808,7 @@ function copyClubCode() {
 }
 
 function launchClubBookPick() {
-  // Launch the existing multiplayer mode, which will save winner back to club
+  window._multiLaunchSource = 'club';
   showModeSelect('multi');
 }
 
@@ -1880,6 +1884,67 @@ window.copyClubCode = copyClubCode;
 window.launchClubBookPick = launchClubBookPick;
 window.leaveClub = leaveClub;
 window.loadUserClubs = loadUserClubs;
+
+// ── Manual Book Entry ─────────────────────────
+function getManualBookUses() {
+  const key = 'bs_manual_book_' + new Date().toISOString().slice(0,7); // YYYY-MM
+  return parseInt(localStorage.getItem(key) || '0');
+}
+
+function incrementManualBookUses() {
+  const key = 'bs_manual_book_' + new Date().toISOString().slice(0,7);
+  localStorage.setItem(key, getManualBookUses() + 1);
+}
+
+function showManualBookEntry() {
+  const uses = getManualBookUses();
+  const remaining = 2 - uses;
+  const usesEl = document.getElementById('manual-book-uses-left');
+  const errEl  = document.getElementById('manual-book-err');
+  if (usesEl) usesEl.textContent = `${remaining} of 2 manual entries left this month`;
+  if (errEl) errEl.textContent = '';
+  document.getElementById('manual-book-title').value = '';
+  document.getElementById('manual-book-author').value = '';
+
+  if (remaining <= 0) {
+    if (errEl) errEl.textContent = 'You\'ve used both manual entries this month. Use "Pick a book together" instead.';
+  }
+  document.getElementById('manual-book-modal').style.display = 'flex';
+}
+
+function closeManualBookEntry() {
+  document.getElementById('manual-book-modal').style.display = 'none';
+}
+
+async function saveManualBook() {
+  const uses = getManualBookUses();
+  const errEl = document.getElementById('manual-book-err');
+
+  if (uses >= 2) {
+    errEl.textContent = 'No manual entries left this month.';
+    return;
+  }
+
+  const title  = document.getElementById('manual-book-title').value.trim();
+  const author = document.getElementById('manual-book-author').value.trim();
+  if (!title) { errEl.textContent = 'Please enter a book title.'; return; }
+  if (!currentClubId) { errEl.textContent = 'No active club.'; return; }
+
+  const bookEmojis = ['📕','📗','📘','📙','📒','📔'];
+  const emoji = bookEmojis[Math.floor(Math.random() * bookEmojis.length)];
+
+  await update(ref(db, 'clubs/' + currentClubId), {
+    currentBook: { title, author: author || 'Unknown', emoji, genre: '' }
+  });
+  await addClubFeedEntry(currentClubId, `✏️ Book added manually: "${title}"`);
+
+  incrementManualBookUses();
+  closeManualBookEntry();
+}
+
+window.showManualBookEntry = showManualBookEntry;
+window.closeManualBookEntry = closeManualBookEntry;
+window.saveManualBook = saveManualBook;
 
 function updateForestNav() {
   const forest = getForest();
@@ -4169,6 +4234,18 @@ function showWinner(book, room){
 
   show('winner');
   setTimeout(()=>launchConfetti(), 100);
+
+  // If launched from club, save winner as club book and show back button
+  if (window._multiLaunchSource === 'club' && currentClubId && currentUser) {
+    const backBtn = document.getElementById('winner-back-club-btn');
+    if (backBtn) backBtn.style.display = 'flex';
+    const emoji = getBookEmoji(book.title, book.genre);
+    update(ref(db, 'clubs/' + currentClubId), {
+      currentBook: { title: book.title, author: book.author, emoji, genre: book.genre || '' }
+    }).then(() => {
+      addClubFeedEntry(currentClubId, `📖 New book picked: "${book.title}"`);
+    });
+  }
 }
 
 function buildProfile(topYes, topNo, yesCount, maybeCount, noCount, decisiveness){
@@ -5365,6 +5442,21 @@ initHomeParticles();
     <div id="book-library-list"></div>
     <input type="file" id="pdf-upload-library" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
     <button class="btn btn-primary" style="margin-top:1rem;" onclick="document.getElementById('pdf-upload-library').click()">＋ Add new book</button>
+  </div>
+</div>
+
+<!-- Manual Book Entry Modal -->
+<div id="manual-book-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);padding:1.2rem 1.2rem 2rem;width:100%;max-width:440px;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.3rem;">✏️ Add book manually</div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:1rem;" id="manual-book-uses-left"></div>
+    <label>Book title</label>
+    <input type="text" id="manual-book-title" placeholder="e.g. The Alchemist" maxlength="80" autocomplete="off"/>
+    <label>Author</label>
+    <input type="text" id="manual-book-author" placeholder="e.g. Paulo Coelho" maxlength="60" autocomplete="off"/>
+    <button class="btn btn-primary" onclick="saveManualBook()">Save as club book</button>
+    <button class="btn btn-secondary" onclick="closeManualBookEntry()">Cancel</button>
+    <div class="err" id="manual-book-err"></div>
   </div>
 </div>
 
