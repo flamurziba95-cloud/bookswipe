@@ -625,10 +625,44 @@ input::placeholder{color:var(--muted);}
     <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Coming soon — quests & coin rewards</div>
   </div>
 
-  <div class="card-panel" style="text-align:center;padding:1.5rem;">
-    <div style="font-size:2rem;margin-bottom:0.6rem;">📚</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.25rem;">My Books</div>
-    <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Track what you're reading — coming soon</div>
+  <!-- My Books + Book Club card -->
+  <div class="card-panel" style="padding:0;overflow:hidden;">
+    <!-- Tab headers -->
+    <div style="display:flex;border-bottom:1px solid var(--border);">
+      <button id="tab-mybooks" onclick="switchBookTab('mybooks')" style="flex:1;padding:0.85rem 0.5rem;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;letter-spacing:0.03em;transition:all 0.2s;">📚 My Books</button>
+      <button id="tab-bookclub" onclick="switchBookTab('bookclub')" style="flex:1;padding:0.85rem 0.5rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;letter-spacing:0.03em;transition:all 0.2s;">👥 Book Club</button>
+    </div>
+
+    <!-- My Books panel -->
+    <div id="panel-mybooks" style="padding:1.1rem;">
+      <!-- Empty state -->
+      <div id="mybooks-empty" style="text-align:center;padding:1.2rem 0;">
+        <div style="font-size:2.2rem;margin-bottom:0.6rem;">📄</div>
+        <div style="font-family:'Playfair Display',serif;font-size:0.95rem;margin-bottom:0.3rem;">No books yet</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:1rem;line-height:1.5;">Upload a PDF to start reading<br>and tracking your progress</div>
+        <button class="btn btn-primary" style="margin:0 auto;max-width:200px;min-height:44px;font-size:0.85rem;" onclick="">＋ Add a book</button>
+      </div>
+
+      <!-- Book carousel (hidden until books exist) -->
+      <div id="mybooks-carousel" style="display:none;">
+        <div style="position:relative;width:100%;overflow:hidden;">
+          <div id="mybooks-track" style="display:flex;gap:0.8rem;transition:transform 0.3s ease;padding:0.3rem 0.1rem;"></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:0.4rem;margin-top:0.7rem;" id="mybooks-dots"></div>
+        <button class="btn btn-secondary" style="margin-top:0.8rem;min-height:42px;font-size:0.82rem;" onclick="">＋ Add another book</button>
+      </div>
+    </div>
+
+    <!-- Book Club panel (hidden by default) -->
+    <div id="panel-bookclub" style="display:none;padding:1.1rem;">
+      <div style="text-align:center;padding:1.2rem 0;">
+        <div style="font-size:2.2rem;margin-bottom:0.6rem;">👥</div>
+        <div style="font-family:'Playfair Display',serif;font-size:0.95rem;margin-bottom:0.3rem;">No club yet</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:1rem;line-height:1.5;">Create or join a book club<br>to read together</div>
+        <button class="btn btn-primary" style="margin:0 auto;max-width:200px;min-height:44px;font-size:0.85rem;" onclick="">✦ Create a Club</button>
+        <button class="btn btn-secondary" style="margin:0.4rem auto 0;max-width:200px;min-height:44px;font-size:0.85rem;" onclick="">→ Join a Club</button>
+      </div>
+    </div>
   </div>
 
   <div class="card-panel" style="text-align:center;padding:1.5rem;">
@@ -976,6 +1010,21 @@ function renderMonthCalendar() {
 window.openMonthCalendar = openMonthCalendar;
 window.closeMonthCalendar = closeMonthCalendar;
 window.monthCalNav = monthCalNav;
+
+// ── My Books tabs ─────────────────────────────
+function switchBookTab(tab) {
+  const isBooks = tab === 'mybooks';
+  document.getElementById('panel-mybooks').style.display = isBooks ? 'block' : 'none';
+  document.getElementById('panel-bookclub').style.display = isBooks ? 'none' : 'block';
+
+  const tabBooks = document.getElementById('tab-mybooks');
+  const tabClub = document.getElementById('tab-bookclub');
+  tabBooks.style.borderBottomColor = isBooks ? 'var(--accent)' : 'transparent';
+  tabBooks.style.color = isBooks ? 'var(--accent)' : 'var(--muted)';
+  tabClub.style.borderBottomColor = isBooks ? 'transparent' : 'var(--accent)';
+  tabClub.style.color = isBooks ? 'var(--muted)' : 'var(--accent)';
+}
+window.switchBookTab = switchBookTab;
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
