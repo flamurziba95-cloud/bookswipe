@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.6</title>
+<title>BookSwipe V4.7</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -429,6 +429,21 @@ input::placeholder{color:var(--muted);}
   border:2px solid rgba(138,134,128,0.2);
 }
 .forest-legend-item{font-size:0.68rem;color:var(--muted);background:var(--surface2);border-radius:20px;padding:0.25rem 0.7rem;display:flex;align-items:center;gap:0.3rem;}
+.daily-quest-slot{border-radius:12px;padding:0.75rem 0.9rem;background:var(--surface2);border:1px solid var(--border);transition:all 0.2s;}
+.daily-quest-slot.locked{opacity:0.4;}
+.daily-quest-slot.complete{border-color:rgba(76,175,135,0.4);background:rgba(76,175,135,0.06);}
+.daily-quest-slot.active{border-color:rgba(240,208,128,0.3);background:rgba(240,208,128,0.04);}
+.dq-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;}
+.dq-title{font-size:0.82rem;color:var(--text);font-weight:500;}
+.dq-badge{font-size:0.62rem;padding:0.15rem 0.5rem;border-radius:20px;font-weight:600;}
+.dq-badge.easy{background:rgba(76,175,135,0.15);color:var(--yes);}
+.dq-badge.medium{background:rgba(240,208,128,0.15);color:var(--accent);}
+.dq-badge.hard{background:rgba(224,92,92,0.15);color:var(--no);}
+.dq-progress-wrap{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:0.35rem;}
+.dq-progress-fill{height:100%;border-radius:2px;transition:width 0.4s ease;}
+.dq-footer{display:flex;align-items:center;justify-content:space-between;}
+.dq-status{font-size:0.68rem;color:var(--muted);}
+.dq-reward{font-size:0.72rem;color:var(--accent);font-weight:600;}
 </style>
 </head>
 <body>
@@ -619,11 +634,20 @@ input::placeholder{color:var(--muted);}
     </div>
   </div>
 
-  <!-- Placeholder cards -->
-  <div class="card-panel" style="text-align:center;padding:1.5rem;margin-top:0.5rem;">
-    <div style="font-size:2rem;margin-bottom:0.6rem;">🎯</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.25rem;">Daily Goal</div>
-    <div class="sub" style="margin-bottom:0;font-size:0.78rem;">Coming soon — quests & coin rewards</div>
+  <!-- Daily Goals Card -->
+  <div class="card-panel" style="padding:1rem;margin-top:0.5rem;" id="daily-goals-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:1rem;">🎯 Daily Goals</div>
+      <div id="daily-reset-time" style="font-size:0.68rem;color:var(--muted);"></div>
+    </div>
+    <!-- Three quest slots -->
+    <div id="daily-quest-easy" class="daily-quest-slot"></div>
+    <div id="daily-quest-medium" class="daily-quest-slot" style="margin-top:0.5rem;"></div>
+    <div id="daily-quest-hard" class="daily-quest-slot" style="margin-top:0.5rem;"></div>
+    <!-- All complete bonus -->
+    <div id="daily-bonus" style="display:none;margin-top:0.7rem;padding:0.6rem 0.8rem;background:rgba(76,175,135,0.08);border:1px solid rgba(76,175,135,0.25);border-radius:10px;text-align:center;font-size:0.75rem;color:var(--yes);">
+      🌸 All complete! Flower planted in your forest · <span style="color:var(--accent);font-weight:600;">🪙 +125 total</span>
+    </div>
   </div>
 
   <!-- My Books + Book Club — two separate cards side by side -->
@@ -948,8 +972,9 @@ function showDashboard(user) {
   renderCalendarStrip();
   renderMyBooks();
   forestAddTestPlants();
+  renderDailyGoals();
+  checkNoonQuest();
   show('dashboard');
-  // Render forest after layout paint so canvas has correct width
   setTimeout(() => renderForest(), 50);
 }
 
@@ -1311,6 +1336,164 @@ function forestAddPlant(type, stage, label) {
 }
 window.renderForest = renderForest;
 window.forestAddPlant = forestAddPlant;
+
+// ── DAILY GOALS ───────────────────────────────
+const EASY_QUESTS = [
+  { id:'read10min',   title:'Read for 10 minutes',                type:'time',    target:600  },
+  { id:'read10pages', title:'Read 10 pages',                      type:'pages',   target:10   },
+  { id:'read1chap',   title:'Read 1 chapter',                     type:'chapter', target:1    },
+  { id:'nopause',     title:'Finish a session without pausing',   type:'nopause', target:1    },
+  { id:'beforenoon',  title:'Read before noon',                   type:'noon',    target:1    },
+];
+const MEDIUM_QUESTS = [
+  { id:'read30min',   title:'Read for 30 minutes',                type:'time',    target:1800 },
+  { id:'book15pct',   title:'Reach 15% of your book',             type:'bookpct', target:15   },
+  { id:'read2chap',   title:'Read 2 chapters',                    type:'chapter', target:2    },
+];
+const HARD_QUESTS = [
+  { id:'read60min',   title:'Read for 60 minutes',                type:'time',    target:3600 },
+  { id:'book30pct',   title:'Reach 30% of your book',             type:'bookpct', target:30   },
+  { id:'read3chap',   title:'Read 3 chapters today',              type:'chapter', target:3    },
+];
+
+function getTodayKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function getDailyGoals() {
+  const today = getTodayKey();
+  const stored = JSON.parse(localStorage.getItem('bs_daily_goals') || '{}');
+
+  // If no goals for today, generate new ones
+  if (stored.date !== today) {
+    const easy   = EASY_QUESTS[Math.floor(Math.random() * EASY_QUESTS.length)];
+    const medium = MEDIUM_QUESTS[Math.floor(Math.random() * MEDIUM_QUESTS.length)];
+    const hard   = HARD_QUESTS[Math.floor(Math.random() * HARD_QUESTS.length)];
+    const goals = {
+      date: today,
+      easy:   { ...easy,   progress:0, done:false },
+      medium: { ...medium, progress:0, done:false, locked:true  },
+      hard:   { ...hard,   progress:0, done:false, locked:true  },
+      bonusDone: false,
+    };
+    localStorage.setItem('bs_daily_goals', JSON.stringify(goals));
+    return goals;
+  }
+  return stored;
+}
+
+function saveDailyGoals(goals) {
+  localStorage.setItem('bs_daily_goals', JSON.stringify(goals));
+}
+
+function renderDailyGoals() {
+  const goals = getDailyGoals();
+
+  renderQuestSlot('easy',   goals.easy,   false,         15);
+  renderQuestSlot('medium', goals.medium, goals.medium.locked, 35);
+  renderQuestSlot('hard',   goals.hard,   goals.hard.locked,   75);
+
+  // Bonus
+  const bonus = document.getElementById('daily-bonus');
+  if (bonus) bonus.style.display = goals.bonusDone ? 'block' : 'none';
+
+  // Reset timer
+  const resetEl = document.getElementById('daily-reset-time');
+  if (resetEl) {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24,0,0,0);
+    const hoursLeft = Math.floor((midnight - now) / 3600000);
+    const minsLeft  = Math.floor(((midnight - now) % 3600000) / 60000);
+    resetEl.textContent = `Resets in ${hoursLeft}h ${minsLeft}m`;
+  }
+}
+
+function renderQuestSlot(level, quest, locked, reward) {
+  const el = document.getElementById(`daily-quest-${level}`);
+  if (!el) return;
+
+  const pct = Math.min((quest.progress / quest.target) * 100, 100);
+  const barColor = level==='easy' ? '#4caf87' : level==='medium' ? '#f0d080' : '#e05c5c';
+  const stateClass = quest.done ? 'complete' : locked ? 'locked' : 'active';
+  const icon = quest.done ? '✅' : locked ? '🔒' : level==='easy' ? '🟢' : level==='medium' ? '🟡' : '🔴';
+
+  el.className = `daily-quest-slot ${stateClass}`;
+  el.innerHTML = `
+    <div class="dq-header">
+      <div class="dq-title">${icon} ${quest.title}</div>
+      <div class="dq-badge ${level}">${level.charAt(0).toUpperCase()+level.slice(1)}</div>
+    </div>
+    ${!locked ? `
+      <div class="dq-progress-wrap">
+        <div class="dq-progress-fill" style="width:${pct}%;background:${barColor};"></div>
+      </div>
+    ` : ''}
+    <div class="dq-footer">
+      <div class="dq-status">
+        ${quest.done ? 'Completed!' :
+          locked ? 'Complete the previous quest first' :
+          quest.type === 'time' ? `${Math.floor(quest.progress/60)}/${Math.floor(quest.target/60)} min` :
+          quest.type === 'bookpct' ? `${quest.progress}% / ${quest.target}%` :
+          `${quest.progress} / ${quest.target}`}
+      </div>
+      <div class="dq-reward">${quest.done ? '🪙 Earned!' : `🪙 ${reward}`}</div>
+    </div>
+  `;
+}
+
+// Called from reader to update quest progress
+function updateDailyProgress(type, value) {
+  const goals = getDailyGoals();
+  let changed = false;
+
+  ['easy','medium','hard'].forEach(level => {
+    const q = goals[level];
+    if (q.done || q.locked) return;
+    if (q.type !== type) return;
+
+    if (type === 'time' || type === 'pages' || type === 'chapter' || type === 'bookpct') {
+      q.progress = Math.max(q.progress, value);
+    } else {
+      q.progress = Math.min(q.progress + value, q.target);
+    }
+
+    if (q.progress >= q.target && !q.done) {
+      q.done = true;
+      changed = true;
+      const rewards = { easy:15, medium:35, hard:75 };
+      awardQuestCoins(rewards[level]);
+
+      // Unlock next level
+      if (level === 'easy')   goals.medium.locked = false;
+      if (level === 'medium') goals.hard.locked   = false;
+
+      // Check bonus
+      if (goals.easy.done && goals.medium.done && goals.hard.done && !goals.bonusDone) {
+        goals.bonusDone = true;
+        forestAddPlant('flower', 4, 'Daily Quest Complete!');
+      }
+    }
+  });
+
+  if (changed) {
+    saveDailyGoals(goals);
+    renderDailyGoals();
+  } else {
+    saveDailyGoals(goals);
+  }
+}
+
+// Check noon quest on login
+function checkNoonQuest() {
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    updateDailyProgress('noon', 1);
+  }
+}
+
+window.renderDailyGoals = renderDailyGoals;
+window.updateDailyProgress = updateDailyProgress;
 
 function updateForestNav() {
   const forest = getForest();
@@ -1825,6 +2008,12 @@ function onPageLeave(nextPageNum) {
         validatedPages.add(pendingPage.pageNum);
         pendingPage = null;
       }
+      // Update daily pages goal
+      updateDailyProgress('pages', validatedPages.size);
+      // Update daily book% goal
+      if (readerTotalPages > 0) {
+        updateDailyProgress('bookpct', Math.floor((validatedPages.size / readerTotalPages) * 100));
+      }
     } else {
       // Not enough time — discard pending too
       pendingPage = null;
@@ -2292,6 +2481,10 @@ function startReaderTimer() {
       const s = readerSecondsElapsed % 60;
       document.getElementById('reader-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
       tickQuestChain();
+      // Update daily time goal every 10 seconds
+      if (readerSecondsElapsed % 10 === 0) {
+        updateDailyProgress('time', readerSecondsElapsed);
+      }
     }
   }, 1000);
 }
@@ -2326,6 +2519,13 @@ function closeReader() {
       localStorage.setItem('bs_read_days', JSON.stringify(readDays));
     }
   }
+
+  // Check no-pause quest — if they never paused and read 10+ min
+  if (readerSecondsElapsed >= 600 && !readerIsPaused) {
+    updateDailyProgress('nopause', 1);
+  }
+  // Final time update
+  updateDailyProgress('time', readerSecondsElapsed);
 
   if (questAnimFrame) { cancelAnimationFrame(questAnimFrame); questAnimFrame = null; }
   questChainIdx = 0;
