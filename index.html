@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V3.6</title>
+<title>BookSwipe V3.7</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -651,8 +651,10 @@ input::placeholder{color:var(--muted);}
       <div id="mybooks-carousel" style="display:none;">
         <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
         <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
-        <div id="mybooks-roulette" style="position:relative;height:120px;overflow:hidden;touch-action:pan-y;"
-          onpointerdown="rouletteStart(event)" onpointermove="rouletteMove(event)" onpointerup="rouletteEnd(event)">
+        <div style="display:flex;align-items:center;gap:0.2rem;">
+          <button onclick="rouletteGoTo(carouselIdx-1)" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">‹</button>
+          <div id="mybooks-roulette" style="position:relative;height:120px;flex:1;overflow:hidden;"></div>
+          <button onclick="rouletteGoTo(carouselIdx+1)" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">›</button>
         </div>
         <div style="display:flex;justify-content:center;gap:0.3rem;margin-top:0.35rem;" id="mybooks-dots"></div>
         <button style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;display:block;margin:0.35rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
@@ -1248,15 +1250,30 @@ window.rouletteStart = rouletteStart;
 window.rouletteMove = rouletteMove;
 window.rouletteEnd = rouletteEnd;
 
-async function openReaderById(id) {
-  const pdfData = await idbGetPdf(id);
+async function openReaderById(bookId) {
+  const id = Number(bookId);
+  let books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const book = books.find(b => Number(b.id) === id);
+  if (!book) { alert('Book not found.'); return; }
+
+  // Try IndexedDB first
+  let pdfData = await idbGetPdf(id);
   if (!pdfData) {
-    const input = document.getElementById('pdf-upload-reopen');
-    input.dataset.bookId = id;
-    input.click();
-    return;
+    // Fall back to memory store
+    if (!pdfMemoryStore[id]) {
+      const input = document.getElementById('pdf-upload-reopen');
+      input.dataset.bookId = id;
+      input.click();
+      return;
+    }
+  } else {
+    pdfMemoryStore[id] = new Uint8Array(pdfData);
   }
-  pdfMemoryStore[id] = new Uint8Array(pdfData);
+
+  // Mark as currently reading
+  books = books.map(b => ({ ...b, isReading: Number(b.id) === id }));
+  localStorage.setItem('bs_my_books', JSON.stringify(books));
+
   openReader(id);
 }
 window.openReaderById = openReaderById;
