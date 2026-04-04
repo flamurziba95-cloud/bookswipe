@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.1</title>
+<title>BookSwipe V4.2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1614,17 +1614,8 @@ function drawMushroom(ctx, stage, s, tw) {
 }
 
 function forestAddTestPlants() {
-  const existing = getForest();
-  if (existing.length > 0) return;
-  const samples = [
-    {type:'oak', stage:5, label:'Tender is the Night'},
-    {type:'pine', stage:3, label:'Club: Dune'},
-    {type:'flower', stage:4, label:'Daily Quest'},
-    {type:'mushroom', stage:4, label:'7-day streak'},
-    {type:'oak', stage:2, label:'In Progress'},
-    {type:'flower', stage:2, label:'Challenge'},
-  ];
-  localStorage.setItem('bs_forest', JSON.stringify(samples.map(p => ({...p, addedAt: Date.now()}))));
+  // Forest starts empty — grows from real reading
+  // Only add demo plants if explicitly requested
 }
 window.rouletteStart = rouletteStart;
 window.rouletteMove = rouletteMove;
@@ -1716,6 +1707,16 @@ async function openReader(bookId) {
   readerBookId = id;
   readerSecondsElapsed = 0;
   readerIsPaused = false;
+  // Reset validation state for new session
+  pageArrivalTime = null;
+  pageWordCount = 0;
+  pendingPage = null;
+  validatedPages = new Set();
+  // Restore previously validated pages from localStorage
+  const savedBook = JSON.parse(localStorage.getItem('bs_my_books') || '[]').find(b => b.id === id);
+  if (savedBook && savedBook.validatedPagesList) {
+    savedBook.validatedPagesList.forEach(p => validatedPages.add(p));
+  }
 
   document.getElementById('reader-title').textContent = book.title;
   document.getElementById('reader-timer').textContent = '0:00';
@@ -1765,20 +1766,135 @@ async function renderReaderPage(pageNum) {
 
   await page.render({ canvasContext: ctx, viewport }).promise;
 
+  // Extract word count for anti-cheat validation
+  try {
+    const textContent = await page.getTextContent();
+    const text = textContent.items.map(i => i.str).join(' ');
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    onPageArrival(words);
+  } catch(e) {
+    onPageArrival(150); // fallback if text extraction fails
+  }
+
   document.getElementById('reader-loading').style.display = 'none';
   canvas.style.display = 'block';
 
   document.getElementById('reader-page-info').textContent = `Page ${pageNum} of ${readerTotalPages}`;
-  const pct = Math.round((pageNum / readerTotalPages) * 100);
-  document.getElementById('reader-progress').style.width = pct + '%';
+  // Progress bar now driven by validated pages, not current page
+  const validatedPct = readerTotalPages > 0 ? Math.round((validatedPages.size / readerTotalPages) * 100) : 0;
+  document.getElementById('reader-progress').style.width = validatedPct + '%';
   document.getElementById('reader-prev').style.opacity = pageNum <= 1 ? '0.3' : '1';
   document.getElementById('reader-next').style.opacity = pageNum >= readerTotalPages ? '0.3' : '1';
 
   saveReaderProgress(pageNum);
 }
 
+// ── PAGE VALIDATION SYSTEM ───────────────────
+let pageArrivalTime = null;      // when user arrived on current page
+let pageWordCount = 0;           // words on current page
+let pendingPage = null;          // short page waiting for next-page validation
+let validatedPages = new Set();  // set of validated page numbers this session
+
+const MIN_WORDS_FOR_SHORT = 60;  // pages under this are "short"
+const FAST_READER_WPM = 400;     // fastest believable reading speed
+const ABSOLUTE_MIN_SECS = 3;     // never less than this even for blank pages
+
+function getMinReadTime(wordCount) {
+  if (wordCount <= 10) return ABSOLUTE_MIN_SECS;
+  return Math.max(ABSOLUTE_MIN_SECS, Math.floor((wordCount / FAST_READER_WPM) * 60));
+}
+
+function isShortPage(wordCount) {
+  return wordCount < MIN_WORDS_FOR_SHORT;
+}
+
+function onPageArrival(wordCount) {
+  pageArrivalTime = Date.now();
+  pageWordCount = wordCount;
+}
+
+function onPageLeave(nextPageNum) {
+  const timeSpent = (Date.now() - pageArrivalTime) / 1000;
+  const minTime = getMinReadTime(pageWordCount);
+  const pageNum = nextPageNum - 1; // the page we're leaving
+
+  if (isShortPage(pageWordCount)) {
+    // Short page — mark as pending, will validate based on next page
+    pendingPage = { pageNum, timeSpent };
+  } else {
+    // Normal page — validate directly
+    if (timeSpent >= minTime) {
+      validatedPages.add(pageNum);
+      // Also validate any pending short page before this one
+      if (pendingPage) {
+        validatedPages.add(pendingPage.pageNum);
+        pendingPage = null;
+      }
+    } else {
+      // Not enough time — discard pending too
+      pendingPage = null;
+    }
+    updateTreeProgress();
+  }
+}
+
+function updateTreeProgress() {
+  if (!readerBookId || !readerTotalPages) return;
+  const progress = validatedPages.size / readerTotalPages;
+
+  // Update book progress in localStorage
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const idx = books.findIndex(b => b.id === readerBookId);
+  if (idx !== -1) {
+    books[idx].readProgress = progress;
+    books[idx].validatedPages = validatedPages.size;
+    localStorage.setItem('bs_my_books', JSON.stringify(books));
+  }
+
+  // Update tree stage
+  const stage = progressToStage(progress);
+  updateForestTree(readerBookId, stage);
+
+  // Update progress bar in reader
+  const pct = Math.round(progress * 100);
+  const bar = document.getElementById('reader-progress');
+  if (bar) bar.style.width = pct + '%';
+}
+
+function progressToStage(progress) {
+  if (progress === 0)    return 0; // seed
+  if (progress < 0.15)  return 1; // sprout
+  if (progress < 0.30)  return 2; // sapling
+  if (progress < 0.50)  return 3; // young tree
+  if (progress < 0.75)  return 4; // full tree
+  return 5;                        // majestic
+}
+
+function updateForestTree(bookId, stage) {
+  const forest = getForest();
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const book = books.find(b => b.id === bookId);
+  if (!book) return;
+
+  // Find existing oak for this book or create one
+  const existingIdx = forest.findIndex(p => p.bookId === bookId);
+  if (existingIdx !== -1) {
+    forest[existingIdx].stage = stage;
+  } else {
+    forest.push({
+      type: 'oak',
+      stage,
+      label: book.title,
+      bookId,
+      addedAt: Date.now()
+    });
+  }
+  localStorage.setItem('bs_forest', JSON.stringify(forest));
+}
+
 function readerNextPage() {
   if (readerCurrentPage < readerTotalPages) {
+    onPageLeave(readerCurrentPage + 1);
     readerCurrentPage++;
     renderReaderPage(readerCurrentPage);
   }
@@ -1786,6 +1902,8 @@ function readerNextPage() {
 
 function readerPrevPage() {
   if (readerCurrentPage > 1) {
+    // Going back — just move, don't validate
+    pageArrivalTime = Date.now();
     readerCurrentPage--;
     renderReaderPage(readerCurrentPage);
   }
@@ -1829,6 +1947,8 @@ function saveReaderProgress(pageNum) {
     books[idx].currentPage = pageNum;
     books[idx].isReading = true;
     books[idx].lastRead = Date.now();
+    books[idx].validatedPagesList = Array.from(validatedPages);
+    books[idx].readProgress = readerTotalPages > 0 ? validatedPages.size / readerTotalPages : 0;
     localStorage.setItem('bs_my_books', JSON.stringify(books));
   }
 }
@@ -1854,6 +1974,8 @@ function closeReader() {
 
   readerPdf = null;
   readerSecondsElapsed = 0;
+  // Final tree update on close
+  updateTreeProgress();
 
   if (currentUser) {
     renderCalendarStrip();
