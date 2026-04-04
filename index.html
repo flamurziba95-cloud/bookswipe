@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V5.3</title>
+<title>BookSwipe V5.4</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -634,19 +634,32 @@ input::placeholder{color:var(--muted);}
     </div>
   </div>
 
-  <!-- Daily Goals Card -->
-  <div class="card-panel" style="padding:1rem;margin-top:0.5rem;" id="daily-goals-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;">
-      <div style="font-family:'Playfair Display',serif;font-size:1rem;">🎯 Daily Goals</div>
-      <div id="daily-reset-time" style="font-size:0.68rem;color:var(--muted);"></div>
+  <!-- Daily Goals Card — compact, shows active quest only -->
+  <div class="card-panel" style="padding:0.8rem 1rem;margin-top:0.5rem;" id="daily-goals-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:0.9rem;">🎯 Daily Goals</div>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div id="daily-reset-time" style="font-size:0.65rem;color:var(--muted);"></div>
+        <button onclick="showAllQuests()" style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;">See all</button>
+      </div>
     </div>
-    <!-- Three quest slots -->
-    <div id="daily-quest-easy" class="daily-quest-slot"></div>
-    <div id="daily-quest-medium" class="daily-quest-slot" style="margin-top:0.5rem;"></div>
-    <div id="daily-quest-hard" class="daily-quest-slot" style="margin-top:0.5rem;"></div>
-    <!-- All complete bonus -->
-    <div id="daily-bonus" style="display:none;margin-top:0.7rem;padding:0.6rem 0.8rem;background:rgba(76,175,135,0.08);border:1px solid rgba(76,175,135,0.25);border-radius:10px;text-align:center;font-size:0.75rem;color:var(--yes);">
-      🌸 All complete! Flower planted in your forest · <span style="color:var(--accent);font-weight:600;">🪙 +125 total</span>
+    <!-- Active quest only -->
+    <div id="daily-quest-active"></div>
+  </div>
+
+  <!-- All Quests Modal -->
+  <div id="all-quests-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);padding:1.2rem 1.2rem 2rem;width:100%;max-width:440px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">🎯 Today's Quests</div>
+        <button onclick="document.getElementById('all-quests-modal').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+      </div>
+      <div id="daily-quest-easy" class="daily-quest-slot"></div>
+      <div id="daily-quest-medium" class="daily-quest-slot" style="margin-top:0.5rem;"></div>
+      <div id="daily-quest-hard" class="daily-quest-slot" style="margin-top:0.5rem;"></div>
+      <div id="daily-bonus" style="display:none;margin-top:0.7rem;padding:0.6rem 0.8rem;background:rgba(76,175,135,0.08);border:1px solid rgba(76,175,135,0.25);border-radius:10px;text-align:center;font-size:0.75rem;color:var(--yes);">
+        🌸 All complete! Flower planted · <span style="color:var(--accent);font-weight:600;">🪙 +125 total</span>
+      </div>
     </div>
   </div>
 
@@ -1521,13 +1534,49 @@ function saveDailyGoals(goals) {
 function renderDailyGoals() {
   const goals = getDailyGoals();
 
-  renderQuestSlot('easy',   goals.easy,   false,         15);
+  // Full modal slots
+  renderQuestSlot('easy',   goals.easy,   false,              15);
   renderQuestSlot('medium', goals.medium, goals.medium.locked, 35);
   renderQuestSlot('hard',   goals.hard,   goals.hard.locked,   75);
 
   // Bonus
   const bonus = document.getElementById('daily-bonus');
   if (bonus) bonus.style.display = goals.bonusDone ? 'block' : 'none';
+
+  // Compact active quest on dashboard
+  const activeEl = document.getElementById('daily-quest-active');
+  if (activeEl) {
+    const active = !goals.easy.done ? goals.easy
+      : !goals.medium.done ? goals.medium
+      : !goals.hard.done ? goals.hard
+      : null;
+
+    if (goals.bonusDone) {
+      activeEl.innerHTML = `<div style="font-size:0.8rem;color:var(--yes);text-align:center;padding:0.2rem 0;">🌸 All quests complete today!</div>`;
+    } else if (!active) {
+      activeEl.innerHTML = `<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.2rem 0;">All done for today!</div>`;
+    } else {
+      const level = !goals.easy.done ? 'easy' : !goals.medium.done ? 'medium' : 'hard';
+      const rewards = { easy:15, medium:35, hard:75 };
+      const barColor = level==='easy' ? '#4caf87' : level==='medium' ? '#f0d080' : '#e05c5c';
+      const pct = Math.min((active.progress / active.target) * 100, 100);
+      const icon = level==='easy' ? '🟢' : level==='medium' ? '🟡' : '🔴';
+      activeEl.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.35rem;">
+          <div style="font-size:0.82rem;font-weight:500;">${icon} ${active.title}</div>
+          <div style="font-size:0.72rem;color:var(--accent);font-weight:600;">🪙 ${rewards[level]}</div>
+        </div>
+        <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${barColor};border-radius:2px;transition:width 0.4s;"></div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:0.25rem;">
+          ${active.type==='time' ? `${Math.floor(active.progress/60)}/${Math.floor(active.target/60)} min` :
+            active.type==='bookpct' ? `${active.progress}% / ${active.target}%` :
+            `${active.progress} / ${active.target}`}
+        </div>
+      `;
+    }
+  }
 
   // Reset timer
   const resetEl = document.getElementById('daily-reset-time');
@@ -1540,6 +1589,12 @@ function renderDailyGoals() {
     resetEl.textContent = `Resets in ${hoursLeft}h ${minsLeft}m`;
   }
 }
+
+function showAllQuests() {
+  renderDailyGoals();
+  document.getElementById('all-quests-modal').style.display = 'flex';
+}
+window.showAllQuests = showAllQuests;
 
 function renderQuestSlot(level, quest, locked, reward) {
   const el = document.getElementById(`daily-quest-${level}`);
