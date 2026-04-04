@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V3.7</title>
+<title>BookSwipe V3.8</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -652,9 +652,9 @@ input::placeholder{color:var(--muted);}
         <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
         <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
         <div style="display:flex;align-items:center;gap:0.2rem;">
-          <button onclick="rouletteGoTo(carouselIdx-1)" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">‹</button>
+          <button onclick="roulettePrev()" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">‹</button>
           <div id="mybooks-roulette" style="position:relative;height:120px;flex:1;overflow:hidden;"></div>
-          <button onclick="rouletteGoTo(carouselIdx+1)" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">›</button>
+          <button onclick="rouletteNext()" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">›</button>
         </div>
         <div style="display:flex;justify-content:center;gap:0.3rem;margin-top:0.35rem;" id="mybooks-dots"></div>
         <button style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;display:block;margin:0.35rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
@@ -1243,8 +1243,12 @@ function rouletteEnd(e) {
 }
 
 function carouselGoTo(idx) { rouletteGoTo(idx); }
+function roulettePrev() { rouletteGoTo(carouselIdx - 1); }
+function rouletteNext() { rouletteGoTo(carouselIdx + 1); }
 
 window.carouselGoTo = carouselGoTo;
+window.roulettePrev = roulettePrev;
+window.rouletteNext = rouletteNext;
 window.rouletteGoTo = rouletteGoTo;
 window.rouletteStart = rouletteStart;
 window.rouletteMove = rouletteMove;
