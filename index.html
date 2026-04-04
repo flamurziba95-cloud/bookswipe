@@ -1032,22 +1032,24 @@ function handlePdfUpload(event) {
 
   const reader = new FileReader();
   reader.onload = function(e) {
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
     const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
     const newBook = {
       id: Date.now(),
       title: file.name.replace('.pdf','').replace(/_/g,' '),
       fileName: file.name,
       addedAt: Date.now(),
-      currentPage: 0,
+      currentPage: 1,
       totalPages: null,
-      isReading: books.length === 0, // first book = currently reading
+      isReading: books.length === 0,
+      pdfData: base64,
     };
     books.unshift(newBook);
     localStorage.setItem('bs_my_books', JSON.stringify(books));
     renderMyBooks();
   };
   reader.readAsArrayBuffer(file);
-  event.target.value = ''; // reset input
+  event.target.value = '';
 }
 
 function renderMyBooks() {
@@ -1065,19 +1067,171 @@ function renderMyBooks() {
     const current = books[0];
     const isReading = current.isReading;
     document.getElementById('mybooks-current-book').innerHTML = `
-      <div style="width:70px;height:95px;border-radius:8px;background:var(--surface2);
-        border:2px solid ${isReading ? 'var(--accent)' : 'var(--border)'};
-        ${isReading ? 'box-shadow:0 0 14px rgba(240,208,128,0.3);' : ''}
-        display:flex;align-items:center;justify-content:center;
-        margin:0 auto 0.5rem;font-size:1.8rem;">📕</div>
-      <div style="font-size:0.75rem;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:0.2rem;word-break:break-word;">${current.title}</div>
-      ${isReading ? '<div style="font-size:0.65rem;color:var(--accent);">● Reading</div>' : ''}
+      <div onclick="openReader(${current.id})" style="cursor:pointer;">
+        <div style="width:70px;height:95px;border-radius:8px;background:var(--surface2);
+          border:2px solid ${isReading ? 'var(--accent)' : 'rgba(255,255,255,0.08)'};
+          ${isReading ? 'box-shadow:0 0 14px rgba(240,208,128,0.3);' : ''}
+          display:flex;align-items:center;justify-content:center;
+          margin:0 auto 0.5rem;font-size:1.8rem;">📕</div>
+        <div style="font-size:0.72rem;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:0.2rem;word-break:break-word;">${current.title}</div>
+        ${current.currentPage > 1 ? `<div style="font-size:0.62rem;color:var(--muted);">Page ${current.currentPage}</div>` : ''}
+        ${isReading ? '<div style="font-size:0.62rem;color:var(--accent);margin-top:0.1rem;">● Reading</div>' : ''}
+      </div>
     `;
   }
 }
 
 window.handlePdfUpload = handlePdfUpload;
 window.renderMyBooks = renderMyBooks;
+
+// ── PDF READER ────────────────────────────────
+let readerPdf = null;
+let readerCurrentPage = 1;
+let readerTotalPages = 0;
+let readerTimerInterval = null;
+let readerSecondsElapsed = 0;
+let readerIsPaused = false;
+let readerBookId = null;
+let readerBookData = null;
+
+// Load PDF.js from CDN
+const pdfScript = document.createElement('script');
+pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+document.head.appendChild(pdfScript);
+pdfScript.onload = () => {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+};
+
+async function openReader(bookId) {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const book = books.find(b => b.id === bookId);
+  if (!book || !book.pdfData) return;
+
+  readerBookId = bookId;
+  readerBookData = book;
+  readerSecondsElapsed = 0;
+  readerIsPaused = false;
+
+  document.getElementById('reader-title').textContent = book.title;
+  document.getElementById('reader-timer').textContent = '0:00';
+  document.getElementById('reader-pause-btn').textContent = '⏸';
+  document.getElementById('reader-loading').style.display = 'flex';
+  document.getElementById('reader-canvas').style.display = 'none';
+
+  show('reader');
+
+  // Load PDF
+  const pdfData = atob(book.pdfData);
+  const arr = new Uint8Array(pdfData.length);
+  for (let i = 0; i < pdfData.length; i++) arr[i] = pdfData.charCodeAt(i);
+
+  readerPdf = await pdfjsLib.getDocument({ data: arr }).promise;
+  readerTotalPages = readerPdf.numPages;
+  readerCurrentPage = book.currentPage || 1;
+
+  await renderReaderPage(readerCurrentPage);
+  startReaderTimer();
+}
+
+async function renderReaderPage(pageNum) {
+  if (!readerPdf) return;
+  document.getElementById('reader-loading').style.display = 'flex';
+  document.getElementById('reader-canvas').style.display = 'none';
+
+  const page = await readerPdf.getPage(pageNum);
+  const canvas = document.getElementById('reader-canvas');
+  const ctx = canvas.getContext('2d');
+  const viewport = page.getViewport({ scale: window.innerWidth < 440 ? (window.innerWidth - 20) / page.getViewport({scale:1}).width : 420 / page.getViewport({scale:1}).width });
+
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  document.getElementById('reader-loading').style.display = 'none';
+  canvas.style.display = 'block';
+
+  // Update UI
+  document.getElementById('reader-page-info').textContent = `Page ${pageNum} of ${readerTotalPages}`;
+  const pct = Math.round((pageNum / readerTotalPages) * 100);
+  document.getElementById('reader-progress').style.width = pct + '%';
+  document.getElementById('reader-prev').style.opacity = pageNum <= 1 ? '0.3' : '1';
+  document.getElementById('reader-next').style.opacity = pageNum >= readerTotalPages ? '0.3' : '1';
+
+  // Save page
+  saveReaderProgress(pageNum);
+}
+
+function readerNextPage() {
+  if (readerCurrentPage < readerTotalPages) {
+    readerCurrentPage++;
+    renderReaderPage(readerCurrentPage);
+  }
+}
+
+function readerPrevPage() {
+  if (readerCurrentPage > 1) {
+    readerCurrentPage--;
+    renderReaderPage(readerCurrentPage);
+  }
+}
+
+function startReaderTimer() {
+  clearInterval(readerTimerInterval);
+  readerTimerInterval = setInterval(() => {
+    if (!readerIsPaused) {
+      readerSecondsElapsed++;
+      const m = Math.floor(readerSecondsElapsed / 60);
+      const s = readerSecondsElapsed % 60;
+      document.getElementById('reader-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }
+  }, 1000);
+}
+
+function toggleReaderTimer() {
+  readerIsPaused = !readerIsPaused;
+  document.getElementById('reader-pause-btn').textContent = readerIsPaused ? '▶' : '⏸';
+}
+
+function saveReaderProgress(pageNum) {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const idx = books.findIndex(b => b.id === readerBookId);
+  if (idx !== -1) {
+    books[idx].currentPage = pageNum;
+    books[idx].isReading = true;
+    books[idx].lastRead = Date.now();
+    localStorage.setItem('bs_my_books', JSON.stringify(books));
+  }
+}
+
+function closeReader() {
+  clearInterval(readerTimerInterval);
+
+  // Save today as a read day if read for more than 60 seconds
+  if (readerSecondsElapsed >= 60) {
+    const today = new Date().toISOString().split('T')[0];
+    const readDays = JSON.parse(localStorage.getItem('bs_read_days') || '[]');
+    if (!readDays.includes(today)) {
+      readDays.push(today);
+      localStorage.setItem('bs_read_days', JSON.stringify(readDays));
+    }
+  }
+
+  readerPdf = null;
+  if (currentUser) {
+    renderCalendarStrip();
+    renderMyBooks();
+    showDashboard(currentUser);
+  } else {
+    show('home');
+  }
+}
+
+window.openReader = openReader;
+window.readerNextPage = readerNextPage;
+window.readerPrevPage = readerPrevPage;
+window.toggleReaderTimer = toggleReaderTimer;
+window.closeReader = closeReader;
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -3442,6 +3596,44 @@ initHomeParticles();
   <div class="sub">You passed on everything this round.<br>Try a different mood?</div>
   <button class="btn btn-primary" onclick="show('sp-mood')" style="margin-top:1rem;">Try a different mood</button>
   <button class="btn btn-secondary" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Home</button>
+</div>
+
+<!-- PDF READER -->
+<div id="s-reader" class="screen" style="padding:0;max-width:100%;width:100%;background:var(--bg);">
+
+  <!-- Reader top bar -->
+  <div id="reader-topbar" style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
+    <button onclick="closeReader()" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0.2rem;">← Back</button>
+    <div id="reader-title" style="font-family:'Playfair Display',serif;font-size:0.9rem;color:var(--text);text-align:center;flex:1;padding:0 0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <!-- Timer -->
+      <div id="reader-timer" style="font-size:0.78rem;color:var(--accent);font-weight:600;min-width:38px;text-align:right;">0:00</div>
+      <!-- Pause/Play -->
+      <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:none;border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.7rem;color:var(--accent);">⏸</button>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div style="width:100%;max-width:440px;height:3px;background:var(--surface2);">
+    <div id="reader-progress" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;"></div>
+  </div>
+
+  <!-- Canvas area -->
+  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:center;min-height:60vh;padding:0.5rem 0;position:relative;">
+    <canvas id="reader-canvas" style="max-width:100%;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></canvas>
+    <div id="reader-loading" style="position:absolute;display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
+      <div class="spinner"></div>
+      <div style="font-size:0.78rem;color:var(--muted);">Loading page…</div>
+    </div>
+  </div>
+
+  <!-- Page navigation -->
+  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.8rem 1rem;background:var(--surface);border-top:1px solid var(--border);position:sticky;bottom:0;">
+    <button onclick="readerPrevPage()" id="reader-prev" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">‹ Prev</button>
+    <div id="reader-page-info" style="font-size:0.78rem;color:var(--muted);text-align:center;"></div>
+    <button onclick="readerNextPage()" id="reader-next" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">Next ›</button>
+  </div>
+
 </div>
 
 </body>
