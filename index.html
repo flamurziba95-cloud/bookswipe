@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.3</title>
+<title>BookSwipe V4.4</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -2011,7 +2011,7 @@ function animateQuestCanvas() {
   // Dark background
   ctx.fillStyle = '#16161a';
   ctx.beginPath();
-  ctx.roundRect(0, 0, W, H, 6);
+  ctx.rect(0, 0, W, H, 6);
   ctx.fill();
 
   switch(q?.id) {
@@ -2158,13 +2158,13 @@ function drawCarScene(ctx, W, H, p) {
   // Car body
   ctx.fillStyle = '#4a80c0';
   ctx.beginPath();
-  ctx.roundRect(carX, carY, 18, 8, 2);
+  ctx.rect(carX, carY, 18, 8, 2);
   ctx.fill();
 
   // Car roof
   ctx.fillStyle = '#5a90d0';
   ctx.beginPath();
-  ctx.roundRect(carX+3, carY-5, 10, 6, 2);
+  ctx.rect(carX+3, carY-5, 10, 6, 2);
   ctx.fill();
 
   // Windows
@@ -2260,7 +2260,7 @@ function drawRocketScene(ctx, W, H, p) {
   // Rocket body
   ctx.fillStyle = '#e0e0e0';
   ctx.beginPath();
-  ctx.roundRect(rx-4, ry, 8, 12, 2);
+  ctx.rect(rx-4, ry, 8, 12, 2);
   ctx.fill();
 
   // Nose
@@ -2293,14 +2293,17 @@ function startReaderTimer() {
   readerTimerInterval = setInterval(() => {
     if (!readerIsPaused) {
       readerSecondsElapsed++;
-      // Main timer display
       const m = Math.floor(readerSecondsElapsed / 60);
       const s = readerSecondsElapsed % 60;
       document.getElementById('reader-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-      // Advance quest chain
       tickQuestChain();
     }
   }, 1000);
+}
+
+function toggleReaderTimer() {
+  readerIsPaused = !readerIsPaused;
+  document.getElementById('reader-pause-btn').textContent = readerIsPaused ? '▶' : '⏸';
 }
   readerIsPaused = !readerIsPaused;
   document.getElementById('reader-pause-btn').textContent = readerIsPaused ? '▶' : '⏸';
