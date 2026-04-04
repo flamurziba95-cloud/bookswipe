@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.0</title>
+<title>BookSwipe V4.1</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1286,149 +1286,6 @@ window.roulettePrev = roulettePrev;
 window.rouletteNext = rouletteNext;
 window.rouletteGoTo = rouletteGoTo;
 
-// ── FOREST ────────────────────────────────────
-
-function svgOak(stage) {
-  // stage 0-5: seed→sprout→sapling→young→full→majestic
-  const trunk = `<rect x="22" y="${50 - stage*4}" width="6" height="${10 + stage*4}" fill="#6b3d1e" rx="2"/>`;
-  const roots = stage > 0 ? `<ellipse cx="25" cy="60" rx="${4+stage}" ry="2" fill="#5a3418" opacity="0.6"/>` : '';
-  const canopies = [
-    '',
-    `<circle cx="25" cy="46" r="5" fill="#2d5a1b" opacity="0.9"/>`,
-    `<circle cx="25" cy="42" r="8" fill="#2d5a1b"/><circle cx="20" cy="45" r="5" fill="#3a7025"/>`,
-    `<circle cx="25" cy="38" r="10" fill="#2d5a1b"/><circle cx="18" cy="43" r="7" fill="#3a7025"/><circle cx="32" cy="43" r="6" fill="#336620"/>`,
-    `<circle cx="25" cy="34" r="13" fill="#2d5a1b"/><circle cx="15" cy="41" r="9" fill="#3a7025"/><circle cx="35" cy="40" r="8" fill="#336620"/><circle cx="25" cy="44" r="7" fill="#2a5218"/>`,
-    `<circle cx="25" cy="30" r="15" fill="#2d5a1b"/><circle cx="13" cy="39" r="10" fill="#3a7025"/><circle cx="37" cy="38" r="10" fill="#336620"/><circle cx="25" cy="42" r="9" fill="#2a5218"/><circle cx="20" cy="32" r="7" fill="#4a8030" opacity="0.8"/>
-     <circle cx="30" cy="33" r="6" fill="#3d7228" opacity="0.8"/>
-     ${stage === 5 ? `<circle cx="25" cy="26" r="5" fill="#f0d080" opacity="0.15"/>` : ''}`,
-  ];
-  const acorns = stage >= 4 ? `<circle cx="19" cy="50" r="2" fill="#c9a830"/><circle cx="31" cy="48" r="2" fill="#c9a830"/>` : '';
-  const glow = stage === 5 ? `<circle cx="25" cy="35" r="18" fill="#f0d080" opacity="0.06"/>` : '';
-  return `<svg viewBox="0 0 50 65" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
-    ${glow}${canopies[stage]}${trunk}${roots}${acorns}
-    ${stage === 0 ? `<ellipse cx="25" cy="60" rx="4" ry="2" fill="#5a3418" opacity="0.5"/><circle cx="25" cy="57" r="3" fill="#6b3d1e"/>` : ''}
-  </svg>`;
-}
-
-function svgPine(stage) {
-  const h = 20 + stage * 6;
-  const layers = stage + 1;
-  let triangles = '';
-  for (let i = 0; i < layers; i++) {
-    const y = 60 - (i * 10);
-    const w = 8 + (layers - i) * 5;
-    triangles += `<polygon points="25,${y-12} ${25-w},${y} ${25+w},${y}" fill="${i%2===0 ? '#1a6b3c' : '#217a46'}" opacity="${0.85 + i*0.05}"/>`;
-  }
-  const glow = stage === 5 ? `<circle cx="25" cy="30" r="20" fill="#4caf87" opacity="0.07"/>` : '';
-  const star = stage >= 4 ? `<polygon points="25,10 26.5,14 31,14 27.5,16.5 29,21 25,18.5 21,21 22.5,16.5 19,14 23.5,14" fill="#f0d080" opacity="0.9"/>` : '';
-  return `<svg viewBox="0 0 50 65" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
-    ${glow}${triangles}
-    <rect x="23" y="58" width="4" height="6" fill="#5a3418" rx="1"/>
-    ${star}
-  </svg>`;
-}
-
-function svgFlower(stage) {
-  const petals = Math.min(stage * 2, 8);
-  let petalsSvg = '';
-  for (let i = 0; i < petals; i++) {
-    const angle = (i / petals) * 360;
-    petalsSvg += `<ellipse cx="25" cy="25" rx="4" ry="8" fill="#e05c7a" opacity="0.85" transform="rotate(${angle} 25 25)" style="transform-origin:25px 25px"/>`;
-  }
-  const stemH = 20 + stage * 5;
-  return `<svg viewBox="0 0 50 65" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
-    <line x1="25" y1="${65-stemH}" x2="25" y2="60" stroke="#2d7a2d" stroke-width="2.5" stroke-linecap="round"/>
-    ${stage > 1 ? `<ellipse cx="19" cy="${60-stemH/2}" rx="5" ry="3" fill="#2d7a2d" transform="rotate(-30 19 ${60-stemH/2})"/>` : ''}
-    ${petalsSvg}
-    ${petals > 0 ? `<circle cx="25" cy="25" r="${3+stage*0.5}" fill="#f0d080"/>` : `<circle cx="25" cy="${65-stemH}" r="3" fill="#1a8a1a"/>`}
-  </svg>`;
-}
-
-function svgMushroom(stage) {
-  const capW = 8 + stage * 4;
-  const capH = 5 + stage * 3;
-  const spots = stage >= 2 ? `<circle cx="22" cy="${35-capH+3}" r="1.5" fill="white" opacity="0.7"/><circle cx="28" cy="${35-capH+5}" r="1" fill="white" opacity="0.7"/><circle cx="25" cy="${35-capH+2}" r="1.2" fill="white" opacity="0.7"/>` : '';
-  const glow = stage >= 4 ? `<ellipse cx="25" cy="55" rx="${capW+4}" ry="4" fill="#a07840" opacity="0.15"/>` : '';
-  return `<svg viewBox="0 0 50 65" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
-    ${glow}
-    <rect x="22" y="${35}" width="6" height="${10+stage*2}" fill="#d4a56a" rx="2"/>
-    <ellipse cx="25" cy="${35}" rx="${capW}" ry="${capH}" fill="#a07840"/>
-    <ellipse cx="25" cy="${35+1}" rx="${capW-1}" ry="${capH*0.4}" fill="#c49050" opacity="0.5"/>
-    ${spots}
-    <ellipse cx="25" cy="${47+stage*2}" rx="5" ry="1.5" fill="#6b4a20" opacity="0.4"/>
-  </svg>`;
-}
-
-function getSvgForPlant(type, stage) {
-  switch(type) {
-    case 'oak':      return svgOak(Math.min(stage, 5));
-    case 'pine':     return svgPine(Math.min(stage, 5));
-    case 'flower':   return svgFlower(Math.min(stage, 4));
-    case 'mushroom': return svgMushroom(Math.min(stage, 4));
-    default:         return svgOak(stage);
-  }
-}
-
-function renderForest() {
-  const grid = document.getElementById('forest-grid');
-  if (!grid) return;
-
-  const forest = JSON.parse(localStorage.getItem('bs_forest') || '[]');
-  const coins = parseInt(localStorage.getItem('bs_coins') || '0');
-  const coinsEl = document.getElementById('forest-coins');
-  if (coinsEl) coinsEl.textContent = `🪙 ${coins} coins`;
-
-  // Always show at least 8 empty slots
-  const totalSlots = Math.max(8, forest.length + 4);
-
-  grid.innerHTML = '';
-  for (let i = 0; i < totalSlots; i++) {
-    const plant = forest[i];
-    const tile = document.createElement('div');
-    tile.style.cssText = `
-      aspect-ratio:1;border-radius:12px;
-      background:${plant ? 'rgba(240,208,128,0.04)' : 'rgba(255,255,255,0.02)'};
-      border:1px solid ${plant ? 'rgba(240,208,128,0.15)' : 'rgba(255,255,255,0.05)'};
-      display:flex;align-items:center;justify-content:center;
-      padding:6px;position:relative;overflow:hidden;
-      transition:all 0.2s;
-    `;
-
-    if (plant) {
-      tile.innerHTML = `
-        <div style="width:100%;height:100%;">${getSvgForPlant(plant.type, plant.stage)}</div>
-        <div style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:0.5rem;color:var(--muted);opacity:0.7;">${plant.label || ''}</div>
-      `;
-      tile.title = plant.label || plant.type;
-    } else {
-      tile.innerHTML = `<div style="width:60%;height:60%;border-radius:50%;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.06);"></div>`;
-    }
-
-    grid.appendChild(tile);
-  }
-}
-
-// Add a plant to the forest (called when achievements happen)
-function forestAddPlant(type, stage, label) {
-  const forest = JSON.parse(localStorage.getItem('bs_forest') || '[]');
-  forest.push({ type, stage, label, addedAt: Date.now() });
-  localStorage.setItem('bs_forest', JSON.stringify(forest));
-  renderForest();
-}
-
-// Test: add sample plants so the forest looks alive
-function forestAddTestPlants() {
-  const existing = JSON.parse(localStorage.getItem('bs_forest') || '[]');
-  if (existing.length > 0) return; // only add once
-  forestAddPlant('oak', 5, 'Tender is the Night');
-  forestAddPlant('flower', 3, 'Daily Quest');
-  forestAddPlant('mushroom', 4, '7-day streak');
-  forestAddPlant('oak', 3, 'In Progress');
-  forestAddPlant('pine', 2, 'Club Read');
-}
-
-window.renderForest = renderForest;
-window.forestAddPlant = forestAddPlant;
 
 // ── ISOMETRIC FOREST ──────────────────────────
 const GRID = 4; // 4x4 per island
@@ -1445,6 +1302,15 @@ function showForest() {
   show('forest');
 }
 window.showForest = showForest;
+
+function forestAddPlant(type, stage, label) {
+  const forest = getForest();
+  forest.push({ type, stage, label, addedAt: Date.now() });
+  localStorage.setItem('bs_forest', JSON.stringify(forest));
+  renderForest();
+}
+window.renderForest = renderForest;
+window.forestAddPlant = forestAddPlant;
 
 function updateForestNav() {
   const forest = getForest();
