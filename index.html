@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.9</title>
+<title>BookSwipe V5.1</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1668,7 +1668,8 @@ async function joinClub() {
 
 async function addClubToUser(uid, clubId) {
   const snap = await get(ref(db, `users/${uid}/clubs`));
-  const clubs = snap.val() || [];
+  const raw = snap.val();
+  const clubs = raw ? (Array.isArray(raw) ? raw : Object.values(raw)) : [];
   if (!clubs.includes(clubId)) {
     clubs.push(clubId);
     await set(ref(db, `users/${uid}/clubs`), clubs);
@@ -1687,10 +1688,12 @@ let currentClubId = null;
 let clubListener = null;
 
 function openClubDashboard(clubId, club) {
+  // Stop previous listener before changing currentClubId
+  if (clubListener && currentClubId) {
+    off(ref(db, 'clubs/' + currentClubId));
+    clubListener = null;
+  }
   currentClubId = clubId;
-
-  // Stop previous listener
-  if (clubListener) { off(ref(db, 'clubs/' + currentClubId)); clubListener = null; }
 
   renderClubDashboard(clubId, club);
   show('club-dashboard');
@@ -1813,7 +1816,8 @@ async function leaveClub() {
 
   // Remove from user's club list
   const snap = await get(ref(db, `users/${currentUser.uid}/clubs`));
-  const clubs = (snap.val() || []).filter(id => id !== currentClubId);
+  const raw = snap.val();
+  const clubs = (raw ? (Array.isArray(raw) ? raw : Object.values(raw)) : []).filter(id => id !== currentClubId);
   await set(ref(db, `users/${currentUser.uid}/clubs`), clubs);
 
   if (clubListener) { off(ref(db, 'clubs/' + currentClubId)); clubListener = null; }
@@ -1824,7 +1828,10 @@ async function leaveClub() {
 async function loadUserClubs() {
   if (!currentUser) return;
   const snap = await get(ref(db, `users/${currentUser.uid}/clubs`));
-  const clubIds = snap.val() || [];
+  const raw = snap.val();
+
+  // Firebase may return object {0: "club_X"} or array ["club_X"]
+  const clubIds = raw ? (Array.isArray(raw) ? raw : Object.values(raw)) : [];
 
   const emptyEl = document.getElementById('club-card-empty');
   const listEl  = document.getElementById('club-card-list');
@@ -1838,9 +1845,8 @@ async function loadUserClubs() {
   emptyEl.style.display = 'none';
   listEl.style.display  = 'block';
 
-  // Load first club preview
   const firstId = clubIds[0];
-  const firstSnap = await get(ref(db, firstId));
+  const firstSnap = await get(ref(db, 'clubs/' + firstId));
   if (!firstSnap.exists()) {
     emptyEl.style.display = 'block';
     listEl.style.display  = 'none';
@@ -1861,7 +1867,7 @@ async function loadUserClubs() {
 }
 
 async function openClubById(clubId) {
-  const snap = await get(ref(db, clubId));
+  const snap = await get(ref(db, 'clubs/' + clubId));
   if (snap.exists()) openClubDashboard(clubId, snap.val());
 }
 
