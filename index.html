@@ -581,8 +581,41 @@ input::placeholder{color:var(--muted);}
 
   <!-- Weekly Calendar Strip -->
   <div class="dash-calendar-wrap">
-    <div class="dash-calendar-label">This week</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+      <div class="dash-calendar-label" style="margin-bottom:0;">This week</div>
+      <div style="display:flex;align-items:center;gap:0.7rem;">
+        <div id="dash-streak" style="display:flex;align-items:center;gap:0.3rem;font-size:0.82rem;color:var(--accent);font-weight:600;">🔥 0</div>
+        <button onclick="openMonthCalendar()" style="background:none;border:none;cursor:pointer;padding:0.2rem;display:flex;flex-direction:column;gap:4px;opacity:0.7;" title="Full calendar">
+          <span style="display:block;width:18px;height:2px;background:var(--muted);border-radius:2px;"></span>
+          <span style="display:block;width:18px;height:2px;background:var(--muted);border-radius:2px;"></span>
+          <span style="display:block;width:18px;height:2px;background:var(--muted);border-radius:2px;"></span>
+        </button>
+      </div>
+    </div>
     <div class="dash-calendar-strip" id="dash-calendar"></div>
+  </div>
+
+  <!-- Monthly Calendar Modal -->
+  <div id="month-cal-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="background:var(--surface);border:1px solid rgba(240,208,128,0.2);border-radius:20px;padding:1.5rem;width:100%;max-width:400px;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+        <button onclick="monthCalNav(-1)" style="background:none;border:none;color:var(--accent);font-size:1.2rem;cursor:pointer;padding:0.2rem 0.5rem;">‹</button>
+        <div id="month-cal-title" style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);"></div>
+        <button onclick="monthCalNav(1)" style="background:none;border:none;color:var(--accent);font-size:1.2rem;cursor:pointer;padding:0.2rem 0.5rem;">›</button>
+      </div>
+      <!-- Day headers -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:0.5rem;">
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">M</div>
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">T</div>
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">W</div>
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">T</div>
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">F</div>
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">S</div>
+        <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">S</div>
+      </div>
+      <div id="month-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+      <button onclick="closeMonthCalendar()" style="width:100%;margin-top:1.2rem;padding:0.8rem;background:none;border:1px solid var(--border);border-radius:50px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;">Close</button>
+    </div>
   </div>
 
   <!-- Placeholder cards -->
@@ -848,15 +881,10 @@ function renderCalendarStrip() {
   if (!strip) return;
   const days = ['M','T','W','T','F','S','S'];
   const today = new Date();
-  const todayDow = today.getDay(); // 0=Sun,1=Mon...6=Sat
-  // Convert to Mon=0 ... Sun=6
+  const todayDow = today.getDay();
   const todayIdx = todayDow === 0 ? 6 : todayDow - 1;
-
-  // Load read days from localStorage (will be populated by timer later)
   const readDays = JSON.parse(localStorage.getItem('bs_read_days') || '[]');
-  // readDays is array of date strings like "2026-04-04"
 
-  // Get dates for this week (Mon to Sun)
   const weekDates = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
@@ -869,17 +897,85 @@ function renderCalendarStrip() {
     const dayNum = d.getDate();
     let state = 'future';
     if (i === todayIdx) state = 'today';
-    else if (i < todayIdx) {
-      state = readDays.includes(dateStr) ? 'read' : 'missed';
-    }
-    return `
-      <div class="dash-day">
-        <div class="dash-day-name">${days[i]}</div>
-        <div class="dash-day-circle ${state}">${dayNum}</div>
-      </div>
-    `;
+    else if (i < todayIdx) state = readDays.includes(dateStr) ? 'read' : 'missed';
+    return `<div class="dash-day"><div class="dash-day-name">${days[i]}</div><div class="dash-day-circle ${state}">${dayNum}</div></div>`;
   }).join('');
+
+  // Update streak
+  updateStreak(readDays);
 }
+
+function updateStreak(readDays) {
+  const el = document.getElementById('dash-streak');
+  if (!el) return;
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    if (readDays.includes(ds)) streak++;
+    else if (i > 0) break;
+  }
+  el.textContent = streak > 0 ? `🔥 ${streak}` : '🔥 0';
+}
+
+// Monthly calendar
+let monthCalOffset = 0;
+
+function openMonthCalendar() {
+  monthCalOffset = 0;
+  renderMonthCalendar();
+  const modal = document.getElementById('month-cal-modal');
+  modal.style.display = 'flex';
+}
+
+function closeMonthCalendar() {
+  document.getElementById('month-cal-modal').style.display = 'none';
+}
+
+function monthCalNav(dir) {
+  monthCalOffset += dir;
+  renderMonthCalendar();
+}
+
+function renderMonthCalendar() {
+  const readDays = JSON.parse(localStorage.getItem('bs_read_days') || '[]');
+  const today = new Date();
+  const target = new Date(today.getFullYear(), today.getMonth() + monthCalOffset, 1);
+  const year = target.getFullYear();
+  const month = target.getMonth();
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('month-cal-title').textContent = `${monthNames[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = today.toISOString().split('T')[0];
+
+  let cells = '';
+  // Empty cells before first day
+  for (let i = 0; i < startOffset; i++) cells += '<div></div>';
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const isRead = readDays.includes(dateStr);
+    const isPast = dateStr < todayStr;
+    let style = 'width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.78rem;margin:0 auto;';
+    if (isToday) style += `background:rgba(240,208,128,0.1);border:2px solid var(--accent);color:var(--accent);font-weight:600;`;
+    else if (isRead) style += `background:var(--accent);color:#1a1000;font-weight:700;`;
+    else if (isPast) style += `color:rgba(138,134,128,0.4);border:1px solid rgba(138,134,128,0.15);`;
+    else style += `color:var(--muted);`;
+    cells += `<div style="${style}">${d}</div>`;
+  }
+  document.getElementById('month-cal-grid').innerHTML = cells;
+}
+
+window.openMonthCalendar = openMonthCalendar;
+window.closeMonthCalendar = closeMonthCalendar;
+window.monthCalNav = monthCalNav;
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
