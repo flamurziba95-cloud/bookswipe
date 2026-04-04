@@ -25,8 +25,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sub{font-size:0.82rem;color:var(--muted);text-align:center;margin-bottom:1.2rem;line-height:1.6;}
 .card-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;width:100%;margin-bottom:0.9rem;}
 label{font-size:0.75rem;color:var(--muted);display:block;margin-bottom:0.35rem;letter-spacing:0.04em;text-transform:uppercase;}
-input[type=text],input[type=number]{width:100%;padding:0.8rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;margin-bottom:0.75rem;outline:none;transition:border 0.2s;-webkit-appearance:none;appearance:none;}
-input:focus{border-color:var(--accent);}
+input[type=text],input[type=number],input[type=email],input[type=password]{width:100%;padding:0.8rem 1rem;background:#0e0e10;border:1px solid rgba(232,200,122,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;margin-bottom:0.75rem;outline:none;transition:border 0.2s;-webkit-appearance:none;appearance:none;}
+input:focus{border-color:rgba(232,200,122,0.7);}
 input::placeholder{color:var(--muted);}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:0.9rem 1.6rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:500;cursor:pointer;transition:all 0.18s;border:none;width:100%;margin-bottom:0.6rem;min-height:52px;touch-action:manipulation;}
 .btn-primary{background:var(--accent);color:#1a1400;}
@@ -295,7 +295,7 @@ input::placeholder{color:var(--muted);}
 /* Hero button - single player */
 .hero-btn{
   width:100%;padding:1.1rem 1.5rem;
-  background:linear-gradient(135deg,#e8c87a,#d4a840);
+  background:#e8c87a;
   border:none;border-radius:16px;cursor:pointer;
   font-family:'Playfair Display',serif;font-size:1.1rem;
   font-weight:700;color:#1a1000;letter-spacing:-0.3px;
@@ -303,10 +303,10 @@ input::placeholder{color:var(--muted);}
   display:flex;align-items:center;justify-content:center;
   margin-bottom:0.7rem;
   animation:fadeUp 0.8s 0.3s ease both;
-  box-shadow:0 4px 24px rgba(232,200,122,0.25);
+  box-shadow:0 4px 24px rgba(232,200,122,0.35);
 }
-.hero-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,200,122,0.4);}
-.hero-btn:active{transform:scale(0.98);}
+.hero-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,200,122,0.5);}
+.hero-btn:active{transform:scale(0.98);background:#d4b060;}
 .hero-btn-text{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
 .hero-btn-label{font-size:0.68rem;font-family:'DM Sans',sans-serif;font-weight:400;opacity:0.7;letter-spacing:0.04em;}
 .hero-btn-arrow{display:none;}
@@ -398,13 +398,13 @@ input::placeholder{color:var(--muted);}
 
 <!-- HOME -->
 <div id="s-home" class="screen active">
-  <div class="home-screen" style="padding-top:3rem;">
+  <div class="home-screen" style="padding-top:4rem;justify-content:flex-start;height:auto;min-height:100dvh;">
 
     <!-- Floating book particles background -->
     <div class="home-particles" id="home-particles"></div>
 
     <!-- Logo -->
-    <div class="home-logo-wrap">
+    <div class="home-logo-wrap" style="margin-top:0.5rem;">
       <div class="home-logo">BookSwipe</div>
       <div class="home-logo-sub">Find your next read</div>
     </div>
@@ -421,7 +421,6 @@ input::placeholder{color:var(--muted);}
         <span style="font-size:1rem;">📖 Solo Discovery</span>
         <span class="hero-btn-label">Just you · Your mood · Your pace</span>
       </div>
-      <span class="hero-btn-arrow">→</span>
     </button>
 
     <!-- Divider -->
@@ -437,7 +436,6 @@ input::placeholder{color:var(--muted);}
         <span>👥 Play with friends</span>
         <span class="secondary-home-btn-sub">Vote together · Pick as a group</span>
       </div>
-      <span style="color:var(--muted);font-size:1rem;">→</span>
     </button>
 
     <!-- Divider — Your Journey -->
@@ -466,12 +464,11 @@ input::placeholder{color:var(--muted);}
         <span>🔖 My Reading List</span>
         <span class="secondary-home-btn-sub">Books you saved · Ready when you are</span>
       </div>
-      <span style="color:var(--muted);font-size:1rem;">→</span>
     </button>
 
     <!-- Social proof -->
     <div class="home-proof">
-      ✦ Free · No account needed · Works on any device
+      ✦ Free · Works on any device
     </div>
 
   </div>
