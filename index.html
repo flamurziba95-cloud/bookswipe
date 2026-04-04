@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V4.7</title>
+<title>BookSwipe V4.8</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -687,12 +687,17 @@ input::placeholder{color:var(--muted);}
     </div>
 
     <!-- Book Club card -->
-    <div class="card-panel" style="flex:1;padding:0.9rem 0.8rem;min-width:0;margin-bottom:0;text-align:center;">
+    <div class="card-panel" style="flex:1;padding:0.9rem 0.8rem;min-width:0;margin-bottom:0;text-align:center;" id="club-card">
       <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;margin-bottom:0.7rem;text-align:left;">👥 Book Club</div>
-      <div style="font-size:1.6rem;margin-bottom:0.35rem;">👥</div>
-      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.5;">Read together<br>with friends</div>
-      <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;">✦ Create</button>
-      <button class="btn btn-secondary" style="margin:0.3rem auto 0;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;">→ Join</button>
+      <!-- Empty state -->
+      <div id="club-card-empty">
+        <div style="font-size:1.6rem;margin-bottom:0.35rem;">👥</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.5;">Read together<br>with friends</div>
+        <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;" onclick="show('club-create')">✦ Create</button>
+        <button class="btn btn-secondary" style="margin:0.3rem auto 0;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;" onclick="show('club-join')">→ Join</button>
+      </div>
+      <!-- Has clubs state -->
+      <div id="club-card-list" style="display:none;text-align:left;"></div>
     </div>
 
   </div>
@@ -761,6 +766,84 @@ input::placeholder{color:var(--muted);}
       <span class="secondary-home-btn-sub">Vote together · Pick as a group</span>
     </div>
   </button>
+</div>
+
+<!-- CLUB: CREATE -->
+<div id="s-club-create" class="screen">
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+  <div class="home-logo" style="font-size:2rem;margin-bottom:0.3rem;">BookSwipe</div>
+  <div class="h2" style="margin-top:0.8rem;">Create a Book Club</div>
+  <div class="sub">Start a club and invite up to 6 members</div>
+  <div class="card-panel">
+    <label>Club name</label>
+    <input type="text" id="club-name-input" placeholder="e.g. The Night Owls" maxlength="30" autocomplete="off"/>
+    <button class="btn btn-primary" onclick="createClub()">✦ Create Club</button>
+  </div>
+  <div class="err" id="club-create-err"></div>
+</div>
+
+<!-- CLUB: JOIN -->
+<div id="s-club-join" class="screen">
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+  <div class="home-logo" style="font-size:2rem;margin-bottom:0.3rem;">BookSwipe</div>
+  <div class="h2" style="margin-top:0.8rem;">Join a Book Club</div>
+  <div class="sub">Enter the club code from your friend</div>
+  <div class="card-panel">
+    <label>Club code</label>
+    <input type="text" id="club-code-input" placeholder="e.g. BOOK42" maxlength="8" autocomplete="off" autocorrect="off" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:0.15em;"/>
+    <button class="btn btn-primary" onclick="joinClub()">→ Join Club</button>
+  </div>
+  <div class="err" id="club-join-err"></div>
+</div>
+
+<!-- CLUB: DASHBOARD -->
+<div id="s-club-dashboard" class="screen" style="padding-top:0.5rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:1rem;">
+    <button class="back-btn" style="margin-bottom:0;" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+    <div id="club-dash-name" style="font-family:'Playfair Display',serif;font-size:1.1rem;"></div>
+    <div id="club-dash-code" style="font-size:0.68rem;color:var(--accent);cursor:pointer;" onclick="copyClubCode()"></div>
+  </div>
+
+  <!-- Current book -->
+  <div class="card-panel" id="club-book-card">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.7rem;">📖 Current Book</div>
+    <div id="club-current-book-display">
+      <div style="text-align:center;padding:0.5rem 0;">
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">No book selected yet</div>
+        <button class="btn btn-primary" style="min-height:38px;font-size:0.82rem;" onclick="launchClubBookPick()">📖 Pick a book together</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Members -->
+  <div class="card-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">👥 Members</div>
+      <div id="club-member-count" style="font-size:0.68rem;color:var(--muted);"></div>
+    </div>
+    <div id="club-members-list"></div>
+    <div id="club-invite-hint" style="margin-top:0.7rem;padding:0.6rem;background:var(--surface2);border-radius:10px;font-size:0.72rem;color:var(--muted);text-align:center;line-height:1.5;"></div>
+  </div>
+
+  <!-- Club feed -->
+  <div class="card-panel">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.7rem;">📣 Activity</div>
+    <div id="club-feed-list">
+      <div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.5rem;">No activity yet — start reading!</div>
+    </div>
+  </div>
+
+  <!-- Leave club -->
+  <button class="btn btn-danger" style="margin-top:0.5rem;" onclick="leaveClub()">Leave Club</button>
+</div>
+
+<!-- CLUB: MY CLUBS LIST -->
+<div id="s-club-list" class="screen">
+  <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+  <div class="h2" style="margin-top:0.5rem;">My Book Clubs</div>
+  <div id="my-clubs-list" style="width:100%;"></div>
+  <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="show('club-create')">✦ Create new club</button>
+  <button class="btn btn-secondary" onclick="show('club-join')">→ Join a club</button>
 </div>
 
 <!-- MODE: MULTIPLAYER SETUP -->
@@ -974,6 +1057,7 @@ function showDashboard(user) {
   forestAddTestPlants();
   renderDailyGoals();
   checkNoonQuest();
+  loadUserClubs();
   show('dashboard');
   setTimeout(() => renderForest(), 50);
 }
@@ -1494,6 +1578,289 @@ function checkNoonQuest() {
 
 window.renderDailyGoals = renderDailyGoals;
 window.updateDailyProgress = updateDailyProgress;
+
+// ── BOOK CLUB SYSTEM ──────────────────────────
+const MAX_CLUB_MEMBERS = 6;
+
+function genClubCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+async function createClub() {
+  if (!currentUser) { show('login'); return; }
+  const name = document.getElementById('club-name-input').value.trim();
+  const err  = document.getElementById('club-create-err');
+  if (!name) { err.textContent = 'Please enter a club name.'; return; }
+  err.textContent = '';
+
+  const code = genClubCode();
+  const clubId = 'club_' + code;
+  const userName = currentUser.displayName || currentUser.email.split('@')[0];
+
+  const clubData = {
+    name,
+    code,
+    hostId: currentUser.uid,
+    createdAt: Date.now(),
+    currentBook: null,
+    members: {
+      [currentUser.uid]: {
+        name: userName,
+        joinedAt: Date.now(),
+        progress: 0,
+        pagesRead: 0,
+        lastRead: null,
+      }
+    },
+    feed: []
+  };
+
+  await set(ref(db, 'clubs/' + clubId), clubData);
+
+  // Save clubId to user profile
+  await addClubToUser(currentUser.uid, clubId);
+
+  openClubDashboard(clubId, clubData);
+}
+
+async function joinClub() {
+  if (!currentUser) { show('login'); return; }
+  const code = document.getElementById('club-code-input').value.trim().toUpperCase();
+  const err  = document.getElementById('club-join-err');
+  if (!code) { err.textContent = 'Please enter a club code.'; return; }
+  err.textContent = 'Looking up club…';
+
+  const clubId = 'club_' + code;
+  const snap = await get(ref(db, 'clubs/' + clubId));
+  if (!snap.exists()) { err.textContent = 'Club not found. Check the code.'; return; }
+
+  const club = snap.val();
+  const memberCount = Object.keys(club.members || {}).length;
+
+  if (memberCount >= MAX_CLUB_MEMBERS) {
+    err.textContent = `This club is full (${MAX_CLUB_MEMBERS} members max).`;
+    return;
+  }
+
+  if (club.members?.[currentUser.uid]) {
+    // Already a member
+    openClubDashboard(clubId, club);
+    return;
+  }
+
+  const userName = currentUser.displayName || currentUser.email.split('@')[0];
+  await update(ref(db, `clubs/${clubId}/members/${currentUser.uid}`), {
+    name: userName,
+    joinedAt: Date.now(),
+    progress: 0,
+    pagesRead: 0,
+    lastRead: null,
+  });
+
+  // Add feed entry
+  await addClubFeedEntry(clubId, `${userName} joined the club! 👋`);
+  await addClubToUser(currentUser.uid, clubId);
+
+  const updatedSnap = await get(ref(db, 'clubs/' + clubId));
+  openClubDashboard(clubId, updatedSnap.val());
+}
+
+async function addClubToUser(uid, clubId) {
+  const snap = await get(ref(db, `users/${uid}/clubs`));
+  const clubs = snap.val() || [];
+  if (!clubs.includes(clubId)) {
+    clubs.push(clubId);
+    await set(ref(db, `users/${uid}/clubs`), clubs);
+  }
+}
+
+async function addClubFeedEntry(clubId, message) {
+  const snap = await get(ref(db, `clubs/${clubId}/feed`));
+  const feed = snap.val() || [];
+  feed.unshift({ message, time: Date.now() });
+  if (feed.length > 20) feed.pop();
+  await set(ref(db, `clubs/${clubId}/feed`), feed);
+}
+
+let currentClubId = null;
+let clubListener = null;
+
+function openClubDashboard(clubId, club) {
+  currentClubId = clubId;
+
+  // Stop previous listener
+  if (clubListener) { off(ref(db, 'clubs/' + currentClubId)); clubListener = null; }
+
+  renderClubDashboard(clubId, club);
+  show('club-dashboard');
+
+  // Listen for real-time updates
+  clubListener = onValue(ref(db, 'clubs/' + clubId), snap => {
+    if (snap.exists()) renderClubDashboard(clubId, snap.val());
+  });
+}
+
+function renderClubDashboard(clubId, club) {
+  // Name + code
+  document.getElementById('club-dash-name').textContent = club.name;
+  document.getElementById('club-dash-code').textContent = `Code: ${club.code} 📋`;
+
+  // Current book
+  const bookDisplay = document.getElementById('club-current-book-display');
+  if (club.currentBook) {
+    const b = club.currentBook;
+    bookDisplay.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.8rem;">
+        <div style="font-size:2rem;">${b.emoji || '📖'}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Playfair Display',serif;font-size:0.95rem;">${b.title}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">${b.author || ''}</div>
+        </div>
+      </div>
+      ${club.hostId === currentUser?.uid ? `
+        <button class="btn btn-secondary" style="margin-top:0.7rem;min-height:36px;font-size:0.78rem;" onclick="launchClubBookPick()">🔄 Pick new book</button>
+      ` : ''}
+    `;
+  } else {
+    const isHost = club.hostId === currentUser?.uid;
+    bookDisplay.innerHTML = `
+      <div style="text-align:center;padding:0.5rem 0;">
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">No book selected yet</div>
+        ${isHost ? `<button class="btn btn-primary" style="min-height:38px;font-size:0.82rem;" onclick="launchClubBookPick()">📖 Pick a book together</button>` : '<div style="font-size:0.78rem;color:var(--muted);">Waiting for host to pick a book</div>'}
+      </div>
+    `;
+  }
+
+  // Members
+  const members = club.members || {};
+  const memberArr = Object.entries(members);
+  document.getElementById('club-member-count').textContent = `${memberArr.length}/${MAX_CLUB_MEMBERS}`;
+
+  const membersList = document.getElementById('club-members-list');
+  membersList.innerHTML = memberArr.map(([uid, m]) => {
+    const isHost = uid === club.hostId;
+    const isMe = uid === currentUser?.uid;
+    const progress = Math.round(m.progress || 0);
+    return `
+      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f0d080,#c9a830);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:#1a1000;flex-shrink:0;">${m.name.slice(0,2).toUpperCase()}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.8rem;font-weight:500;">${m.name}${isHost?' 👑':''}${isMe?' (you)':''}</div>
+          ${club.currentBook ? `
+            <div style="height:3px;background:var(--surface2);border-radius:2px;margin-top:3px;">
+              <div style="width:${progress}%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;"></div>
+            </div>
+            <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${progress}% · p.${m.pagesRead||0}</div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Invite hint
+  const inviteHint = document.getElementById('club-invite-hint');
+  if (memberArr.length < MAX_CLUB_MEMBERS) {
+    inviteHint.textContent = `Share code "${club.code}" to invite friends · ${MAX_CLUB_MEMBERS - memberArr.length} spots left`;
+    inviteHint.style.display = 'block';
+  } else {
+    inviteHint.style.display = 'none';
+  }
+
+  // Feed
+  const feed = club.feed || [];
+  const feedEl = document.getElementById('club-feed-list');
+  feedEl.innerHTML = feed.length > 0
+    ? feed.slice(0,8).map(f => `
+        <div style="font-size:0.75rem;color:var(--muted);padding:0.35rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+          ${f.message}
+          <span style="float:right;font-size:0.62rem;">${timeSince(f.time)}</span>
+        </div>
+      `).join('')
+    : '<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.5rem;">No activity yet — start reading!</div>';
+}
+
+function timeSince(ts) {
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs/24)}d ago`;
+}
+
+function copyClubCode() {
+  if (!currentClubId) return;
+  const code = currentClubId.replace('club_','');
+  navigator.clipboard?.writeText(code).then(() => {
+    const el = document.getElementById('club-dash-code');
+    const orig = el.textContent;
+    el.textContent = 'Copied! ✓';
+    setTimeout(() => el.textContent = orig, 1500);
+  });
+}
+
+function launchClubBookPick() {
+  // Launch the existing multiplayer mode, which will save winner back to club
+  showModeSelect('multi');
+}
+
+async function leaveClub() {
+  if (!currentUser || !currentClubId) return;
+  if (!confirm('Leave this club?')) return;
+
+  await update(ref(db, `clubs/${currentClubId}/members`), { [currentUser.uid]: null });
+
+  // Remove from user's club list
+  const snap = await get(ref(db, `users/${currentUser.uid}/clubs`));
+  const clubs = (snap.val() || []).filter(id => id !== currentClubId);
+  await set(ref(db, `users/${currentUser.uid}/clubs`), clubs);
+
+  if (clubListener) { off(ref(db, 'clubs/' + currentClubId)); clubListener = null; }
+  currentClubId = null;
+  showDashboard(currentUser);
+}
+
+async function loadUserClubs() {
+  if (!currentUser) return;
+  const snap = await get(ref(db, `users/${currentUser.uid}/clubs`));
+  const clubIds = snap.val() || [];
+
+  const emptyEl  = document.getElementById('club-card-empty');
+  const listEl   = document.getElementById('club-card-list');
+
+  if (clubIds.length === 0) {
+    emptyEl.style.display = 'block';
+    listEl.style.display = 'none';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  listEl.style.display = 'block';
+
+  // Load first club preview
+  const firstClubSnap = await get(ref(db, clubIds[0]));
+  if (firstClubSnap.exists()) {
+    const club = firstClubSnap.val();
+    const memberCount = Object.keys(club.members || {}).length;
+    listEl.innerHTML = `
+      <div style="cursor:pointer;" onclick="openClubDashboard('${clubIds[0]}', ${JSON.stringify(club).replace(/'/g,"&#39;")})">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.2rem;">${club.name}</div>
+        <div style="font-size:0.65rem;color:var(--muted);">👥 ${memberCount} members · ${club.currentBook ? '📖 '+club.currentBook.title.slice(0,15)+'…' : 'No book yet'}</div>
+      </div>
+      ${clubIds.length > 1 ? `<div style="font-size:0.65rem;color:var(--accent);margin-top:0.4rem;cursor:pointer;" onclick="show('club-list')">+${clubIds.length-1} more clubs →</div>` : ''}
+      <button style="background:none;border:none;color:var(--accent);font-size:0.65rem;cursor:pointer;text-decoration:underline;margin-top:0.3rem;display:block;" onclick="show('club-create')">✦ New club</button>
+    `;
+  }
+}
+
+window.createClub = createClub;
+window.joinClub = joinClub;
+window.openClubDashboard = openClubDashboard;
+window.copyClubCode = copyClubCode;
+window.launchClubBookPick = launchClubBookPick;
+window.leaveClub = leaveClub;
+window.loadUserClubs = loadUserClubs;
 
 function updateForestNav() {
   const forest = getForest();
