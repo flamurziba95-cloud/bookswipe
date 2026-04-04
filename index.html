@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V5.2</title>
+<title>BookSwipe V5.3</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1353,10 +1353,54 @@ function showBookLibrary() {
           ${b.isReading ? '<div style="font-size:0.68rem;color:var(--accent);">● Currently reading</div>' : ''}
         </div>
         <button onclick="rouletteGoTo(${i});closeBookLibrary();" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.72rem;color:var(--accent);cursor:pointer;white-space:nowrap;">Open</button>
+        <button onclick="confirmDeleteBook(${b.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0.2rem 0.4rem;" title="Delete">🗑</button>
       </div>
     `).join('');
   document.getElementById('book-library-modal').style.display = 'flex';
 }
+
+function confirmDeleteBook(bookId) {
+  // Show confirmation toast inside the modal
+  const existing = document.getElementById('delete-confirm-bar');
+  if (existing) existing.remove();
+
+  const bar = document.createElement('div');
+  bar.id = 'delete-confirm-bar';
+  bar.style.cssText = 'background:rgba(224,92,92,0.12);border:1px solid rgba(224,92,92,0.3);border-radius:10px;padding:0.7rem 0.9rem;margin-top:0.7rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;';
+  bar.innerHTML = `
+    <div style="font-size:0.78rem;color:var(--no);">Delete this book? This can't be undone.</div>
+    <div style="display:flex;gap:0.4rem;flex-shrink:0;">
+      <button onclick="deleteBook(${bookId})" style="background:var(--no);border:none;border-radius:50px;padding:0.3rem 0.8rem;font-size:0.72rem;color:white;cursor:pointer;">Delete</button>
+      <button onclick="document.getElementById('delete-confirm-bar').remove()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.8rem;font-size:0.72rem;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  `;
+  document.getElementById('book-library-list').appendChild(bar);
+}
+
+async function deleteBook(bookId) {
+  // Remove from localStorage
+  let books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  books = books.filter(b => b.id !== bookId);
+  localStorage.setItem('bs_my_books', JSON.stringify(books));
+
+  // Remove from IndexedDB
+  await idbDeletePdf(bookId).catch(() => {});
+
+  // Remove from Firebase progress
+  if (currentUser) {
+    set(ref(db, `users/${currentUser.uid}/bookProgress/${bookId}`), null).catch(() => {});
+  }
+
+  // Remove from memory
+  delete pdfMemoryStore[bookId];
+
+  carouselIdx = 0;
+  renderMyBooks();
+  showBookLibrary();
+}
+
+window.confirmDeleteBook = confirmDeleteBook;
+window.deleteBook = deleteBook;
 
 function closeBookLibrary() {
   document.getElementById('book-library-modal').style.display = 'none';
@@ -2341,15 +2385,50 @@ async function openReader(bookId) {
   readerBookId = id;
   readerSecondsElapsed = 0;
   readerIsPaused = false;
-  // Reset validation state for new session
   pageArrivalTime = null;
   pageWordCount = 0;
   pendingPage = null;
   validatedPages = new Set();
-  // Restore previously validated pages from localStorage
-  const savedBook = JSON.parse(localStorage.getItem('bs_my_books') || '[]').find(b => b.id === id);
-  if (savedBook && savedBook.validatedPagesList) {
-    savedBook.validatedPagesList.forEach(p => validatedPages.add(p));
+
+  // Restore progress — try Firebase first, then localStorage
+  let savedPage = 1;
+  if (currentUser) {
+    try {
+      const progSnap = await get(ref(db, `users/${currentUser.uid}/bookProgress/${id}`));
+      if (progSnap.exists()) {
+        const prog = progSnap.val();
+        savedPage = prog.currentPage || 1;
+        if (prog.validatedPagesList) prog.validatedPagesList.forEach(p => validatedPages.add(p));
+        // Sync back to localStorage
+        const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+        const idx = books.findIndex(b => b.id === id);
+        if (idx !== -1) {
+          books[idx].currentPage = savedPage;
+          books[idx].readProgress = prog.readProgress || 0;
+          books[idx].validatedPagesList = prog.validatedPagesList || [];
+          localStorage.setItem('bs_my_books', JSON.stringify(books));
+        }
+      } else {
+        // Fall back to localStorage
+        const savedBook = JSON.parse(localStorage.getItem('bs_my_books') || '[]').find(b => b.id === id);
+        if (savedBook) {
+          savedPage = savedBook.currentPage || 1;
+          if (savedBook.validatedPagesList) savedBook.validatedPagesList.forEach(p => validatedPages.add(p));
+        }
+      }
+    } catch(e) {
+      const savedBook = JSON.parse(localStorage.getItem('bs_my_books') || '[]').find(b => b.id === id);
+      if (savedBook) {
+        savedPage = savedBook.currentPage || 1;
+        if (savedBook.validatedPagesList) savedBook.validatedPagesList.forEach(p => validatedPages.add(p));
+      }
+    }
+  } else {
+    const savedBook = JSON.parse(localStorage.getItem('bs_my_books') || '[]').find(b => b.id === id);
+    if (savedBook) {
+      savedPage = savedBook.currentPage || 1;
+      if (savedBook.validatedPagesList) savedBook.validatedPagesList.forEach(p => validatedPages.add(p));
+    }
   }
 
   document.getElementById('reader-title').textContent = book.title;
@@ -2363,7 +2442,7 @@ async function openReader(bookId) {
   try {
     readerPdf = await pdfjsLib.getDocument({ data: pdfMemoryStore[id] }).promise;
     readerTotalPages = readerPdf.numPages;
-    readerCurrentPage = book.currentPage || 1;
+    readerCurrentPage = savedPage;
     await renderReaderPage(readerCurrentPage);
     // Small delay so canvas is visible before animation starts
     setTimeout(() => startReaderTimer(), 100);
@@ -2955,6 +3034,20 @@ function saveReaderProgress(pageNum) {
     books[idx].validatedPagesList = Array.from(validatedPages);
     books[idx].readProgress = readerTotalPages > 0 ? validatedPages.size / readerTotalPages : 0;
     localStorage.setItem('bs_my_books', JSON.stringify(books));
+
+    // Sync progress to Firebase if logged in
+    if (currentUser) {
+      const progressData = {
+        currentPage: pageNum,
+        readProgress: books[idx].readProgress,
+        validatedPagesList: Array.from(validatedPages),
+        lastRead: Date.now(),
+        title: books[idx].title,
+        totalPages: readerTotalPages,
+      };
+      set(ref(db, `users/${currentUser.uid}/bookProgress/${readerBookId}`), progressData)
+        .catch(() => {}); // fail silently
+    }
   }
 }
 
