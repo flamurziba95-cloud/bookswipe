@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V6.4</title>
+<title>BookSwipe V6.5</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -909,7 +909,7 @@ input::placeholder{color:var(--muted);}
     </div>
     <canvas id="club-forest-canvas" style="width:100%;display:block;" height="200"></canvas>
     <div id="club-forest-empty" style="display:none;padding:0.8rem 1rem 1rem;text-align:center;font-size:0.75rem;color:var(--muted);">
-      No one has finished the book yet — start reading! 🌱
+      No members yet — invite friends to grow the forest together 🌱
     </div>
   </div>
 
@@ -2165,9 +2165,9 @@ function renderClubForest(club) {
   if (!canvas) return;
 
   const members = club.members || {};
-  const finishers = Object.entries(members).filter(([,m]) => (m.progress || 0) >= 100);
+  const memberArr = Object.entries(members);
 
-  if (finishers.length === 0) {
+  if (memberArr.length === 0) {
     canvas.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'block';
     return;
@@ -2176,52 +2176,55 @@ function renderClubForest(club) {
   canvas.style.display = 'block';
   if (emptyEl) emptyEl.style.display = 'none';
 
+  // Size canvas to fill card width
   const W = canvas.offsetWidth || 400;
-  canvas.width = W * window.devicePixelRatio;
-  canvas.height = 200 * window.devicePixelRatio;
+  const H = 220;
+  canvas.width  = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
   const ctx = canvas.getContext('2d');
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-  drawClubIsland(ctx, W, 200, finishers);
+  drawClubIsland(ctx, W, H, memberArr);
 }
 
-function drawClubIsland(ctx, W, H, finishers) {
+function drawClubIsland(ctx, W, H, memberArr) {
+  // Background
   ctx.fillStyle = '#0e0e10';
   ctx.fillRect(0, 0, W, H);
 
+  const count = memberArr.length;
+  const GRID = 4;
   const cx = W / 2;
-  const cy = H * 0.52;
-  const tileW = 42;
+  const cy = H * 0.54;
+  const tileW = Math.min(52, (W * 0.8) / GRID);
   const tileH = tileW * 0.5;
-  const depth = 13;
-  const clampedCols = Math.min(finishers.length + 1, 5);
-  const clampedRows = Math.min(Math.ceil(finishers.length / 4) + 1, 3);
+  const depth = 14;
 
   // Dirt sides
   ctx.fillStyle = '#5c3d1a';
   ctx.beginPath();
-  ctx.moveTo(cx, cy + tileH * clampedRows);
-  ctx.lineTo(cx - tileW * clampedCols, cy);
-  ctx.lineTo(cx - tileW * clampedCols, cy + depth);
-  ctx.lineTo(cx, cy + tileH * clampedRows + depth);
+  ctx.moveTo(cx, cy + tileH * GRID);
+  ctx.lineTo(cx - tileW * GRID, cy);
+  ctx.lineTo(cx - tileW * GRID, cy + depth);
+  ctx.lineTo(cx, cy + tileH * GRID + depth);
   ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = '#7a5225';
   ctx.beginPath();
-  ctx.moveTo(cx, cy + tileH * clampedRows);
-  ctx.lineTo(cx + tileW * clampedCols, cy);
-  ctx.lineTo(cx + tileW * clampedCols, cy + depth);
-  ctx.lineTo(cx, cy + tileH * clampedRows + depth);
+  ctx.moveTo(cx, cy + tileH * GRID);
+  ctx.lineTo(cx + tileW * GRID, cy);
+  ctx.lineTo(cx + tileW * GRID, cy + depth);
+  ctx.lineTo(cx, cy + tileH * GRID + depth);
   ctx.closePath();
   ctx.fill();
 
-  // Grass tiles + collect positions
+  // Grass tiles — collect positions
   const positions = [];
-  for (let row = 0; row < clampedRows; row++) {
-    for (let col = 0; col < clampedCols; col++) {
+  for (let row = 0; row < GRID; row++) {
+    for (let col = 0; col < GRID; col++) {
       const tx = cx + (col - row) * tileW;
-      const ty = cy + (col + row) * tileH - tileH * (clampedRows - 1);
+      const ty = cy + (col + row) * tileH - tileH * (GRID - 1);
       ctx.fillStyle = (row + col) % 2 === 0 ? '#3a8a3a' : '#358535';
       ctx.beginPath();
       ctx.moveTo(tx, ty);
@@ -2237,56 +2240,97 @@ function drawClubIsland(ctx, W, H, finishers) {
     }
   }
 
-  // Pine per finisher with name tag
-  finishers.forEach(([, member], i) => {
+  // Draw a pine per member, growing based on their progress %
+  memberArr.forEach(([uid, member], i) => {
     if (i >= positions.length) return;
     const pos = positions[i];
+    const pct = member.progress || 0;
+    const stage = pctToStage(pct);
+
     ctx.save();
     ctx.translate(pos.tx, pos.ty);
-    drawClubPine(ctx, 1);
-    // Name tag
-    ctx.fillStyle = 'rgba(240,208,128,0.9)';
-    ctx.font = 'bold 8px sans-serif';
+    drawGrowingPine(ctx, stage);
+
+    // Name tag below tree
+    ctx.font = '700 7.5px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(member.name.slice(0, 9), 0, 10);
+    ctx.fillStyle = 'rgba(240,208,128,0.9)';
+    const name = (member.name || '?').slice(0, 9);
+    ctx.fillText(name, 0, 9);
+
+    // Progress % below name
+    ctx.font = '600 6.5px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillText(pct + '%', 0, 17);
+
     ctx.restore();
   });
 }
 
-function drawClubPine(ctx, s) {
+function pctToStage(pct) {
+  if (pct === 0)   return 0; // seed
+  if (pct < 15)   return 1; // tiny sprout
+  if (pct < 30)   return 2; // small
+  if (pct < 50)   return 3; // medium
+  if (pct < 75)   return 4; // tall
+  return 5;                  // full + gold star
+}
+
+function drawGrowingPine(ctx, stage) {
+  const s = 1;
+
   // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
-  ctx.ellipse(0, 2, 10*s, 3*s, 0, 0, Math.PI*2);
+  ctx.ellipse(0, 1, 8*s, 2.5*s, 0, 0, Math.PI*2);
   ctx.fill();
+
+  if (stage === 0) {
+    // Just a seed bump
+    ctx.fillStyle = '#5a3418';
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 3, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#2d7a2d';
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 2, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+    return;
+  }
+
+  const maxH = 30 * s;
+  const h = maxH * (stage / 5);
+  const layers = stage;
 
   // Trunk
   ctx.fillStyle = '#5a3418';
-  ctx.fillRect(-2*s, -6*s, 4*s, 8*s);
+  ctx.fillRect(-1.5*s, -5*s, 3*s, 6*s);
 
-  // 4 pine layers
-  const h = 32 * s;
-  for (let i = 0; i < 4; i++) {
-    const w = (13 - i * 2) * s;
-    const ly = -h * (0.3 + i * 0.18);
+  // Pine layers — more layers as it grows
+  for (let i = 0; i < layers; i++) {
+    const ratio = i / Math.max(layers - 1, 1);
+    const w = (5 + (layers - i) * 2.5) * s;
+    const ly = -h * (0.25 + ratio * 0.6);
     ctx.fillStyle = i % 2 === 0 ? '#1a5c2d' : '#1f7038';
     ctx.beginPath();
-    ctx.moveTo(0, ly - 10*s);
+    ctx.moveTo(0, ly - 8*s * (stage/5));
     ctx.lineTo(-w, ly);
     ctx.lineTo(w, ly);
     ctx.closePath();
     ctx.fill();
   }
 
-  // Gold star on top
-  ctx.fillStyle = '#f0d080';
-  ctx.beginPath();
-  ctx.arc(0, -h - 10*s, 3*s, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(240,208,128,0.18)';
-  ctx.beginPath();
-  ctx.arc(0, -h - 8*s, 8*s, 0, Math.PI*2);
-  ctx.fill();
+  // Gold star on top when finished (stage 5)
+  if (stage >= 5) {
+    ctx.fillStyle = '#f0d080';
+    ctx.beginPath();
+    ctx.arc(0, -h - 8*s, 3*s, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(240,208,128,0.2)';
+    ctx.beginPath();
+    ctx.arc(0, -h - 6*s, 7*s, 0, Math.PI*2);
+    ctx.fill();
+  }
 }
 
 window.renderClubForest = renderClubForest;
