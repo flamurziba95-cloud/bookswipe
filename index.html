@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V6.0</title>
+<title>BookSwipe V6.1</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -722,11 +722,11 @@ input::placeholder{color:var(--muted);}
 
   <!-- Forest card — tap to open full forest -->
   <div class="card-panel" style="padding:0;overflow:hidden;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem 0.6rem;cursor:pointer;" onclick="showForest()">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem 0.6rem;">
       <div style="font-family:'Playfair Display',serif;font-size:1rem;">🌿 My Forest</div>
-      <div style="display:flex;align-items:center;gap:1rem;">
-        <div id="forest-coins" style="font-size:0.75rem;color:var(--accent);font-weight:600;">🪙 0</div>
-        <div style="font-size:0.72rem;color:var(--muted);">→</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <button onclick="openShop();event.stopPropagation();" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.3);border-radius:50px;padding:0.25rem 0.65rem;font-size:0.75rem;color:var(--accent);cursor:pointer;font-weight:600;">🪙 <span id="forest-coins">0</span></button>
+        <button onclick="showForest()" style="background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:var(--muted);cursor:pointer;">→</button>
       </div>
     </div>
     <!-- Mini forest preview canvas -->
@@ -743,7 +743,7 @@ input::placeholder{color:var(--muted);}
   <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem;position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:1px solid var(--border);">
     <button onclick="currentUser ? showDashboard(currentUser) : show('home')" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;">← Back</button>
     <div style="font-family:'Playfair Display',serif;font-size:1rem;">My Forest</div>
-    <button onclick="openShop()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.25);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.75rem;color:var(--accent);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:0.3rem;">
+    <button onclick="openShop()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.25);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.75rem;color:var(--accent);cursor:pointer;font-weight:600;">
       🪙 <span id="forest-coins-full">0</span>
     </button>
   </div>
@@ -2085,7 +2085,7 @@ function updateCoinDisplay() {
   const dashEl = document.getElementById('dash-coins');
   if (dashEl) dashEl.textContent = coins;
   const forestEl = document.getElementById('forest-coins');
-  if (forestEl) forestEl.textContent = `🪙 ${coins}`;
+  if (forestEl) forestEl.textContent = coins;
   const forestFullEl = document.getElementById('forest-coins-full');
   if (forestFullEl) forestFullEl.textContent = coins;
 }
