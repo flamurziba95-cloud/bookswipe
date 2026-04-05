@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V6.1</title>
+<title>BookSwipe V6.3</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -818,10 +818,21 @@ input::placeholder{color:var(--muted);}
 
 <!-- CLUB: DASHBOARD -->
 <div id="s-club-dashboard" class="screen" style="padding-top:0.5rem;">
+
+  <!-- Top bar -->
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:1rem;">
     <button class="back-btn" style="margin-bottom:0;" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
     <div id="club-dash-name" style="font-family:'Playfair Display',serif;font-size:1.1rem;"></div>
-    <div id="club-dash-code" style="font-size:0.68rem;color:var(--accent);cursor:pointer;" onclick="copyClubCode()"></div>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <!-- Weekly streak with tooltip -->
+      <div style="position:relative;display:inline-block;">
+        <div id="club-streak-badge" onclick="showStreakTooltip()" onmouseenter="showStreakTooltip()" onmouseleave="hideStreakTooltip()" style="font-size:0.82rem;color:var(--accent);font-weight:700;cursor:pointer;background:rgba(240,208,128,0.08);border:1px solid rgba(240,208,128,0.2);border-radius:50px;padding:0.2rem 0.55rem;">🔥 0</div>
+        <div id="streak-tooltip" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#1e1e22;border:1px solid var(--border);border-radius:10px;padding:0.55rem 0.75rem;font-size:0.7rem;color:var(--muted);width:200px;line-height:1.5;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+          🔥 Club streak grows when <strong style="color:var(--text);">everyone</strong> reads at least once per week. Keep it alive!
+        </div>
+      </div>
+      <div id="club-dash-code" style="font-size:0.68rem;color:var(--accent);cursor:pointer;background:rgba(240,208,128,0.08);border:1px solid rgba(240,208,128,0.2);border-radius:50px;padding:0.2rem 0.55rem;" onclick="copyClubCode()"></div>
+    </div>
   </div>
 
   <!-- Current book -->
@@ -830,11 +841,26 @@ input::placeholder{color:var(--muted);}
       <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">📖 Current Book</div>
       <button onclick="showManualBookEntry()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.2rem 0.6rem;font-size:0.65rem;color:var(--muted);cursor:pointer;">✏️ Add manually</button>
     </div>
-    <div id="club-current-book-display">
-      <div style="text-align:center;padding:0.5rem 0;">
-        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">No book selected yet</div>
-        <button class="btn btn-primary" style="min-height:38px;font-size:0.82rem;" onclick="launchClubBookPick()">📖 Pick a book together</button>
-      </div>
+    <div id="club-current-book-display"></div>
+  </div>
+
+  <!-- Reading Race Leaderboard -->
+  <div class="card-panel" id="club-race-card" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">🏁 Reading Race</div>
+      <div id="club-challenge-countdown" style="font-size:0.68rem;color:var(--muted);"></div>
+    </div>
+    <div id="club-race-list"></div>
+  </div>
+
+  <!-- Club Challenge -->
+  <div class="card-panel" id="club-challenge-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">🎯 Club Challenge</div>
+      <button id="club-challenge-set-btn" onclick="showSetChallenge()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.2rem 0.6rem;font-size:0.65rem;color:var(--muted);cursor:pointer;">Set deadline</button>
+    </div>
+    <div id="club-challenge-display">
+      <div style="font-size:0.78rem;color:var(--muted);">No challenge set yet. Set a deadline to finish the book together.</div>
     </div>
   </div>
 
@@ -848,7 +874,26 @@ input::placeholder{color:var(--muted);}
     <div id="club-invite-hint" style="margin-top:0.7rem;padding:0.6rem;background:var(--surface2);border-radius:10px;font-size:0.72rem;color:var(--muted);text-align:center;line-height:1.5;"></div>
   </div>
 
-  <!-- Club feed -->
+  <!-- Club Stats -->
+  <div class="card-panel">
+    <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.8rem;">📊 Club Stats</div>
+    <div id="club-stats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;text-align:center;">
+      <div style="background:var(--surface2);border-radius:10px;padding:0.6rem 0.4rem;">
+        <div id="stat-pages" style="font-size:1.1rem;font-weight:700;color:var(--accent);">0</div>
+        <div style="font-size:0.6rem;color:var(--muted);margin-top:0.15rem;">Pages read</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:0.6rem 0.4rem;">
+        <div id="stat-books" style="font-size:1.1rem;font-weight:700;color:var(--accent);">0</div>
+        <div style="font-size:0.6rem;color:var(--muted);margin-top:0.15rem;">Books done</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:0.6rem 0.4rem;">
+        <div id="stat-members-read" style="font-size:1.1rem;font-weight:700;color:var(--accent);">0</div>
+        <div style="font-size:0.6rem;color:var(--muted);margin-top:0.15rem;">Reading today</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Feed -->
   <div class="card-panel">
     <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.7rem;">📣 Activity</div>
     <div id="club-feed-list">
@@ -858,6 +903,18 @@ input::placeholder{color:var(--muted);}
 
   <!-- Leave club -->
   <button class="btn btn-danger" style="margin-top:0.5rem;" onclick="leaveClub()">Leave Club</button>
+</div>
+
+<!-- Club: Set Challenge Modal -->
+<div id="club-challenge-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);padding:1.2rem 1.2rem 2rem;width:100%;max-width:440px;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.3rem;">🎯 Set Club Challenge</div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:1rem;">Set a deadline to finish the current book together.</div>
+    <label>Finish by</label>
+    <input type="date" id="challenge-date-input" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.8rem;color:var(--text);font-size:0.9rem;width:100%;box-sizing:border-box;margin-bottom:0.8rem;"/>
+    <button class="btn btn-primary" onclick="saveChallenge()">Set Challenge</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('club-challenge-modal').style.display='none'">Cancel</button>
+  </div>
 </div>
 
 <!-- CLUB: MY CLUBS LIST -->
@@ -1816,11 +1873,19 @@ function openClubDashboard(clubId, club) {
 }
 
 function renderClubDashboard(clubId, club) {
-  // Name + code
   document.getElementById('club-dash-name').textContent = club.name;
-  document.getElementById('club-dash-code').textContent = `Code: ${club.code} 📋`;
+  document.getElementById('club-dash-code').textContent = `${club.code} 📋`;
 
-  // Current book
+  const members = club.members || {};
+  const memberArr = Object.entries(members);
+  const isHost = club.hostId === currentUser?.uid;
+
+  // ── Streak ──────────────────────────────────
+  const streak = club.weeklyStreak || 0;
+  const streakEl = document.getElementById('club-streak-badge');
+  if (streakEl) streakEl.textContent = `🔥 ${streak}`;
+
+  // ── Current book ────────────────────────────
   const bookDisplay = document.getElementById('club-current-book-display');
   if (club.currentBook) {
     const b = club.currentBook;
@@ -1832,12 +1897,9 @@ function renderClubDashboard(clubId, club) {
           <div style="font-size:0.72rem;color:var(--muted);">${b.author || ''}</div>
         </div>
       </div>
-      ${club.hostId === currentUser?.uid ? `
-        <button class="btn btn-secondary" style="margin-top:0.7rem;min-height:36px;font-size:0.78rem;" onclick="launchClubBookPick()">🔄 Pick new book</button>
-      ` : ''}
+      ${isHost ? `<button class="btn btn-secondary" style="margin-top:0.7rem;min-height:36px;font-size:0.78rem;" onclick="launchClubBookPick()">🔄 Pick new book</button>` : ''}
     `;
   } else {
-    const isHost = club.hostId === currentUser?.uid;
     bookDisplay.innerHTML = `
       <div style="text-align:center;padding:0.5rem 0;">
         <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">No book selected yet</div>
@@ -1846,33 +1908,85 @@ function renderClubDashboard(clubId, club) {
     `;
   }
 
-  // Members
-  const members = club.members || {};
-  const memberArr = Object.entries(members);
-  document.getElementById('club-member-count').textContent = `${memberArr.length}/${MAX_CLUB_MEMBERS}`;
+  // ── Reading Race Leaderboard ─────────────────
+  const raceCard = document.getElementById('club-race-card');
+  if (club.currentBook && memberArr.length > 0) {
+    raceCard.style.display = 'block';
+    const sorted = [...memberArr].sort((a,b) => (b[1].progress||0) - (a[1].progress||0));
+    const medals = ['🥇','🥈','🥉'];
+    document.getElementById('club-race-list').innerHTML = sorted.map(([uid, m], i) => {
+      const pct = Math.round(m.progress || 0);
+      const isMe = uid === currentUser?.uid;
+      return `
+        <div style="display:flex;align-items:center;gap:0.6rem;padding:0.45rem 0;${i<sorted.length-1?'border-bottom:1px solid rgba(255,255,255,0.04);':''}">
+          <div style="font-size:1rem;width:22px;text-align:center;flex-shrink:0;">${medals[i] || `${i+1}.`}</div>
+          <div style="width:28px;height:28px;border-radius:50%;background:${isMe?'linear-gradient(135deg,#f0d080,#c9a830)':'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:${isMe?'#1a1000':'var(--text)'};flex-shrink:0;">${m.name.slice(0,2).toUpperCase()}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+              <div style="font-size:0.78rem;font-weight:${isMe?'600':'400'};">${m.name}${isMe?' (you)':''}</div>
+              <div style="font-size:0.72rem;color:var(--accent);font-weight:600;">${pct}%</div>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;">
+              <div style="width:${pct}%;height:100%;background:${i===0?'#f0d080':i===1?'#c0c0c0':'#cd7f32'};border-radius:2px;transition:width 0.4s;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    raceCard.style.display = 'none';
+  }
 
+  // ── Club Challenge ───────────────────────────
+  const challengeDisplay = document.getElementById('club-challenge-display');
+  const challengeSetBtn = document.getElementById('club-challenge-set-btn');
+  if (challengeSetBtn) challengeSetBtn.style.display = isHost ? 'block' : 'none';
+
+  if (club.challenge) {
+    const deadline = new Date(club.challenge.deadline);
+    const now = new Date();
+    const daysLeft = Math.ceil((deadline - now) / 86400000);
+    const avgPct = memberArr.length > 0
+      ? Math.round(memberArr.reduce((s,[,m]) => s + (m.progress||0), 0) / memberArr.length)
+      : 0;
+    const onTrack = daysLeft > 0 && avgPct >= Math.round(((deadline - new Date(club.challenge.setAt)) - (deadline - now)) / (deadline - new Date(club.challenge.setAt)) * 100);
+    challengeDisplay.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+        <div style="font-size:0.82rem;">Finish by <strong>${deadline.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</strong></div>
+        <div style="font-size:0.72rem;color:${daysLeft<=0?'var(--no)':daysLeft<=3?'#f0a060':'var(--yes)'};">${daysLeft<=0?'⌛ Expired':`${daysLeft}d left`}</div>
+      </div>
+      <div style="height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+        <div style="width:${avgPct}%;height:100%;background:${onTrack?'var(--yes)':'var(--no)'};border-radius:3px;transition:width 0.4s;"></div>
+      </div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-top:0.3rem;">Club avg: ${avgPct}% · ${onTrack?'✅ On track':'⚠️ Behind pace'}</div>
+    `;
+  } else {
+    challengeDisplay.innerHTML = `<div style="font-size:0.78rem;color:var(--muted);">${isHost ? 'Set a deadline to challenge your club.' : 'No challenge set yet.'}</div>`;
+  }
+
+  // ── Members ──────────────────────────────────
+  document.getElementById('club-member-count').textContent = `${memberArr.length}/${MAX_CLUB_MEMBERS}`;
   const membersList = document.getElementById('club-members-list');
   membersList.innerHTML = memberArr.map(([uid, m]) => {
-    const isHost = uid === club.hostId;
+    const isMeHost = uid === club.hostId;
     const isMe = uid === currentUser?.uid;
-    const progress = Math.round(m.progress || 0);
+    const pct = Math.round(m.progress || 0);
     return `
       <div style="display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0;border-bottom:1px solid var(--border);">
         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f0d080,#c9a830);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:#1a1000;flex-shrink:0;">${m.name.slice(0,2).toUpperCase()}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:0.8rem;font-weight:500;">${m.name}${isHost?' 👑':''}${isMe?' (you)':''}</div>
+          <div style="font-size:0.8rem;font-weight:500;">${m.name}${isMeHost?' 👑':''}${isMe?' (you)':''}</div>
           ${club.currentBook ? `
             <div style="height:3px;background:var(--surface2);border-radius:2px;margin-top:3px;">
-              <div style="width:${progress}%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;"></div>
+              <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;"></div>
             </div>
-            <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${progress}% · p.${m.pagesRead||0}</div>
+            <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${pct}% · p.${m.pagesRead||0}</div>
           ` : ''}
         </div>
       </div>
     `;
   }).join('');
 
-  // Invite hint
   const inviteHint = document.getElementById('club-invite-hint');
   if (memberArr.length < MAX_CLUB_MEMBERS) {
     inviteHint.textContent = `Share code "${club.code}" to invite friends · ${MAX_CLUB_MEMBERS - memberArr.length} spots left`;
@@ -1881,16 +1995,37 @@ function renderClubDashboard(clubId, club) {
     inviteHint.style.display = 'none';
   }
 
-  // Feed
+  // ── Stats ────────────────────────────────────
+  const totalPages = memberArr.reduce((s,[,m]) => s + (m.pagesRead||0), 0);
+  const booksFinished = memberArr.filter(([,m]) => (m.progress||0) >= 100).length;
+  const today = new Date().toISOString().split('T')[0];
+  const readingToday = memberArr.filter(([,m]) => m.lastRead && new Date(m.lastRead).toISOString().split('T')[0] === today).length;
+  document.getElementById('stat-pages').textContent = totalPages;
+  document.getElementById('stat-books').textContent = booksFinished;
+  document.getElementById('stat-members-read').textContent = readingToday;
+
+  // ── Feed with reactions ───────────────────────
   const feed = club.feed || [];
   const feedEl = document.getElementById('club-feed-list');
+  const reactions = ['👏','🔥','❤️'];
   feedEl.innerHTML = feed.length > 0
-    ? feed.slice(0,8).map(f => `
-        <div style="font-size:0.75rem;color:var(--muted);padding:0.35rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-          ${f.message}
-          <span style="float:right;font-size:0.62rem;">${timeSince(f.time)}</span>
-        </div>
-      `).join('')
+    ? feed.slice(0,10).map((f, i) => {
+        const reactionCounts = f.reactions || {};
+        const reactionBar = reactions.map(r => {
+          const count = reactionCounts[r] || 0;
+          const reacted = f.myReaction === r;
+          return `<button onclick="reactToFeed(${i},'${r}')" style="background:${reacted?'rgba(240,208,128,0.15)':'none'};border:1px solid ${reacted?'rgba(240,208,128,0.3)':'rgba(255,255,255,0.06)'};border-radius:50px;padding:0.1rem 0.4rem;font-size:0.68rem;cursor:pointer;color:var(--muted);">${r}${count>0?` ${count}`:''}</button>`;
+        }).join('');
+        return `
+          <div style="padding:0.45rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.3rem;">
+              <div style="font-size:0.75rem;color:var(--muted);flex:1;">${f.message}</div>
+              <div style="font-size:0.62rem;color:var(--muted);flex-shrink:0;margin-left:0.5rem;">${timeSince(f.time)}</div>
+            </div>
+            <div style="display:flex;gap:0.3rem;">${reactionBar}</div>
+          </div>
+        `;
+      }).join('')
     : '<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.5rem;">No activity yet — start reading!</div>';
 }
 
@@ -1901,6 +2036,111 @@ function timeSince(ts) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs/24)}d ago`;
+}
+
+// ── Streak tooltip ────────────────────────────
+let streakTooltipTimer = null;
+function showStreakTooltip() {
+  clearTimeout(streakTooltipTimer);
+  const el = document.getElementById('streak-tooltip');
+  if (el) el.style.display = 'block';
+}
+function hideStreakTooltip() {
+  streakTooltipTimer = setTimeout(() => {
+    const el = document.getElementById('streak-tooltip');
+    if (el) el.style.display = 'none';
+  }, 300);
+}
+window.showStreakTooltip = showStreakTooltip;
+window.hideStreakTooltip = hideStreakTooltip;
+
+// ── Feed Reactions ────────────────────────────
+async function reactToFeed(feedIdx, emoji) {
+  if (!currentClubId) return;
+  const snap = await get(ref(db, `clubs/${currentClubId}/feed`));
+  const feed = snap.val() || [];
+  if (!feed[feedIdx]) return;
+
+  const reactions = feed[feedIdx].reactions || {};
+  const prev = feed[feedIdx].myReaction;
+
+  // Toggle off if same
+  if (prev === emoji) {
+    if (reactions[emoji] > 1) reactions[emoji]--;
+    else delete reactions[emoji];
+    delete feed[feedIdx].myReaction;
+  } else {
+    // Remove previous reaction
+    if (prev && reactions[prev]) {
+      if (reactions[prev] > 1) reactions[prev]--;
+      else delete reactions[prev];
+    }
+    reactions[emoji] = (reactions[emoji] || 0) + 1;
+    feed[feedIdx].myReaction = emoji;
+  }
+
+  feed[feedIdx].reactions = reactions;
+  await set(ref(db, `clubs/${currentClubId}/feed`), feed);
+}
+window.reactToFeed = reactToFeed;
+
+// ── Club Challenge ────────────────────────────
+function showSetChallenge() {
+  const modal = document.getElementById('club-challenge-modal');
+  if (modal) {
+    // Set min date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('challenge-date-input').min = tomorrow.toISOString().split('T')[0];
+    modal.style.display = 'flex';
+  }
+}
+window.showSetChallenge = showSetChallenge;
+
+async function saveChallenge() {
+  const dateVal = document.getElementById('challenge-date-input').value;
+  if (!dateVal || !currentClubId) return;
+  await update(ref(db, `clubs/${currentClubId}`), {
+    challenge: { deadline: new Date(dateVal).getTime(), setAt: Date.now() }
+  });
+  await addClubFeedEntry(currentClubId, `🎯 Challenge set: finish by ${new Date(dateVal).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`);
+  document.getElementById('club-challenge-modal').style.display = 'none';
+}
+window.saveChallenge = saveChallenge;
+
+// ── Milestone Feed Posts ──────────────────────
+const MILESTONES = [25, 50, 75, 100];
+
+async function checkMilestones(clubId, uid, memberName, newPct) {
+  const snap = await get(ref(db, `clubs/${clubId}/members/${uid}/milestonesSent`));
+  const sent = snap.val() || [];
+  for (const m of MILESTONES) {
+    if (newPct >= m && !sent.includes(m)) {
+      sent.push(m);
+      const msg = m === 100
+        ? `🎉 ${memberName} finished the book!`
+        : `📖 ${memberName} hit ${m}%!`;
+      await addClubFeedEntry(clubId, msg);
+      await set(ref(db, `clubs/${clubId}/members/${uid}/milestonesSent`), sent);
+    }
+  }
+}
+
+// ── Weekly Streak update ──────────────────────
+async function updateClubStreak(clubId) {
+  const snap = await get(ref(db, `clubs/${clubId}`));
+  if (!snap.exists()) return;
+  const club = snap.val();
+  const members = club.members || {};
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const allRead = Object.values(members).every(m => m.lastRead && m.lastRead > weekAgo);
+  if (allRead) {
+    const streak = (club.weeklyStreak || 0) + 1;
+    await update(ref(db, `clubs/${clubId}`), { weeklyStreak: streak });
+    if (streak % 1 === 0) {
+      await addClubFeedEntry(clubId, `🔥 Club streak: ${streak} weeks — everyone read this week!`);
+    }
+  }
 }
 
 function copyClubCode() {
@@ -2200,11 +2440,11 @@ function renderForestFull() {
 }
 
 function renderForest() {
-  // Update coins display
+  // Update coins display — spans only contain the number, emoji is in the button HTML
   const coins = parseInt(localStorage.getItem('bs_coins') || '0');
   ['forest-coins','forest-coins-full'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = `🪙 ${coins}`;
+    if (el) el.textContent = coins;
   });
 
   // Draw mini preview
@@ -3258,6 +3498,24 @@ function closeReader() {
   readerPdf = null;
   readerSecondsElapsed = 0;
   updateTreeProgress();
+
+  // Sync progress to club if member
+  if (currentUser && currentClubId) {
+    const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+    const book = books.find(b => b.id === readerBookId);
+    if (book) {
+      const pct = Math.round((book.readProgress || 0) * 100);
+      const userName = currentUser.displayName || currentUser.email.split('@')[0];
+      update(ref(db, `clubs/${currentClubId}/members/${currentUser.uid}`), {
+        progress: pct,
+        pagesRead: book.currentPage || 1,
+        lastRead: Date.now(),
+      }).then(() => {
+        checkMilestones(currentClubId, currentUser.uid, userName, pct);
+        updateClubStreak(currentClubId);
+      });
+    }
+  }
 
   if (currentUser) {
     renderCalendarStrip();
