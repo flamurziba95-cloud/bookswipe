@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V5.5</title>
+<title>BookSwipe V5.8</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -864,7 +864,7 @@ input::placeholder{color:var(--muted);}
 
 <!-- MODE: MULTIPLAYER SETUP -->
 <div id="s-multi-setup" class="screen">
-  <button class="back-btn" onclick="window._multiLaunchSource==='club' && currentClubId ? openClubById(currentClubId) : currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+  <button class="back-btn" onclick="multiSetupBack()">← Back</button>
   <div class="logo" style="font-size:1.8rem;">BookSwipe</div>
   <div class="sub" style="margin-bottom:1.2rem;">Multiplayer</div>
   <div class="card-panel">
@@ -1975,6 +1975,18 @@ async function openClubById(clubId) {
 }
 
 window.openClubById = openClubById;
+Object.defineProperty(window, 'currentClubId', { get: () => currentClubId });
+
+function multiSetupBack() {
+  if (window._multiLaunchSource === 'club' && currentClubId) {
+    openClubById(currentClubId);
+  } else if (currentUser) {
+    showDashboard(currentUser);
+  } else {
+    show('home');
+  }
+}
+window.multiSetupBack = multiSetupBack;
 
 window.createClub = createClub;
 window.joinClub = joinClub;
@@ -2493,6 +2505,16 @@ async function openReader(bookId) {
   document.getElementById('reader-canvas').style.display = 'none';
 
   show('reader');
+  resetReaderZoom();
+  readerBrightness = 0;
+  readerSepia = false;
+  settingsPanelOpen = false;
+  const panel = document.getElementById('reader-settings-panel');
+  if (panel) panel.style.display = 'none';
+  const brightnessOverlay = document.getElementById('reader-brightness-overlay');
+  if (brightnessOverlay) brightnessOverlay.style.background = 'rgba(0,0,0,0)';
+  const sepiaOverlay = document.getElementById('reader-sepia-overlay');
+  if (sepiaOverlay) sepiaOverlay.style.background = 'transparent';
 
   try {
     readerPdf = await pdfjsLib.getDocument({ data: pdfMemoryStore[id] }).promise;
@@ -2517,7 +2539,10 @@ async function renderReaderPage(pageNum) {
   const ctx = canvas.getContext('2d');
 
   const dpr = window.devicePixelRatio || 2;
-  const containerWidth = Math.min(window.innerWidth - 16, 440);
+  const isLandscape = window.innerWidth > window.innerHeight;
+  const containerWidth = isLandscape
+    ? Math.min(window.innerWidth - 8, window.innerWidth)
+    : Math.min(window.innerWidth - 16, 440);
   const baseViewport = page.getViewport({ scale: 1 });
   const scale = (containerWidth / baseViewport.width) * dpr;
   const viewport = page.getViewport({ scale });
@@ -2661,22 +2686,7 @@ function updateForestTree(bookId, stage) {
   localStorage.setItem('bs_forest', JSON.stringify(forest));
 }
 
-function readerNextPage() {
-  if (readerCurrentPage < readerTotalPages) {
-    onPageLeave(readerCurrentPage + 1);
-    readerCurrentPage++;
-    renderReaderPage(readerCurrentPage);
-  }
-}
 
-function readerPrevPage() {
-  if (readerCurrentPage > 1) {
-    // Going back — just move, don't validate
-    pageArrivalTime = Date.now();
-    readerCurrentPage--;
-    renderReaderPage(readerCurrentPage);
-  }
-}
 
 // ── SESSION QUEST CHAIN ───────────────────────
 const QUEST_CHAIN = [
@@ -3147,6 +3157,244 @@ window.readerNextPage = readerNextPage;
 window.readerPrevPage = readerPrevPage;
 window.toggleReaderTimer = toggleReaderTimer;
 window.closeReader = closeReader;
+
+// ── SWIPE TO TURN PAGES ───────────────────────
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeActive = false;
+let pinchStartDist = 0;
+let currentZoom = 1;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+
+function readerSwipeStart(e) {
+  if (e.touches && e.touches.length === 2) {
+    // Pinch start
+    pinchStartDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    swipeActive = false;
+    return;
+  }
+  swipeStartX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+  swipeStartY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+  swipeActive = true;
+}
+
+function readerSwipeMove(e) {
+  if (e.touches && e.touches.length === 2 && pinchStartDist > 0) {
+    // Pinch zoom
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, currentZoom * (dist / pinchStartDist)));
+    const container = document.getElementById('reader-canvas-container');
+    if (container) container.style.transform = `scale(${scale})`;
+    return;
+  }
+  if (!swipeActive) return;
+  const dx = (e.clientX || (e.touches && e.touches[0].clientX) || 0) - swipeStartX;
+  // Show hint arrows during swipe
+  const left = document.getElementById('swipe-hint-left');
+  const right = document.getElementById('swipe-hint-right');
+  if (dx > 20 && left) left.style.opacity = '0.5';
+  else if (dx < -20 && right) right.style.opacity = '0.5';
+}
+
+function readerSwipeEnd(e) {
+  if (pinchStartDist > 0) {
+    // Save zoom level
+    const container = document.getElementById('reader-canvas-container');
+    if (container) {
+      const m = container.style.transform.match(/scale\(([^)]+)\)/);
+      if (m) currentZoom = parseFloat(m[1]);
+    }
+    pinchStartDist = 0;
+    return;
+  }
+  if (!swipeActive) return;
+  swipeActive = false;
+
+  const endX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX) || 0;
+  const endY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY) || 0;
+  const dx = endX - swipeStartX;
+  const dy = Math.abs(endY - swipeStartY);
+
+  // Hide hints
+  const left = document.getElementById('swipe-hint-left');
+  const right = document.getElementById('swipe-hint-right');
+  if (left) left.style.opacity = '0';
+  if (right) right.style.opacity = '0';
+
+  // Only trigger if horizontal swipe (not scroll)
+  if (Math.abs(dx) > 50 && Math.abs(dx) > dy * 1.5) {
+    if (dx < 0) readerNextPage(); // swipe left = next
+    else readerPrevPage();         // swipe right = prev
+  }
+}
+
+// ── PAGE JUMP ─────────────────────────────────
+function openPageJump() {
+  const bar = document.getElementById('page-jump-bar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  const input = document.getElementById('page-jump-input');
+  if (input) {
+    input.value = readerCurrentPage;
+    input.max = readerTotalPages;
+    setTimeout(() => input.focus(), 50);
+  }
+  // Highlight the page info
+  const info = document.getElementById('reader-page-info');
+  if (info) info.style.borderColor = 'rgba(240,208,128,0.3)';
+}
+
+function closePageJump() {
+  const bar = document.getElementById('page-jump-bar');
+  if (bar) bar.style.display = 'none';
+  const info = document.getElementById('reader-page-info');
+  if (info) info.style.borderColor = 'transparent';
+}
+
+function doPageJump() {
+  const input = document.getElementById('page-jump-input');
+  if (!input) return;
+  const page = parseInt(input.value);
+  if (page >= 1 && page <= readerTotalPages) {
+    readerCurrentPage = page;
+    renderReaderPage(readerCurrentPage);
+    closePageJump();
+  }
+}
+
+// Reset zoom when opening new book
+function resetReaderZoom() {
+  currentZoom = 1;
+  const container = document.getElementById('reader-canvas-container');
+  if (container) container.style.transform = 'scale(1)';
+}
+
+window.readerSwipeStart = readerSwipeStart;
+window.readerSwipeMove = readerSwipeMove;
+window.readerSwipeEnd = readerSwipeEnd;
+window.openPageJump = openPageJump;
+window.closePageJump = closePageJump;
+window.doPageJump = doPageJump;
+
+// ── READER SETTINGS ───────────────────────────
+let readerBrightness = 0;   // -0.5 to 0.5 (negative = darker)
+let readerSepia = false;
+let settingsPanelOpen = false;
+
+function toggleReaderSettings() {
+  settingsPanelOpen = !settingsPanelOpen;
+  const panel = document.getElementById('reader-settings-panel');
+  if (panel) panel.style.display = settingsPanelOpen ? 'block' : 'none';
+}
+
+function adjustZoom(delta) {
+  currentZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, currentZoom + delta));
+  const container = document.getElementById('reader-canvas-container');
+  if (container) container.style.transform = `scale(${currentZoom})`;
+  const label = document.getElementById('zoom-label');
+  if (label) label.textContent = currentZoom.toFixed(2).replace(/\.00$/, '') + '×';
+}
+
+function adjustBrightness(delta) {
+  readerBrightness = Math.min(0.6, Math.max(-0.6, readerBrightness + delta));
+  const overlay = document.getElementById('reader-brightness-overlay');
+  if (overlay) {
+    if (readerBrightness < 0) {
+      overlay.style.background = `rgba(0,0,0,${Math.abs(readerBrightness)})`;
+    } else {
+      overlay.style.background = `rgba(255,255,255,${readerBrightness})`;
+    }
+  }
+}
+
+function toggleSepia() {
+  readerSepia = !readerSepia;
+  const overlay = document.getElementById('reader-sepia-overlay');
+  const btn = document.getElementById('sepia-btn');
+  if (overlay) overlay.style.background = readerSepia ? 'rgba(160,100,30,0.25)' : 'transparent';
+  if (btn) { btn.textContent = readerSepia ? 'On' : 'Off'; btn.style.color = readerSepia ? 'var(--accent)' : 'var(--muted)'; }
+}
+
+window.toggleReaderSettings = toggleReaderSettings;
+window.adjustZoom = adjustZoom;
+window.adjustBrightness = adjustBrightness;
+window.toggleSepia = toggleSepia;
+
+// ── SMOOTH PAGE TRANSITION ────────────────────
+let pageTransitioning = false;
+
+async function animatedPageTurn(direction, pageNum) {
+  if (pageTransitioning) return;
+  pageTransitioning = true;
+
+  const container = document.getElementById('reader-canvas-container');
+  if (!container) { await renderReaderPage(pageNum); pageTransitioning = false; return; }
+
+  // Slide out current page
+  container.style.transition = 'transform 0.18s ease-in, opacity 0.18s ease-in';
+  container.style.transform = `translateX(${direction === 'next' ? '-30px' : '30px'}) scale(${currentZoom})`;
+  container.style.opacity = '0';
+
+  await new Promise(r => setTimeout(r, 180));
+
+  // Render new page while hidden
+  container.style.transition = 'none';
+  container.style.transform = `translateX(${direction === 'next' ? '30px' : '-30px'}) scale(${currentZoom})`;
+
+  await renderReaderPage(pageNum);
+
+  // Slide in new page
+  container.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+  container.style.transform = `translateX(0) scale(${currentZoom})`;
+  container.style.opacity = '1';
+
+  await new Promise(r => setTimeout(r, 180));
+  pageTransitioning = false;
+}
+
+// Override next/prev to use animation
+function readerNextPage() {
+  if (readerCurrentPage < readerTotalPages) {
+    onPageLeave(readerCurrentPage + 1);
+    readerCurrentPage++;
+    animatedPageTurn('next', readerCurrentPage);
+  }
+}
+
+function readerPrevPage() {
+  if (readerCurrentPage > 1) {
+    pageArrivalTime = Date.now();
+    readerCurrentPage--;
+    animatedPageTurn('prev', readerCurrentPage);
+  }
+}
+
+// ── LANDSCAPE MODE ────────────────────────────
+function handleOrientationChange() {
+  const isLandscape = window.innerWidth > window.innerHeight;
+  const readerScreen = document.getElementById('s-reader');
+  const wrap = document.getElementById('reader-canvas-wrap');
+  if (!readerScreen || readerScreen.style.display === 'none') return;
+
+  if (isLandscape) {
+    if (wrap) wrap.style.maxWidth = '100vw';
+    // Re-render at full width
+    if (readerPdf) renderReaderPage(readerCurrentPage);
+  } else {
+    if (wrap) wrap.style.maxWidth = '440px';
+    if (readerPdf) renderReaderPage(readerCurrentPage);
+  }
+}
+
+window.addEventListener('resize', handleOrientationChange);
+window.addEventListener('orientationchange', () => setTimeout(handleOrientationChange, 200));
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -5532,10 +5780,34 @@ initHomeParticles();
   <div id="reader-topbar" style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
     <button onclick="closeReader()" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0.2rem;">← Back</button>
     <div id="reader-title" style="font-family:'Playfair Display',serif;font-size:0.9rem;color:var(--text);text-align:center;flex:1;padding:0 0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-    <!-- Timer in blue square position -->
     <div style="display:flex;align-items:center;gap:0.4rem;flex-shrink:0;">
       <div id="reader-timer" style="font-size:0.85rem;color:var(--accent);font-weight:700;min-width:36px;text-align:right;">0:00</div>
       <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.65rem;color:var(--accent);">⏸</button>
+      <button onclick="toggleReaderSettings()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0.1rem;">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Reader Settings Panel -->
+  <div id="reader-settings-panel" style="display:none;width:100%;max-width:440px;background:var(--surface2);border-bottom:1px solid var(--border);padding:0.7rem 1rem;">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <!-- Zoom controls -->
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <span style="font-size:0.68rem;color:var(--muted);">Zoom</span>
+        <button onclick="adjustZoom(-0.25)" style="background:var(--surface);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--text);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="zoom-label" style="font-size:0.75rem;color:var(--accent);min-width:32px;text-align:center;">1×</span>
+        <button onclick="adjustZoom(0.25)" style="background:var(--surface);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--text);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">+</button>
+      </div>
+      <!-- Brightness overlay -->
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <span style="font-size:0.68rem;color:var(--muted);">Brightness</span>
+        <button onclick="adjustBrightness(-0.1)" style="background:var(--surface);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--text);cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">🌑</button>
+        <button onclick="adjustBrightness(0.1)" style="background:var(--surface);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;color:var(--text);cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">☀️</button>
+      </div>
+      <!-- Sepia mode -->
+      <div style="display:flex;align-items:center;gap:0.4rem;">
+        <span style="font-size:0.68rem;color:var(--muted);">Sepia</span>
+        <button id="sepia-btn" onclick="toggleSepia()" style="background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:0.2rem 0.7rem;font-size:0.7rem;color:var(--muted);cursor:pointer;">Off</button>
+      </div>
     </div>
   </div>
 
@@ -5562,20 +5834,41 @@ initHomeParticles();
     <div id="reader-progress" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;"></div>
   </div>
 
-  <!-- Canvas area -->
-  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:center;min-height:60vh;padding:0.5rem 0;position:relative;">
-    <canvas id="reader-canvas" style="max-width:100%;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></canvas>
+  <!-- Canvas area — swipe + pinch to zoom -->
+  <div id="reader-canvas-wrap" style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:center;min-height:60vh;padding:0.5rem 0;position:relative;overflow:hidden;touch-action:pan-y;"
+    onpointerdown="readerSwipeStart(event)"
+    onpointermove="readerSwipeMove(event)"
+    onpointerup="readerSwipeEnd(event)"
+    onpointercancel="readerSwipeEnd(event)">
+    <div id="reader-canvas-container" style="transform-origin:center center;transition:transform 0.15s;width:100%;display:flex;justify-content:center;">
+      <canvas id="reader-canvas" style="max-width:100%;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></canvas>
+    </div>
+    <!-- Brightness overlay -->
+    <div id="reader-brightness-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,0);pointer-events:none;transition:background 0.2s;border-radius:4px;"></div>
+    <!-- Sepia overlay -->
+    <div id="reader-sepia-overlay" style="position:absolute;inset:0;background:transparent;pointer-events:none;transition:background 0.2s;border-radius:4px;"></div>
     <div id="reader-loading" style="position:absolute;display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
       <div class="spinner"></div>
       <div style="font-size:0.78rem;color:var(--muted);">Loading page…</div>
     </div>
+    <div id="swipe-hint-left" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:1.5rem;color:rgba(255,255,255,0.15);pointer-events:none;opacity:0;transition:opacity 0.3s;">‹</div>
+    <div id="swipe-hint-right" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:1.5rem;color:rgba(255,255,255,0.15);pointer-events:none;opacity:0;transition:opacity 0.3s;">›</div>
   </div>
 
   <!-- Page navigation -->
   <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.8rem 1rem;background:var(--surface);border-top:1px solid var(--border);position:sticky;bottom:0;">
     <button onclick="readerPrevPage()" id="reader-prev" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">‹ Prev</button>
-    <div id="reader-page-info" style="font-size:0.78rem;color:var(--muted);text-align:center;"></div>
+    <!-- Tap page info to jump -->
+    <div id="reader-page-info" onclick="openPageJump()" style="font-size:0.78rem;color:var(--muted);text-align:center;cursor:pointer;padding:0.3rem 0.6rem;border-radius:20px;border:1px solid transparent;transition:border 0.2s;" title="Tap to jump to page"></div>
     <button onclick="readerNextPage()" id="reader-next" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">Next ›</button>
+  </div>
+
+  <!-- Page jump input (hidden by default) -->
+  <div id="page-jump-bar" style="display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid rgba(240,208,128,0.3);border-radius:50px;padding:0.4rem 0.6rem;display:none;align-items:center;gap:0.5rem;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+    <span style="font-size:0.75rem;color:var(--muted);">Go to page</span>
+    <input type="number" id="page-jump-input" min="1" style="width:50px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:0.25rem 0.5rem;color:var(--text);font-size:0.85rem;text-align:center;outline:none;" onkeydown="if(event.key==='Enter')doPageJump()"/>
+    <button onclick="doPageJump()" style="background:var(--accent);border:none;border-radius:50px;padding:0.25rem 0.7rem;font-size:0.75rem;color:#1a1000;cursor:pointer;font-weight:600;">Go</button>
+    <button onclick="closePageJump()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;">✕</button>
   </div>
 
 </div>
