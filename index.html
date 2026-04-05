@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V5.8</title>
+<title>BookSwipe V5.9</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -592,7 +592,12 @@ input::placeholder{color:var(--muted);}
         <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--text);line-height:1.2;"></div>
       </div>
     </div>
-    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.35rem 0.8rem;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
+    <div style="display:flex;align-items:center;gap:0.6rem;">
+      <button onclick="openShop()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.25);border-radius:50px;padding:0.35rem 0.75rem;font-size:0.78rem;color:var(--accent);cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:0.3rem;font-weight:600;">
+        🪙 <span id="dash-coins">0</span>
+      </button>
+      <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.35rem 0.8rem;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
+    </div>
   </div>
 
   <!-- Weekly Calendar Strip -->
@@ -1075,6 +1080,7 @@ function showDashboard(user) {
   renderDailyGoals();
   checkNoonQuest();
   loadUserClubs();
+  updateCoinDisplay();
   show('dashboard');
   setTimeout(() => renderForest(), 50);
 }
@@ -1535,9 +1541,9 @@ function renderDailyGoals() {
   const goals = getDailyGoals();
 
   // Full modal slots
-  renderQuestSlot('easy',   goals.easy,   false,              15);
-  renderQuestSlot('medium', goals.medium, goals.medium.locked, 35);
-  renderQuestSlot('hard',   goals.hard,   goals.hard.locked,   75);
+  renderQuestSlot('easy',   goals.easy,   false,              2);
+  renderQuestSlot('medium', goals.medium, goals.medium.locked, 3);
+  renderQuestSlot('hard',   goals.hard,   goals.hard.locked,   5);
 
   // Bonus
   const bonus = document.getElementById('daily-bonus');
@@ -1557,7 +1563,7 @@ function renderDailyGoals() {
       activeEl.innerHTML = `<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.2rem 0;">All done for today!</div>`;
     } else {
       const level = !goals.easy.done ? 'easy' : !goals.medium.done ? 'medium' : 'hard';
-      const rewards = { easy:15, medium:35, hard:75 };
+      const rewards = { easy:2, medium:3, hard:5 };
       const barColor = level==='easy' ? '#4caf87' : level==='medium' ? '#f0d080' : '#e05c5c';
       const pct = Math.min((active.progress / active.target) * 100, 100);
       const icon = level==='easy' ? '🟢' : level==='medium' ? '🟡' : '🔴';
@@ -1648,7 +1654,7 @@ function updateDailyProgress(type, value) {
     if (q.progress >= q.target && !q.done) {
       q.done = true;
       changed = true;
-      const rewards = { easy:15, medium:35, hard:75 };
+      const rewards = { easy:2, medium:3, hard:5 };
       awardQuestCoins(rewards[level]);
 
       // Unlock next level
@@ -1987,6 +1993,115 @@ function multiSetupBack() {
   }
 }
 window.multiSetupBack = multiSetupBack;
+
+// ── COIN SHOP ─────────────────────────────────
+const SHOP_ITEMS = {
+  trees: [
+    { id:'cherry',    name:'Cherry Blossom', icon:'🌸', price:120, desc:'Pink petals, blooms in spring' },
+    { id:'cactus',    name:'Desert Cactus',  icon:'🌵', price:100, desc:'Tough reader, rare species' },
+    { id:'willow',    name:'Weeping Willow',  icon:'🌿', price:150, desc:'Graceful, trailing branches' },
+    { id:'bamboo',    name:'Bamboo',          icon:'🎋', price:80,  desc:'Fast growing, zen energy' },
+  ],
+  islands: [
+    { id:'snow',      name:'Snow Island',    icon:'❄️', price:200, desc:'Frozen tundra, white trees' },
+    { id:'night',     name:'Night Island',   icon:'🌙', price:180, desc:'Dark sky, firefly glow' },
+    { id:'desert',    name:'Desert Oasis',   icon:'🏜️', price:160, desc:'Sand dunes, warm tones' },
+    { id:'cherry_i',  name:'Sakura Island',  icon:'🌸', price:250, desc:'Pink everything, serene' },
+  ],
+  companions: [
+    { id:'fox',       name:'Forest Fox',     icon:'🦊', price:150, desc:'Sits by your tallest tree' },
+    { id:'deer',      name:'Gentle Deer',    icon:'🦌', price:180, desc:'Grazes between your books' },
+    { id:'owl',       name:'Wise Owl',       icon:'🦉', price:130, desc:'Perches on your oak' },
+    { id:'cat',       name:'Reading Cat',    icon:'🐱', price:100, desc:'Curls up in your forest' },
+  ],
+};
+
+function getCoins() {
+  return parseInt(localStorage.getItem('bs_coins') || '0');
+}
+
+function getOwnedItems() {
+  return JSON.parse(localStorage.getItem('bs_owned_items') || '[]');
+}
+
+function openShop() {
+  const coins = getCoins();
+  const owned = getOwnedItems();
+  document.getElementById('shop-balance').textContent = `🪙 ${coins}`;
+  renderShopSection('shop-trees', SHOP_ITEMS.trees, owned, coins);
+  renderShopSection('shop-islands', SHOP_ITEMS.islands, owned, coins);
+  renderShopSection('shop-companions', SHOP_ITEMS.companions, owned, coins);
+  document.getElementById('shop-modal').style.display = 'flex';
+}
+
+function closeShop() {
+  document.getElementById('shop-modal').style.display = 'none';
+}
+
+function renderShopSection(elId, items, owned, coins) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = items.map(item => {
+    const isOwned = owned.includes(item.id);
+    const canAfford = coins >= item.price;
+    return `
+      <div style="background:var(--surface2);border:1px solid ${isOwned ? 'rgba(240,208,128,0.3)' : 'var(--border)'};border-radius:14px;padding:0.8rem;text-align:center;position:relative;">
+        ${isOwned ? '<div style="position:absolute;top:6px;right:8px;font-size:0.6rem;color:var(--accent);font-weight:700;">OWNED</div>' : ''}
+        <div style="font-size:2rem;margin-bottom:0.3rem;">${item.icon}</div>
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.15rem;">${item.name}</div>
+        <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.5rem;line-height:1.4;">${item.desc}</div>
+        ${isOwned
+          ? `<div style="font-size:0.68rem;color:var(--accent);">✓ In your forest</div>`
+          : `<button onclick="buyItem('${item.id}',${item.price})" style="background:${canAfford ? 'var(--accent)' : 'var(--surface)'};border:1px solid ${canAfford ? 'var(--accent)' : 'var(--border)'};border-radius:50px;padding:0.3rem 0.8rem;font-size:0.72rem;color:${canAfford ? '#1a1000' : 'var(--muted)'};cursor:${canAfford ? 'pointer' : 'not-allowed'};font-weight:600;">🪙 ${item.price}</button>`
+        }
+      </div>
+    `;
+  }).join('');
+}
+
+function buyItem(itemId, price) {
+  const coins = getCoins();
+  if (coins < price) return;
+  const owned = getOwnedItems();
+  if (owned.includes(itemId)) return;
+
+  localStorage.setItem('bs_coins', coins - price);
+  owned.push(itemId);
+  localStorage.setItem('bs_owned_items', JSON.stringify(owned));
+
+  // Refresh shop
+  openShop();
+  updateCoinDisplay();
+
+  // Flash confirmation
+  const btn = event.target;
+  if (btn) { btn.textContent = '✓ Bought!'; btn.style.background = 'var(--yes)'; }
+}
+
+function updateCoinDisplay() {
+  const coins = getCoins();
+  const el = document.getElementById('dash-coins');
+  if (el) el.textContent = coins;
+  // Also update forest coins
+  ['forest-coins','forest-coins-full'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.textContent = `🪙 ${coins}`;
+  });
+}
+
+window.openShop = openShop;
+window.closeShop = closeShop;
+window.buyItem = buyItem;
+
+// ── REBALANCED COIN AWARDS ────────────────────
+// Override quest rewards in chain
+const QUEST_CHAIN = [
+  { id:'egg',    duration:180,  reward:2,  label:'🥚 Hatch the egg',  barColor:'#f0d080' },
+  { id:'sky',    duration:420,  reward:2,  label:'☁️ Clear the sky',  barColor:'#7ab8f5' },
+  { id:'car',    duration:600,  reward:3,  label:'🚗 Road trip',      barColor:'#f0a060' },
+  { id:'tree',   duration:1800, reward:5,  label:'🌱 Grow the tree',  barColor:'#4caf87' },
+  { id:'rocket', duration:3600, reward:5,  label:'🚀 Moon landing',   barColor:'#c87af0' },
+];
 
 window.createClub = createClub;
 window.joinClub = joinClub;
@@ -2640,12 +2755,19 @@ function updateTreeProgress() {
   const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
   const idx = books.findIndex(b => b.id === readerBookId);
   if (idx !== -1) {
+    const wasFinished = books[idx].finished;
     books[idx].readProgress = progress;
     books[idx].validatedPages = validatedPages.size;
+    // Award 50 coins for finishing a book (once)
+    if (progress >= 1 && !wasFinished) {
+      books[idx].finished = true;
+      awardQuestCoins(50);
+      updateCoinDisplay();
+    }
     localStorage.setItem('bs_my_books', JSON.stringify(books));
   }
 
-  // Update tree stage
+  // Update tree stage — named after the book
   const stage = progressToStage(progress);
   updateForestTree(readerBookId, stage);
 
@@ -2661,7 +2783,7 @@ function progressToStage(progress) {
   if (progress < 0.30)  return 2; // sapling
   if (progress < 0.50)  return 3; // young tree
   if (progress < 0.75)  return 4; // full tree
-  return 5;                        // majestic
+  return 5;                        // majestic oak
 }
 
 function updateForestTree(bookId, stage) {
@@ -2670,15 +2792,15 @@ function updateForestTree(bookId, stage) {
   const book = books.find(b => b.id === bookId);
   if (!book) return;
 
-  // Find existing oak for this book or create one
   const existingIdx = forest.findIndex(p => p.bookId === bookId);
   if (existingIdx !== -1) {
     forest[existingIdx].stage = stage;
+    forest[existingIdx].label = book.title; // keep name updated
   } else {
     forest.push({
       type: 'oak',
       stage,
-      label: book.title,
+      label: book.title,  // tree named after the book
       bookId,
       addedAt: Date.now()
     });
@@ -2689,14 +2811,6 @@ function updateForestTree(bookId, stage) {
 
 
 // ── SESSION QUEST CHAIN ───────────────────────
-const QUEST_CHAIN = [
-  { id:'egg',   duration:180,  reward:5,  label:'🥚 Hatch the egg',   barColor:'#f0d080' },
-  { id:'sky',   duration:420,  reward:10, label:'☁️ Clear the sky',   barColor:'#7ab8f5' },
-  { id:'car',   duration:600,  reward:15, label:'🚗 Road trip',       barColor:'#f0a060' },
-  { id:'tree',  duration:1800, reward:30, label:'🌱 Grow the tree',   barColor:'#4caf87' },
-  { id:'rocket',duration:3600, reward:50, label:'🚀 Moon landing',    barColor:'#c87af0' },
-];
-
 let questChainIdx = 0;      // current quest index
 let questSecsElapsed = 0;   // secs elapsed in current quest
 let questAnimFrame = null;  // animation frame
@@ -2762,6 +2876,7 @@ function tickQuestChain() {
 function awardQuestCoins(amount) {
   const coins = parseInt(localStorage.getItem('bs_coins') || '0');
   localStorage.setItem('bs_coins', coins + amount);
+  updateCoinDisplay();
 }
 
 function showQuestCompleteFlash(q) {
@@ -5883,6 +5998,29 @@ initHomeParticles();
     <div id="book-library-list"></div>
     <input type="file" id="pdf-upload-library" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
     <button class="btn btn-primary" style="margin-top:1rem;" onclick="document.getElementById('pdf-upload-library').click()">＋ Add new book</button>
+  </div>
+</div>
+
+<!-- COIN SHOP -->
+<div id="shop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--border);padding:1.3rem 1.2rem 2.5rem;width:100%;max-width:440px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;">🏪 Shop</div>
+      <button onclick="closeShop()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:1.2rem;">Your balance: <span id="shop-balance" style="color:var(--accent);font-weight:700;">🪙 0</span></div>
+
+    <!-- Tree species -->
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.7rem;">🌳 Tree Species</div>
+    <div id="shop-trees" style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:1.2rem;"></div>
+
+    <!-- Island themes -->
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.7rem;">🏝 Island Themes</div>
+    <div id="shop-islands" style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:1.2rem;"></div>
+
+    <!-- Companions -->
+    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.7rem;">🐾 Forest Companions</div>
+    <div id="shop-companions" style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;"></div>
   </div>
 </div>
 
