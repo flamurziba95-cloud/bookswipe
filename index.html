@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BookSwipe V6.3</title>
+<title>BookSwipe V6.4</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -898,6 +898,18 @@ input::placeholder{color:var(--muted);}
     <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.7rem;">📣 Activity</div>
     <div id="club-feed-list">
       <div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.5rem;">No activity yet — start reading!</div>
+    </div>
+  </div>
+
+  <!-- Club Forest -->
+  <div class="card-panel" style="padding:0;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem 0.6rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:1rem;">🌲 Club Forest</div>
+      <div style="font-size:0.68rem;color:var(--muted);">One pine per member who finished</div>
+    </div>
+    <canvas id="club-forest-canvas" style="width:100%;display:block;" height="200"></canvas>
+    <div id="club-forest-empty" style="display:none;padding:0.8rem 1rem 1rem;text-align:center;font-size:0.75rem;color:var(--muted);">
+      No one has finished the book yet — start reading! 🌱
     </div>
   </div>
 
@@ -2027,6 +2039,9 @@ function renderClubDashboard(clubId, club) {
         `;
       }).join('')
     : '<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.5rem;">No activity yet — start reading!</div>';
+
+  // Club forest
+  setTimeout(() => renderClubForest(club), 50);
 }
 
 function timeSince(ts) {
@@ -2142,6 +2157,139 @@ async function updateClubStreak(clubId) {
     }
   }
 }
+
+// ── CLUB FOREST ───────────────────────────────
+function renderClubForest(club) {
+  const canvas = document.getElementById('club-forest-canvas');
+  const emptyEl = document.getElementById('club-forest-empty');
+  if (!canvas) return;
+
+  const members = club.members || {};
+  const finishers = Object.entries(members).filter(([,m]) => (m.progress || 0) >= 100);
+
+  if (finishers.length === 0) {
+    canvas.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const W = canvas.offsetWidth || 400;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = 200 * window.devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  drawClubIsland(ctx, W, 200, finishers);
+}
+
+function drawClubIsland(ctx, W, H, finishers) {
+  ctx.fillStyle = '#0e0e10';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const cy = H * 0.52;
+  const tileW = 42;
+  const tileH = tileW * 0.5;
+  const depth = 13;
+  const clampedCols = Math.min(finishers.length + 1, 5);
+  const clampedRows = Math.min(Math.ceil(finishers.length / 4) + 1, 3);
+
+  // Dirt sides
+  ctx.fillStyle = '#5c3d1a';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + tileH * clampedRows);
+  ctx.lineTo(cx - tileW * clampedCols, cy);
+  ctx.lineTo(cx - tileW * clampedCols, cy + depth);
+  ctx.lineTo(cx, cy + tileH * clampedRows + depth);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#7a5225';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + tileH * clampedRows);
+  ctx.lineTo(cx + tileW * clampedCols, cy);
+  ctx.lineTo(cx + tileW * clampedCols, cy + depth);
+  ctx.lineTo(cx, cy + tileH * clampedRows + depth);
+  ctx.closePath();
+  ctx.fill();
+
+  // Grass tiles + collect positions
+  const positions = [];
+  for (let row = 0; row < clampedRows; row++) {
+    for (let col = 0; col < clampedCols; col++) {
+      const tx = cx + (col - row) * tileW;
+      const ty = cy + (col + row) * tileH - tileH * (clampedRows - 1);
+      ctx.fillStyle = (row + col) % 2 === 0 ? '#3a8a3a' : '#358535';
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx + tileW, ty + tileH);
+      ctx.lineTo(tx, ty + tileH * 2);
+      ctx.lineTo(tx - tileW, ty + tileH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      positions.push({ tx, ty: ty + tileH });
+    }
+  }
+
+  // Pine per finisher with name tag
+  finishers.forEach(([, member], i) => {
+    if (i >= positions.length) return;
+    const pos = positions[i];
+    ctx.save();
+    ctx.translate(pos.tx, pos.ty);
+    drawClubPine(ctx, 1);
+    // Name tag
+    ctx.fillStyle = 'rgba(240,208,128,0.9)';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(member.name.slice(0, 9), 0, 10);
+    ctx.restore();
+  });
+}
+
+function drawClubPine(ctx, s) {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 10*s, 3*s, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Trunk
+  ctx.fillStyle = '#5a3418';
+  ctx.fillRect(-2*s, -6*s, 4*s, 8*s);
+
+  // 4 pine layers
+  const h = 32 * s;
+  for (let i = 0; i < 4; i++) {
+    const w = (13 - i * 2) * s;
+    const ly = -h * (0.3 + i * 0.18);
+    ctx.fillStyle = i % 2 === 0 ? '#1a5c2d' : '#1f7038';
+    ctx.beginPath();
+    ctx.moveTo(0, ly - 10*s);
+    ctx.lineTo(-w, ly);
+    ctx.lineTo(w, ly);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Gold star on top
+  ctx.fillStyle = '#f0d080';
+  ctx.beginPath();
+  ctx.arc(0, -h - 10*s, 3*s, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(240,208,128,0.18)';
+  ctx.beginPath();
+  ctx.arc(0, -h - 8*s, 8*s, 0, Math.PI*2);
+  ctx.fill();
+}
+
+window.renderClubForest = renderClubForest;
 
 function copyClubCode() {
   if (!currentClubId) return;
