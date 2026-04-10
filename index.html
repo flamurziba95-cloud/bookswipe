@@ -15,9 +15,30 @@
   --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
 }
 html,body{height:100%;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(var(--safe-top) + 0.25rem) 1rem calc(var(--safe-bot) + 1rem);overflow-x:hidden;overflow-y:auto;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(var(--safe-top) + 0.25rem) 1rem 0;overflow-x:hidden;overflow-y:auto;}
 .screen{display:none;width:100%;max-width:440px;animation:fadeUp 0.35s ease;flex-direction:column;align-items:center;padding-bottom:2rem;}
 .screen.active{display:flex;}
+.screen.has-nav{padding-bottom:5rem;}
+#bottom-nav{
+  display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:440px;
+  background:var(--surface);border-top:1px solid var(--border);
+  align-items:stretch;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+#bottom-nav.visible{display:flex;}
+.nav-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0.55rem 0.2rem 0.5rem;gap:3px;
+  cursor:pointer;border:none;background:none;
+  color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.58rem;
+  letter-spacing:0.03em;transition:color 0.15s;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;
+}
+.nav-tab:active{opacity:0.7;}
+.nav-tab.active{color:var(--accent);}
+.nav-tab svg{width:22px;height:22px;stroke-width:1.8;transition:all 0.15s;}
+.nav-tab.active svg{stroke-width:2.2;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .logo{font-family:'Playfair Display',serif;font-size:2.4rem;letter-spacing:-1px;color:var(--accent);margin-bottom:0.15rem;}
 .tagline{color:var(--muted);font-size:0.78rem;margin-bottom:2rem;letter-spacing:0.05em;text-transform:uppercase;}
@@ -581,34 +602,100 @@ input::placeholder{color:var(--muted);}
 </div>
 
 <!-- DASHBOARD -->
-<div id="s-dashboard" class="screen">
+<div id="s-dashboard" class="screen has-nav">
 
   <!-- Top bar -->
-  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;padding-top:1rem;">
+  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-top:0.8rem;">
     <div style="display:flex;align-items:center;gap:0.7rem;">
-      <div id="dash-avatar" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f0d080,#c9a830);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;color:#1a1000;font-size:1.1rem;flex-shrink:0;"></div>
+      <div id="dash-avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f0d080,#c9a830);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;color:#1a1000;font-size:1rem;flex-shrink:0;"></div>
       <div>
-        <div style="font-size:0.7rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">Welcome back</div>
-        <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--text);line-height:1.2;"></div>
+        <div style="font-size:0.62rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">Welcome back</div>
+        <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--text);line-height:1.2;"></div>
       </div>
     </div>
-    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.35rem 0.8rem;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
+    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.68rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
   </div>
 
-  <!-- Weekly Calendar Strip -->
-  <div class="dash-calendar-wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-      <div class="dash-calendar-label" style="margin-bottom:0;">This week</div>
-      <div style="display:flex;align-items:center;gap:0.7rem;">
-        <div id="dash-streak" style="display:flex;align-items:center;gap:0.3rem;font-size:0.82rem;color:var(--accent);font-weight:600;">🔥 0</div>
-        <button onclick="openMonthCalendar()" style="background:none;border:none;cursor:pointer;padding:0.3rem 0.2rem;display:flex;flex-direction:column;gap:5px;opacity:0.8;" title="Full calendar">
-          <span style="display:block;width:20px;height:2px;background:#8a8680;border-radius:2px;"></span>
-          <span style="display:block;width:20px;height:2px;background:#8a8680;border-radius:2px;"></span>
-          <span style="display:block;width:20px;height:2px;background:#8a8680;border-radius:2px;"></span>
-        </button>
+  <!-- Compact calendar + streak -->
+  <div style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.6rem 0.9rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
+    <div class="dash-calendar-strip" id="dash-calendar" style="flex:1;gap:0.2rem;"></div>
+    <div id="dash-streak" style="display:none;align-items:center;gap:0.25rem;font-size:0.8rem;color:var(--accent);font-weight:600;flex-shrink:0;padding-left:0.5rem;border-left:1px solid var(--border);">🔥 <span id="dash-streak-num">0</span></div>
+    <button onclick="openMonthCalendar()" style="background:none;border:none;cursor:pointer;padding:0.2rem;flex-shrink:0;opacity:0.6;" title="Full calendar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8680" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </button>
+  </div>
+
+  <!-- Continue Reading (shown only if book in progress) -->
+  <div id="dash-continue" style="display:none;width:100%;margin-bottom:0.75rem;">
+    <button onclick="continueReading()" style="width:100%;background:var(--surface);border:1px solid rgba(240,208,128,0.3);border-radius:14px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.9rem;cursor:pointer;text-align:left;transition:all 0.18s;">
+      <div id="dash-continue-cover" style="width:38px;height:52px;border-radius:6px;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;overflow:hidden;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.62rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">Continue reading</div>
+        <div id="dash-continue-title" style="font-family:'Playfair Display',serif;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="dash-continue-page" style="font-size:0.7rem;color:var(--muted);margin-top:0.15rem;"></div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f0d080" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="#f0d080"/></svg>
+    </button>
+  </div>
+
+  <!-- Daily Goals — compact single line -->
+  <div id="daily-goals-card" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.65rem 0.9rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.7rem;">
+    <div style="font-size:0.85rem;flex-shrink:0;">🎯</div>
+    <div id="daily-quest-active" style="flex:1;min-width:0;font-size:0.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+    <div id="daily-reset-time" style="font-size:0.62rem;color:var(--muted);flex-shrink:0;"></div>
+    <button onclick="showAllQuests()" style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;flex-shrink:0;padding:0;">See all</button>
+  </div>
+
+  <!-- My Books card — full width -->
+  <div class="card-panel" style="padding:0.9rem 1rem;margin-bottom:0.75rem;" id="dash-books-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;">📚 My Books</div>
+      <button onclick="navTo('books')" style="background:none;border:none;color:var(--muted);font-size:0.68rem;cursor:pointer;font-family:'DM Sans',sans-serif;">See all →</button>
+    </div>
+    <div id="mybooks-empty" style="text-align:center;padding:0.5rem 0;">
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem;">No books yet. Upload a PDF to start.</div>
+      <input type="file" id="pdf-upload-input" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
+      <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 1rem;min-height:36px;font-size:0.75rem;border-radius:50px;max-width:160px;" onclick="document.getElementById('pdf-upload-input').click()">＋ Add book</button>
+    </div>
+    <div id="mybooks-carousel" style="display:none;">
+      <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
+      <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
+      <div style="display:flex;align-items:center;gap:0.2rem;">
+        <button onclick="roulettePrev()" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">‹</button>
+        <div id="mybooks-roulette" style="position:relative;height:120px;flex:1;overflow:hidden;"></div>
+        <button onclick="rouletteNext()" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">›</button>
+      </div>
+      <div style="display:flex;justify-content:center;gap:0.3rem;margin-top:0.35rem;" id="mybooks-dots"></div>
+      <button style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;display:block;margin:0.35rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
+    </div>
+  </div>
+
+  <!-- Book Club card — full width -->
+  <div class="card-panel" style="padding:0.9rem 1rem;margin-bottom:0.75rem;" id="club-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;">👥 Book Club</div>
+      <button onclick="navTo('club')" style="background:none;border:none;color:var(--muted);font-size:0.68rem;cursor:pointer;font-family:'DM Sans',sans-serif;">See all →</button>
+    </div>
+    <div id="club-card-empty">
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.7rem;">Read together with friends. Create or join a club.</div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-primary" style="flex:1;padding:0.5rem;min-height:38px;font-size:0.75rem;border-radius:50px;" onclick="show('club-create')">✦ Create</button>
+        <button class="btn btn-secondary" style="flex:1;padding:0.5rem;min-height:38px;font-size:0.75rem;border-radius:50px;" onclick="show('club-join')">→ Join</button>
       </div>
     </div>
-    <div class="dash-calendar-strip" id="dash-calendar"></div>
+    <div id="club-card-list" style="display:none;"></div>
+  </div>
+
+  <!-- Forest preview — compact -->
+  <div class="card-panel" style="padding:0;overflow:hidden;cursor:pointer;margin-bottom:0;" onclick="navTo('forest')">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem 0.4rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:0.95rem;">🌿 My Forest</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div id="forest-coins" style="font-size:0.75rem;color:var(--accent);font-weight:600;">🪙 0</div>
+        <div style="font-size:0.72rem;color:var(--muted);">→</div>
+      </div>
+    </div>
+    <canvas id="forest-preview-canvas" style="width:100%;display:block;" height="140"></canvas>
   </div>
 
   <!-- Monthly Calendar Modal -->
@@ -619,7 +706,6 @@ input::placeholder{color:var(--muted);}
         <div id="month-cal-title" style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);"></div>
         <button onclick="monthCalNav(1)" style="background:none;border:none;color:var(--accent);font-size:1.2rem;cursor:pointer;padding:0.2rem 0.5rem;">›</button>
       </div>
-      <!-- Day headers -->
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:0.5rem;">
         <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">M</div>
         <div style="text-align:center;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">T</div>
@@ -632,19 +718,6 @@ input::placeholder{color:var(--muted);}
       <div id="month-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
       <button onclick="closeMonthCalendar()" style="width:100%;margin-top:1.2rem;padding:0.8rem;background:none;border:1px solid var(--border);border-radius:50px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;">Close</button>
     </div>
-  </div>
-
-  <!-- Daily Goals Card — compact, shows active quest only -->
-  <div class="card-panel" style="padding:0.8rem 1rem;margin-top:0.5rem;" id="daily-goals-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
-      <div style="font-family:'Playfair Display',serif;font-size:0.9rem;">🎯 Daily Goals</div>
-      <div style="display:flex;align-items:center;gap:0.6rem;">
-        <div id="daily-reset-time" style="font-size:0.65rem;color:var(--muted);"></div>
-        <button onclick="showAllQuests()" style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;">See all</button>
-      </div>
-    </div>
-    <!-- Active quest only -->
-    <div id="daily-quest-active"></div>
   </div>
 
   <!-- All Quests Modal -->
@@ -663,97 +736,59 @@ input::placeholder{color:var(--muted);}
     </div>
   </div>
 
-  <!-- My Books + Book Club — two separate cards side by side -->
-  <div style="display:flex;gap:0.7rem;width:100%;margin-bottom:0.9rem;">
-
-    <!-- My Books card -->
-    <div class="card-panel" style="flex:1;padding:0.9rem 0.8rem;min-width:0;margin-bottom:0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
-        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;">📚 My Books</div>
-        <button onclick="showBookLibrary()" style="background:none;border:none;cursor:pointer;padding:0.15rem;display:flex;flex-direction:column;gap:3px;">
-          <span style="display:block;width:16px;height:2px;background:#8a8680;border-radius:2px;"></span>
-          <span style="display:block;width:16px;height:2px;background:#8a8680;border-radius:2px;"></span>
-          <span style="display:block;width:16px;height:2px;background:#8a8680;border-radius:2px;"></span>
-        </button>
-      </div>
-
-      <!-- Empty state -->
-      <div id="mybooks-empty" style="text-align:center;">
-        <div style="font-size:1.6rem;margin-bottom:0.3rem;">📄</div>
-        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.5;">Upload a PDF<br>to start reading</div>
-        <input type="file" id="pdf-upload-input" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
-        <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;" onclick="document.getElementById('pdf-upload-input').click()">＋ Add</button>
-      </div>
-
-      <!-- Roulette -->
-      <div id="mybooks-carousel" style="display:none;">
-        <input type="file" id="pdf-upload-input2" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
-        <input type="file" id="pdf-upload-reopen" accept="application/pdf" style="display:none;" onchange="handleReopenPdf(event)"/>
-        <div style="display:flex;align-items:center;gap:0.2rem;">
-          <button onclick="roulettePrev()" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">‹</button>
-          <div id="mybooks-roulette" style="position:relative;height:120px;flex:1;overflow:hidden;"></div>
-          <button onclick="rouletteNext()" style="background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;padding:0.1rem;flex-shrink:0;opacity:0.8;">›</button>
-        </div>
-        <div style="display:flex;justify-content:center;gap:0.3rem;margin-top:0.35rem;" id="mybooks-dots"></div>
-        <button style="background:none;border:none;color:var(--accent);font-size:0.68rem;cursor:pointer;text-decoration:underline;display:block;margin:0.35rem auto 0;" onclick="document.getElementById('pdf-upload-input2').click()">＋ Add more</button>
-      </div>
-    </div>
-
-    <!-- Book Club card -->
-    <div class="card-panel" style="flex:1;padding:0.9rem 0.8rem;min-width:0;margin-bottom:0;text-align:center;" id="club-card">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;margin-bottom:0.7rem;text-align:left;">👥 Book Club</div>
-      <!-- Empty state -->
-      <div id="club-card-empty">
-        <div style="font-size:1.6rem;margin-bottom:0.35rem;">👥</div>
-        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.5;">Read together<br>with friends</div>
-        <button class="btn btn-primary" style="margin:0 auto;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;" onclick="show('club-create')">✦ Create</button>
-        <button class="btn btn-secondary" style="margin:0.3rem auto 0;padding:0.45rem 0.8rem;min-height:32px;font-size:0.72rem;border-radius:50px;" onclick="show('club-join')">→ Join</button>
-      </div>
-      <!-- Has clubs state -->
-      <div id="club-card-list" style="display:none;text-align:left;"></div>
-    </div>
-
-  </div>
-
-  <!-- Forest card — tap to open full forest -->
-  <div class="card-panel" style="padding:0;overflow:hidden;cursor:pointer;" onclick="showForest()">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem 0.6rem;">
-      <div style="font-family:'Playfair Display',serif;font-size:1rem;">🌿 My Forest</div>
-      <div style="display:flex;align-items:center;gap:0.5rem;">
-        <div id="forest-coins" style="font-size:0.75rem;color:var(--accent);font-weight:600;">🪙 0</div>
-        <div style="font-size:0.72rem;color:var(--muted);">→</div>
-      </div>
-    </div>
-    <!-- Mini forest preview canvas -->
-    <canvas id="forest-preview-canvas" style="width:100%;display:block;" height="160"></canvas>
-  </div>
-
-  <button class="btn btn-primary" style="margin-top:0.8rem;" onclick="show('pick-choice')">📖 Pick a book</button>
-  <button class="btn btn-secondary" onclick="showToGoBooks()">🔖 My Reading List</button>
-
+  <div class="err" id="home-err"></div>
 </div>
 
-<!-- FULL FOREST SCREEN -->
-<div id="s-forest" class="screen" style="padding:0;">
-  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem;position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:1px solid var(--border);">
-    <button onclick="currentUser ? showDashboard(currentUser) : show('home')" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;">← Back</button>
-    <div style="font-family:'Playfair Display',serif;font-size:1rem;">My Forest</div>
+<!-- FULL FOREST SCREEN (nav tab) -->
+<div id="s-forest" class="screen has-nav" style="padding-left:0;padding-right:0;">
+  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem;background:var(--bg);border-bottom:1px solid var(--border);">
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">🌿 My Forest</div>
     <div id="forest-coins-full" style="font-size:0.78rem;color:var(--accent);font-weight:600;">🪙 0</div>
   </div>
+  <div style="padding:0 1rem;width:100%;">
+    <div id="forest-island-nav" style="display:flex;justify-content:center;gap:0.5rem;padding:0.6rem 0;"></div>
+    <canvas id="forest-full-canvas" style="width:100%;display:block;max-width:440px;" height="380"></canvas>
+    <div style="padding:0.8rem 0;display:flex;flex-wrap:wrap;gap:0.6rem;">
+      <div style="font-size:0.68rem;color:var(--muted);width:100%;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.06em;">Species</div>
+      <div class="forest-legend-item"><span style="color:#c9a830;">🌳</span> Oak — finished book</div>
+      <div class="forest-legend-item"><span style="color:#4caf87;">🌲</span> Pine — club book</div>
+      <div class="forest-legend-item"><span style="color:#e05c7a;">🌸</span> Flower — challenge</div>
+      <div class="forest-legend-item"><span style="color:#c49050;">🍄</span> Mushroom — 7-day streak</div>
+    </div>
+  </div>
+</div>
 
-  <!-- Island count -->
-  <div id="forest-island-nav" style="display:flex;justify-content:center;gap:0.5rem;padding:0.6rem 1rem;"></div>
-
-  <!-- Full forest canvas -->
-  <canvas id="forest-full-canvas" style="width:100%;display:block;max-width:440px;" height="420"></canvas>
-
-  <!-- Plant legend -->
-  <div style="padding:0.8rem 1rem;display:flex;flex-wrap:wrap;gap:0.6rem;">
-    <div style="font-size:0.68rem;color:var(--muted);width:100%;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.06em;">Species</div>
-    <div class="forest-legend-item"><span style="color:#c9a830;">🌳</span> Oak — finished book</div>
-    <div class="forest-legend-item"><span style="color:#4caf87;">🌲</span> Pine — club book</div>
-    <div class="forest-legend-item"><span style="color:#e05c7a;">🌸</span> Flower — challenge</div>
-    <div class="forest-legend-item"><span style="color:#c49050;">🍄</span> Mushroom — 7-day streak</div>
+<!-- DISCOVER SCREEN (nav tab) -->
+<div id="s-discover" class="screen has-nav">
+  <div style="width:100%;padding-top:0.8rem;margin-bottom:1rem;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:0.2rem;">Discover</div>
+    <div style="font-size:0.78rem;color:var(--muted);">Find your next book</div>
+  </div>
+  <!-- Solo swipe button -->
+  <button class="hero-btn" onclick="showModeSelect('single')" style="margin-bottom:0.6rem;">
+    <div class="hero-btn-text">
+      <span style="font-size:1rem;">📖 Solo Discovery</span>
+      <span class="hero-btn-label">Swipe books · Just you · Your pace</span>
+    </div>
+  </button>
+  <div class="home-divider">
+    <div class="home-divider-line"></div>
+    <div class="home-divider-text">or</div>
+    <div class="home-divider-line"></div>
+  </div>
+  <button class="secondary-home-btn" onclick="showModeSelect('multi')">
+    <div class="secondary-home-btn-text">
+      <span>👥 Pick with friends</span>
+      <span class="secondary-home-btn-sub">Vote together · Pick as a group</span>
+    </div>
+  </button>
+  <div style="margin-top:1.5rem;width:100%;">
+    <button class="secondary-home-btn" onclick="showToGoBooks()">
+      <div class="secondary-home-btn-text">
+        <span>🔖 My Reading List</span>
+        <span class="secondary-home-btn-sub">Books you saved · Ready when you are</span>
+      </div>
+    </button>
   </div>
 </div>
 
@@ -1075,8 +1110,92 @@ function showDashboard(user) {
   renderDailyGoals();
   checkNoonQuest();
   loadUserClubs();
-  show('dashboard');
+  updateContinueReading();
+  showNav('home');
   setTimeout(() => renderForest(), 50);
+}
+
+// ── NAV BAR ─────────────────────────────────
+const NAV_SCREENS = {
+  home: 'dashboard',
+  discover: 'discover',
+  books: 'dashboard', // goes to dashboard books section for now
+  club: 'dashboard',  // goes to dashboard club section for now
+  forest: 'forest'
+};
+
+function showNav(tab) {
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.classList.add('visible');
+  // Show correct screen
+  const screenMap = { home:'dashboard', discover:'discover', forest:'forest' };
+  const screenId = screenMap[tab] || 'dashboard';
+  show(screenId);
+  // Update active tab
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.getElementById('nav-' + tab);
+  if (activeTab) activeTab.classList.add('active');
+}
+
+function navTo(tab) {
+  if (tab === 'books') {
+    // Scroll to books card on dashboard
+    showNav('home');
+    setTimeout(() => {
+      const el = document.getElementById('dash-books-card');
+      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 100);
+    return;
+  }
+  if (tab === 'club') {
+    // Scroll to club card on dashboard
+    showNav('home');
+    setTimeout(() => {
+      const el = document.getElementById('club-card');
+      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 100);
+    return;
+  }
+  if (tab === 'forest') {
+    showForest();
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    const activeTab = document.getElementById('nav-forest');
+    if (activeTab) activeTab.classList.add('active');
+    return;
+  }
+  showNav(tab);
+}
+
+function hideNav() {
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.classList.remove('visible');
+}
+
+// ── CONTINUE READING ────────────────────────
+function updateContinueReading() {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const inProgress = books.filter(b => b.isReading && b.currentPage && b.currentPage > 1);
+  const el = document.getElementById('dash-continue');
+  if (!el) return;
+  if (inProgress.length === 0) { el.style.display = 'none'; return; }
+  inProgress.sort((a,b) => (b.lastRead||0) - (a.lastRead||0));
+  const book = inProgress[0];
+  el.style.display = 'block';
+  const title = document.getElementById('dash-continue-title');
+  const page = document.getElementById('dash-continue-page');
+  const cover = document.getElementById('dash-continue-cover');
+  if (title) title.textContent = book.title || 'Untitled';
+  if (page) page.textContent = `Page ${book.currentPage}${book.totalPages ? ' of ' + book.totalPages : ''}`;
+  if (cover) cover.textContent = '📖';
+  el._bookId = book.id;
+}
+
+function continueReading() {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const inProgress = books.filter(b => b.isReading && b.currentPage && b.currentPage > 1);
+  if (inProgress.length === 0) return;
+  inProgress.sort((a,b) => (b.lastRead||0) - (a.lastRead||0));
+  openBook(inProgress[0]);
 }
 
 function renderCalendarStrip() {
@@ -1120,7 +1239,13 @@ function updateStreak(readDays) {
     if (readDays.includes(ds)) streak++;
     else if (i > 0) break;
   }
-  el.textContent = streak > 0 ? `🔥 ${streak}` : '🔥 0';
+  const numEl = document.getElementById('dash-streak-num');
+  if (streak >= 3) {
+    el.style.display = 'flex';
+    if (numEl) numEl.textContent = streak;
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // Monthly calendar
@@ -1470,6 +1595,12 @@ function showForest() {
   renderForestFull();
   updateForestNav();
   show('forest');
+  // Update nav bar
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.classList.add('visible');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const forestTab = document.getElementById('nav-forest');
+  if (forestTab) forestTab.classList.add('active');
 }
 window.showForest = showForest;
 
@@ -3234,6 +3365,11 @@ window.showToGoBooks = showToGoBooks;
 window.removeToGoBook = removeToGoBook;
 window.renderCalendarStrip = renderCalendarStrip;
 window.showDashboard = showDashboard;
+window.navTo = navTo;
+window.showNav = showNav;
+window.hideNav = hideNav;
+window.continueReading = continueReading;
+window.updateContinueReading = updateContinueReading;
 Object.defineProperty(window, 'currentUser', { get: () => currentUser });
 
 // ═══════════════════════════════════════════
@@ -3740,15 +3876,21 @@ const getR=async()=>(await get(rRef())).val();
 const setR=d=>set(rRef(),d);
 const updR=d=>update(rRef(),d);
 
+const NAV_SCREENS_LIST = ["dashboard","discover","forest"];
 function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const el=$('s-'+id);
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  const el=$("s-"+id);
   if(el){
-    el.classList.add('active');
+    el.classList.add("active");
     document.documentElement.scrollTop=0;
     document.body.scrollTop=0;
-    window.scrollTo({top:0,behavior:'instant'});
+    window.scrollTo({top:0,behavior:"instant"});
     setTimeout(()=>{document.documentElement.scrollTop=0;document.body.scrollTop=0;},50);
+  }
+  const nav = document.getElementById("bottom-nav");
+  if(nav){
+    if(NAV_SCREENS_LIST.includes(id)){nav.classList.add("visible");}
+    else{nav.classList.remove("visible");}
   }
 }
 function stopTimer(){if(timerIv){clearInterval(timerIv);timerIv=null;}}
@@ -5607,6 +5749,30 @@ initHomeParticles();
     <div class="err" id="manual-book-err"></div>
   </div>
 </div>
+
+<!-- BOTTOM NAV BAR -->
+<nav id="bottom-nav">
+  <button class="nav-tab active" id="nav-home" onclick="navTo('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>
+    Home
+  </button>
+  <button class="nav-tab" id="nav-discover" onclick="navTo('discover')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="10" rx="1"/><rect x="14" y="3" width="7" height="6" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/><rect x="3" y="17" width="7" height="4" rx="1"/></svg>
+    Discover
+  </button>
+  <button class="nav-tab" id="nav-books" onclick="navTo('books')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    My Books
+  </button>
+  <button class="nav-tab" id="nav-club" onclick="navTo('club')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    Club
+  </button>
+  <button class="nav-tab" id="nav-forest" onclick="navTo('forest')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22V12"/><path d="M5 12H2l10-10 10 10h-3"/><path d="M5 17H2l10-10 10 10h-3"/></svg>
+    Forest
+  </button>
+</nav>
 
 </body>
 </html>
