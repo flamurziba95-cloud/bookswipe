@@ -427,27 +427,27 @@ input::placeholder{color:var(--muted);}
   display:flex;justify-content:space-between;align-items:center;width:100%;
 }
 .dash-day{
-  display:flex;flex-direction:column;align-items:center;gap:0.2rem;flex:1;
+  display:flex;flex-direction:column;align-items:center;gap:0.15rem;flex:1;
 }
 .dash-day-name{
-  font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;
+  font-size:0.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.03em;
 }
 .dash-day-circle{
-  width:28px;height:28px;border-radius:50%;
+  width:24px;height:24px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:0.72rem;font-weight:500;font-family:'DM Sans',sans-serif;
+  font-size:0.65rem;font-weight:500;font-family:'DM Sans',sans-serif;
   transition:all 0.2s;
 }
 .dash-day-circle.future{color:var(--muted);background:transparent;}
 .dash-day-circle.today{
   color:var(--accent);background:rgba(240,208,128,0.08);
-  border:2px solid var(--accent);
-  box-shadow:0 0 8px rgba(240,208,128,0.2);
+  border:1.5px solid var(--accent);
+  box-shadow:0 0 6px rgba(240,208,128,0.2);
 }
 .dash-day-circle.read{color:#1a1000;background:var(--accent);font-weight:700;}
 .dash-day-circle.missed{
-  color:rgba(138,134,128,0.4);background:transparent;
-  border:1.5px solid rgba(138,134,128,0.2);
+  color:rgba(138,134,128,0.35);background:transparent;
+  border:1px solid rgba(138,134,128,0.15);
 }
 .forest-legend-item{font-size:0.68rem;color:var(--muted);background:var(--surface2);border-radius:20px;padding:0.25rem 0.7rem;display:flex;align-items:center;gap:0.3rem;}
 .daily-quest-slot{border-radius:12px;padding:0.75rem 0.9rem;background:var(--surface2);border:1px solid var(--border);transition:all 0.2s;}
@@ -816,6 +816,71 @@ input::placeholder{color:var(--muted);}
   </button>
 </div>
 
+<!-- MY BOOKS FULL SCREEN (nav tab) -->
+<div id="s-mybooks-full" class="screen has-nav">
+  <div style="width:100%;padding-top:0.8rem;margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;">My Books</div>
+      <button onclick="showBookLibrary()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.75rem;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;">＋ Add</button>
+    </div>
+    <div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem;">Your reading shelf</div>
+  </div>
+
+  <!-- Book list -->
+  <div id="mybooks-full-list" style="width:100%;"></div>
+
+  <!-- Empty state -->
+  <div id="mybooks-full-empty" style="display:none;text-align:center;padding:3rem 1rem;">
+    <div style="font-size:3rem;margin-bottom:0.8rem;">📚</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.4rem;">No books yet</div>
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:1.5rem;">Upload a PDF to start your shelf</div>
+    <input type="file" id="pdf-upload-mybooks" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)"/>
+    <button class="btn btn-primary" style="max-width:200px;margin:0 auto;" onclick="document.getElementById('pdf-upload-mybooks').click()">＋ Add your first book</button>
+  </div>
+
+  <!-- Reading List link -->
+  <div style="width:100%;margin-top:1rem;">
+    <button class="secondary-home-btn" onclick="showToGoBooks()">
+      <div class="secondary-home-btn-text">
+        <span>🔖 My Reading List</span>
+        <span class="secondary-home-btn-sub">Books saved from swipe sessions</span>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- CLUB FULL SCREEN (nav tab) -->
+<div id="s-club-full" class="screen has-nav">
+  <div style="width:100%;padding-top:0.8rem;margin-bottom:1rem;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;">Book Club</div>
+    <div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem;">Read together with friends</div>
+  </div>
+
+  <!-- Has clubs -->
+  <div id="club-full-list" style="width:100%;display:none;"></div>
+
+  <!-- Empty / add new -->
+  <div id="club-full-actions" style="width:100%;">
+    <button class="hero-btn" onclick="show('club-create')" style="margin-bottom:0.6rem;">
+      <div class="hero-btn-text">
+        <span style="font-size:1rem;">✦ Create a Club</span>
+        <span class="hero-btn-label">Start a club · Invite up to 6 friends</span>
+      </div>
+    </button>
+    <div class="home-divider">
+      <div class="home-divider-line"></div>
+      <div class="home-divider-text">or</div>
+      <div class="home-divider-line"></div>
+    </div>
+    <button class="secondary-home-btn" onclick="show('club-join')">
+      <div class="secondary-home-btn-text">
+        <span>→ Join a Club</span>
+        <span class="secondary-home-btn-sub">Enter a 6-character code from a friend</span>
+      </div>
+    </button>
+  </div>
+</div>
+
 <!-- CLUB: CREATE -->
 <div id="s-club-create" class="screen">
   <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
@@ -1139,21 +1204,23 @@ function showNav(tab) {
 
 function navTo(tab) {
   if (tab === 'books') {
-    // Scroll to books card on dashboard
-    showNav('home');
-    setTimeout(() => {
-      const el = document.getElementById('dash-books-card');
-      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
-    }, 100);
+    renderMyBooksFullScreen();
+    show('mybooks-full');
+    const nav = document.getElementById('bottom-nav');
+    if (nav) nav.classList.add('visible');
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    const t = document.getElementById('nav-books');
+    if (t) t.classList.add('active');
     return;
   }
   if (tab === 'club') {
-    // Scroll to club card on dashboard
-    showNav('home');
-    setTimeout(() => {
-      const el = document.getElementById('club-card');
-      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
-    }, 100);
+    renderClubFullScreen();
+    show('club-full');
+    const nav = document.getElementById('bottom-nav');
+    if (nav) nav.classList.add('visible');
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    const t = document.getElementById('nav-club');
+    if (t) t.classList.add('active');
     return;
   }
   if (tab === 'forest') {
@@ -1164,6 +1231,67 @@ function navTo(tab) {
     return;
   }
   showNav(tab);
+}
+
+function renderMyBooksFullScreen() {
+  const books = JSON.parse(localStorage.getItem('bs_my_books') || '[]');
+  const seen = new Set();
+  const unique = books.filter(b => { if(seen.has(b.id)) return false; seen.add(b.id); return true; });
+  const list = document.getElementById('mybooks-full-list');
+  const empty = document.getElementById('mybooks-full-empty');
+  if (!list) return;
+  if (unique.length === 0) {
+    list.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  list.style.display = 'block';
+  const colors = ['#c9553a','#3a6bc9','#5a3ac9','#3a9c6b','#c9943a','#8b3ac9','#3a8bc9'];
+  list.innerHTML = unique.map((b, i) => {
+    let hash = 0;
+    const str = (b.title || 'x');
+    for (let j = 0; j < str.length; j++) hash = str.charCodeAt(j) + ((hash << 5) - hash);
+    const color = colors[Math.abs(hash) % colors.length];
+    const initial = str.charAt(0).toUpperCase();
+    const pct = b.readProgress ? Math.round(b.readProgress * 100) : 0;
+    return `
+      <div style="display:flex;align-items:center;gap:0.9rem;padding:0.85rem 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openReaderById(${b.id})">
+        <div style="width:40px;height:56px;border-radius:6px;background:${color};flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:rgba(255,255,255,0.9);font-weight:700;">${initial}</span>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Playfair Display',serif;font-size:0.92rem;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.title}</div>
+          ${b.currentPage > 1 ? `<div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.35rem;">Page ${b.currentPage}${pct ? ' · ' + pct + '%' : ''}</div>` : '<div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.35rem;">Not started</div>'}
+          ${pct > 0 ? `<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:2px;opacity:0.8;"></div></div>` : ''}
+        </div>
+        ${b.isReading ? '<div style="font-size:0.65rem;color:var(--accent);flex-shrink:0;">Reading</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderClubFullScreen() {
+  const list = document.getElementById('club-full-list');
+  const actions = document.getElementById('club-full-actions');
+  if (!list) return;
+  const clubs = JSON.parse(localStorage.getItem('bs_my_clubs') || '[]');
+  if (clubs.length === 0) {
+    list.style.display = 'none';
+    if (actions) actions.style.display = 'block';
+    return;
+  }
+  list.style.display = 'block';
+  list.innerHTML = clubs.map(c => `
+    <div class="card-panel" style="margin-bottom:0.7rem;cursor:pointer;padding:1rem;" onclick="openClubById('${c.id}')">
+      <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.3rem;">${c.name || 'My Club'}</div>
+      <div style="font-size:0.72rem;color:var(--muted);">Code: <span style="color:var(--accent);letter-spacing:0.1em;">${c.code || ''}</span></div>
+    </div>
+  `).join('');
+  if (actions) {
+    actions.style.display = 'block';
+    actions.style.marginTop = '0.5rem';
+  }
 }
 
 function hideNav() {
@@ -1185,8 +1313,21 @@ function updateContinueReading() {
   const page = document.getElementById('dash-continue-page');
   const cover = document.getElementById('dash-continue-cover');
   if (title) title.textContent = book.title || 'Untitled';
-  if (page) page.textContent = `Page ${book.currentPage}${book.totalPages ? ' of ' + book.totalPages : ''}`;
-  if (cover) cover.textContent = '📖';
+  if (page) {
+    const pct = book.readProgress ? Math.round(book.readProgress * 100) : null;
+    page.textContent = `Page ${book.currentPage}${pct ? ' · ' + pct + '%' : ''}`;
+  }
+  if (cover) {
+    // Generate a consistent color from book title
+    const colors = ['#c9553a','#3a6bc9','#5a3ac9','#3a9c6b','#c9943a','#8b3ac9','#3a8bc9'];
+    let hash = 0;
+    const str = (book.title || 'x');
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const color = colors[Math.abs(hash) % colors.length];
+    const initial = str.charAt(0).toUpperCase();
+    cover.style.background = color;
+    cover.innerHTML = `<span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:rgba(255,255,255,0.9);font-weight:700;">${initial}</span>`;
+  }
   el._bookId = book.id;
 }
 
@@ -1683,29 +1824,14 @@ function renderDailyGoals() {
       : null;
 
     if (goals.bonusDone) {
-      activeEl.innerHTML = `<div style="font-size:0.8rem;color:var(--yes);text-align:center;padding:0.2rem 0;">🌸 All quests complete today!</div>`;
+      activeEl.innerHTML = `<span style="color:var(--yes);">🌸 All quests complete!</span>`;
     } else if (!active) {
-      activeEl.innerHTML = `<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.2rem 0;">All done for today!</div>`;
+      activeEl.innerHTML = `<span style="color:var(--muted);">All done for today!</span>`;
     } else {
       const level = !goals.easy.done ? 'easy' : !goals.medium.done ? 'medium' : 'hard';
       const rewards = { easy:15, medium:35, hard:75 };
-      const barColor = level==='easy' ? '#4caf87' : level==='medium' ? '#f0d080' : '#e05c5c';
-      const pct = Math.min((active.progress / active.target) * 100, 100);
       const icon = level==='easy' ? '🟢' : level==='medium' ? '🟡' : '🔴';
-      activeEl.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.35rem;">
-          <div style="font-size:0.82rem;font-weight:500;">${icon} ${active.title}</div>
-          <div style="font-size:0.72rem;color:var(--accent);font-weight:600;">🪙 ${rewards[level]}</div>
-        </div>
-        <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-          <div style="width:${pct}%;height:100%;background:${barColor};border-radius:2px;transition:width 0.4s;"></div>
-        </div>
-        <div style="font-size:0.68rem;color:var(--muted);margin-top:0.25rem;">
-          ${active.type==='time' ? `${Math.floor(active.progress/60)}/${Math.floor(active.target/60)} min` :
-            active.type==='bookpct' ? `${active.progress}% / ${active.target}%` :
-            `${active.progress} / ${active.target}`}
-        </div>
-      `;
+      activeEl.innerHTML = `${icon} ${active.title} <span style="color:var(--accent);font-weight:600;margin-left:0.3rem;">🪙${rewards[level]}</span>`;
     }
   }
 
@@ -3370,6 +3496,8 @@ window.showNav = showNav;
 window.hideNav = hideNav;
 window.continueReading = continueReading;
 window.updateContinueReading = updateContinueReading;
+window.renderMyBooksFullScreen = renderMyBooksFullScreen;
+window.renderClubFullScreen = renderClubFullScreen;
 Object.defineProperty(window, 'currentUser', { get: () => currentUser });
 
 // ═══════════════════════════════════════════
@@ -3876,7 +4004,7 @@ const getR=async()=>(await get(rRef())).val();
 const setR=d=>set(rRef(),d);
 const updR=d=>update(rRef(),d);
 
-const NAV_SCREENS_LIST = ["dashboard","discover","forest"];
+const NAV_SCREENS_LIST = ["dashboard","discover","forest","mybooks-full","club-full"];
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   const el=$("s-"+id);
@@ -5757,7 +5885,7 @@ initHomeParticles();
     Home
   </button>
   <button class="nav-tab" id="nav-discover" onclick="navTo('discover')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="10" rx="1"/><rect x="14" y="3" width="7" height="6" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/><rect x="3" y="17" width="7" height="4" rx="1"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="4" width="12" height="16" rx="2"/><path d="M18 8l4 4-4 4"/><path d="M14 12h8"/></svg>
     Discover
   </button>
   <button class="nav-tab" id="nav-books" onclick="navTo('books')">
@@ -5769,7 +5897,7 @@ initHomeParticles();
     Club
   </button>
   <button class="nav-tab" id="nav-forest" onclick="navTo('forest')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22V12"/><path d="M5 12H2l10-10 10 10h-3"/><path d="M5 17H2l10-10 10 10h-3"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22v-7"/><path d="M12 15C8 15 4 11 4 7c0-4 3-5 5-5 1 0 2 .5 3 1.5C13 2.5 14 2 15 2c2 0 5 1 5 5 0 4-4 8-8 8z"/></svg>
     Forest
   </button>
 </nav>
