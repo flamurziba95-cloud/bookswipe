@@ -1271,26 +1271,57 @@ function renderMyBooksFullScreen() {
   }).join('');
 }
 
-function renderClubFullScreen() {
+async function renderClubFullScreen() {
+  if (!currentUser) return;
   const list = document.getElementById('club-full-list');
   const actions = document.getElementById('club-full-actions');
   if (!list) return;
-  const clubs = JSON.parse(localStorage.getItem('bs_my_clubs') || '[]');
+
+  // Load from Firebase (same source as loadUserClubs)
+  const snap = await get(ref(db, `users/${currentUser.uid}/clubs`));
+  const raw = snap.val();
+  const clubIds = raw ? (Array.isArray(raw) ? raw : Object.values(raw)) : [];
+
+  if (clubIds.length === 0) {
+    list.style.display = 'none';
+    list.innerHTML = '';
+    if (actions) actions.style.display = 'block';
+    return;
+  }
+
+  // Load all clubs
+  const clubSnaps = await Promise.all(clubIds.map(id => get(ref(db, 'clubs/' + id))));
+  const clubs = clubSnaps
+    .filter(s => s.exists())
+    .map((s, i) => ({ id: clubIds[i], ...s.val() }));
+
   if (clubs.length === 0) {
     list.style.display = 'none';
     if (actions) actions.style.display = 'block';
     return;
   }
+
   list.style.display = 'block';
-  list.innerHTML = clubs.map(c => `
-    <div class="card-panel" style="margin-bottom:0.7rem;cursor:pointer;padding:1rem;" onclick="openClubById('${c.id}')">
-      <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.3rem;">${c.name || 'My Club'}</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Code: <span style="color:var(--accent);letter-spacing:0.1em;">${c.code || ''}</span></div>
-    </div>
-  `).join('');
+  list.innerHTML = clubs.map(c => {
+    const memberCount = Object.keys(c.members || {}).length;
+    return `
+      <div class="card-panel" style="margin-bottom:0.7rem;cursor:pointer;padding:1rem;" onclick="openClubById('${c.id}')">
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.4rem;">${c.name}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:${c.currentBook ? '0.4rem' : '0'};">
+          👥 ${memberCount} member${memberCount !== 1 ? 's' : ''} · Code: <span style="color:var(--accent);letter-spacing:0.08em;">${c.code || ''}</span>
+        </div>
+        ${c.currentBook ? `<div style="font-size:0.72rem;color:var(--text);">📖 ${c.currentBook.title}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
   if (actions) {
     actions.style.display = 'block';
-    actions.style.marginTop = '0.5rem';
+    // Change create button to secondary style when clubs exist
+    const createBtn = actions.querySelector('.hero-btn');
+    if (createBtn && clubs.length > 0) {
+      createBtn.style.marginTop = '0.5rem';
+    }
   }
 }
 
@@ -1336,7 +1367,7 @@ function continueReading() {
   const inProgress = books.filter(b => b.isReading && b.currentPage && b.currentPage > 1);
   if (inProgress.length === 0) return;
   inProgress.sort((a,b) => (b.lastRead||0) - (a.lastRead||0));
-  openBook(inProgress[0]);
+  openReaderById(inProgress[0].id);
 }
 
 function renderCalendarStrip() {
