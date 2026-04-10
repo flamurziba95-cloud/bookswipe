@@ -851,33 +851,44 @@ input::placeholder{color:var(--muted);}
 
 <!-- CLUB FULL SCREEN (nav tab) -->
 <div id="s-club-full" class="screen has-nav">
-  <div style="width:100%;padding-top:0.8rem;margin-bottom:1rem;">
+  <div style="width:100%;padding-top:0.8rem;margin-bottom:1.2rem;">
     <div style="font-family:'Playfair Display',serif;font-size:1.3rem;">Book Club</div>
     <div style="font-size:0.78rem;color:var(--muted);margin-top:0.15rem;">Read together with friends</div>
   </div>
 
-  <!-- Has clubs -->
+  <!-- Has clubs — rendered by JS -->
   <div id="club-full-list" style="width:100%;display:none;"></div>
 
-  <!-- Empty / add new -->
+  <!-- Create / Join — always visible, style changes when clubs exist -->
   <div id="club-full-actions" style="width:100%;">
-    <button class="hero-btn" onclick="show('club-create')" style="margin-bottom:0.6rem;">
-      <div class="hero-btn-text">
-        <span style="font-size:1rem;">✦ Create a Club</span>
-        <span class="hero-btn-label">Start a club · Invite up to 6 friends</span>
+    <!-- No-club state: gold filled primary -->
+    <div id="club-actions-empty">
+      <button class="hero-btn" onclick="show('club-create')" style="margin-bottom:0.6rem;">
+        <div class="hero-btn-text">
+          <span style="font-size:1rem;">✦ Create a Club</span>
+          <span class="hero-btn-label">Start a club · Invite up to 6 friends</span>
+        </div>
+      </button>
+      <div class="home-divider">
+        <div class="home-divider-line"></div>
+        <div class="home-divider-text">or</div>
+        <div class="home-divider-line"></div>
       </div>
-    </button>
-    <div class="home-divider">
-      <div class="home-divider-line"></div>
-      <div class="home-divider-text">or</div>
-      <div class="home-divider-line"></div>
+      <button class="secondary-home-btn" onclick="show('club-join')">
+        <div class="secondary-home-btn-text">
+          <span>→ Join a Club</span>
+          <span class="secondary-home-btn-sub">Enter a 6-character code from a friend</span>
+        </div>
+      </button>
     </div>
-    <button class="secondary-home-btn" onclick="show('club-join')">
-      <div class="secondary-home-btn-text">
-        <span>→ Join a Club</span>
-        <span class="secondary-home-btn-sub">Enter a 6-character code from a friend</span>
+    <!-- Has-club state: secondary style buttons -->
+    <div id="club-actions-has" style="display:none;margin-top:1.2rem;">
+      <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.6rem;">Add another club</div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-secondary" style="flex:1;min-height:42px;font-size:0.78rem;" onclick="show('club-create')">✦ Create</button>
+        <button class="btn btn-secondary" style="flex:1;min-height:42px;font-size:0.78rem;" onclick="show('club-join')">→ Join</button>
       </div>
-    </button>
+    </div>
   </div>
 </div>
 
@@ -1285,7 +1296,10 @@ async function renderClubFullScreen() {
   if (clubIds.length === 0) {
     list.style.display = 'none';
     list.innerHTML = '';
-    if (actions) actions.style.display = 'block';
+    const emptyActions = document.getElementById('club-actions-empty');
+    const hasActions = document.getElementById('club-actions-has');
+    if (emptyActions) emptyActions.style.display = 'block';
+    if (hasActions) hasActions.style.display = 'none';
     return;
   }
 
@@ -1297,7 +1311,10 @@ async function renderClubFullScreen() {
 
   if (clubs.length === 0) {
     list.style.display = 'none';
-    if (actions) actions.style.display = 'block';
+    const emptyActions = document.getElementById('club-actions-empty');
+    const hasActions = document.getElementById('club-actions-has');
+    if (emptyActions) emptyActions.style.display = 'block';
+    if (hasActions) hasActions.style.display = 'none';
     return;
   }
 
@@ -1305,24 +1322,32 @@ async function renderClubFullScreen() {
   list.innerHTML = clubs.map(c => {
     const memberCount = Object.keys(c.members || {}).length;
     return `
-      <div class="card-panel" style="margin-bottom:0.7rem;cursor:pointer;padding:1rem;" onclick="openClubById('${c.id}')">
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.4rem;">${c.name}</div>
-        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:${c.currentBook ? '0.4rem' : '0'};">
-          👥 ${memberCount} member${memberCount !== 1 ? 's' : ''} · Code: <span style="color:var(--accent);letter-spacing:0.08em;">${c.code || ''}</span>
+      <div style="
+        background:var(--surface);
+        border:1.5px solid rgba(240,208,128,0.5);
+        border-radius:16px;
+        padding:1rem 1.1rem;
+        margin-bottom:0.8rem;
+        cursor:pointer;
+        box-shadow:0 0 16px rgba(240,208,128,0.08);
+        transition:all 0.18s;
+      " onclick="openClubById('${c.id}')">
+        <div style="font-family:'Playfair Display',serif;font-size:1.05rem;margin-bottom:0.35rem;">${c.name}</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <span style="font-size:0.7rem;color:var(--muted);">👥 ${memberCount} member${memberCount !== 1 ? 's' : ''}</span>
+          <span style="font-size:0.7rem;color:var(--muted);">·</span>
+          <span style="font-size:0.7rem;color:var(--muted);">Code: <span style="color:var(--accent);letter-spacing:0.08em;font-weight:600;">${c.code || ''}</span></span>
         </div>
-        ${c.currentBook ? `<div style="font-size:0.72rem;color:var(--text);">📖 ${c.currentBook.title}</div>` : ''}
+        ${c.currentBook ? `<div style="font-size:0.75rem;color:var(--text);margin-top:0.4rem;">📖 ${c.currentBook.title}</div>` : ''}
       </div>
     `;
   }).join('');
 
-  if (actions) {
-    actions.style.display = 'block';
-    // Change create button to secondary style when clubs exist
-    const createBtn = actions.querySelector('.hero-btn');
-    if (createBtn && clubs.length > 0) {
-      createBtn.style.marginTop = '0.5rem';
-    }
-  }
+  // Switch action buttons to secondary style
+  const emptyActions = document.getElementById('club-actions-empty');
+  const hasActions = document.getElementById('club-actions-has');
+  if (emptyActions) emptyActions.style.display = 'none';
+  if (hasActions) hasActions.style.display = 'block';
 }
 
 function hideNav() {
