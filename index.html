@@ -923,7 +923,7 @@ input::placeholder{color:var(--muted);}
 <!-- CLUB: DASHBOARD -->
 <div id="s-club-dashboard" class="screen" style="padding-top:0.5rem;">
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:1rem;">
-    <button class="back-btn" style="margin-bottom:0;" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
+    <button class="back-btn" style="margin-bottom:0;" onclick="currentUser ? navTo('club') : show('home')">← Back</button>
     <div id="club-dash-name" style="font-family:'Playfair Display',serif;font-size:1.1rem;"></div>
     <div id="club-dash-code" style="font-size:0.68rem;color:var(--accent);cursor:pointer;" onclick="copyClubCode()"></div>
   </div>
@@ -939,6 +939,17 @@ input::placeholder{color:var(--muted);}
         <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">No book selected yet</div>
         <button class="btn btn-primary" style="min-height:38px;font-size:0.82rem;" onclick="launchClubBookPick()">📖 Pick a book together</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Meetings -->
+  <div class="card-panel" id="club-meetings-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.7rem;">
+      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);">📅 Meetings</div>
+      <button id="club-add-meeting-btn" onclick="openCreateMeeting()" style="display:none;background:none;border:1px solid rgba(240,208,128,0.4);border-radius:50px;padding:0.2rem 0.6rem;font-size:0.65rem;color:var(--accent);cursor:pointer;">＋ Schedule</button>
+    </div>
+    <div id="club-meetings-list">
+      <div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.4rem 0;">No upcoming meetings</div>
     </div>
   </div>
 
@@ -962,6 +973,94 @@ input::placeholder{color:var(--muted);}
 
   <!-- Leave club -->
   <button class="btn btn-danger" style="margin-top:0.5rem;" onclick="leaveClub()">Leave Club</button>
+</div>
+
+<!-- CREATE MEETING MODAL -->
+<div id="create-meeting-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);padding:1.4rem 1.2rem 2rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">📅 Schedule Meeting</div>
+      <button onclick="closeCreateMeeting()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Date + Time row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.75rem;">
+      <div>
+        <label>Date</label>
+        <input type="date" id="meeting-date" style="width:100%;padding:0.7rem 0.8rem;background:var(--bg);border:1px solid rgba(240,208,128,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;"/>
+      </div>
+      <div>
+        <label>Time</label>
+        <input type="time" id="meeting-time" style="width:100%;padding:0.7rem 0.8rem;background:var(--bg);border:1px solid rgba(240,208,128,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;"/>
+      </div>
+    </div>
+
+    <!-- Timezone -->
+    <div style="margin-bottom:0.75rem;">
+      <label>Timezone</label>
+      <select id="meeting-timezone" style="width:100%;padding:0.7rem 0.8rem;background:var(--bg);border:1px solid rgba(240,208,128,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;-webkit-appearance:none;">
+        <option value="UTC+0">UTC+0 — London</option>
+        <option value="UTC+1">UTC+1 — Paris, Berlin, Rome</option>
+        <option value="UTC+2">UTC+2 — Skopje, Athens, Kyiv</option>
+        <option value="UTC+3">UTC+3 — Moscow, Istanbul</option>
+        <option value="UTC+4">UTC+4 — Dubai</option>
+        <option value="UTC+5">UTC+5 — Karachi</option>
+        <option value="UTC+5.5">UTC+5:30 — Mumbai</option>
+        <option value="UTC+6">UTC+6 — Dhaka</option>
+        <option value="UTC+7">UTC+7 — Bangkok</option>
+        <option value="UTC+8">UTC+8 — Beijing, Singapore</option>
+        <option value="UTC+9">UTC+9 — Tokyo, Seoul</option>
+        <option value="UTC+10">UTC+10 — Sydney</option>
+        <option value="UTC-5">UTC-5 — New York, Toronto</option>
+        <option value="UTC-6">UTC-6 — Chicago, Mexico City</option>
+        <option value="UTC-7">UTC-7 — Denver, Phoenix</option>
+        <option value="UTC-8">UTC-8 — Los Angeles, Vancouver</option>
+      </select>
+    </div>
+
+    <!-- Duration -->
+    <div style="margin-bottom:0.75rem;">
+      <label>Duration</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem;">
+        <button class="meeting-dur-btn" onclick="selectDuration(this,'30')" data-val="30" style="padding:0.5rem 0;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;">30 min</button>
+        <button class="meeting-dur-btn" onclick="selectDuration(this,'60')" data-val="60" style="padding:0.5rem 0;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;">1 hr</button>
+        <button class="meeting-dur-btn" onclick="selectDuration(this,'90')" data-val="90" style="padding:0.5rem 0;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;">1.5 hr</button>
+        <button class="meeting-dur-btn" onclick="selectDuration(this,'120')" data-val="120" style="padding:0.5rem 0;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;">2 hr</button>
+      </div>
+    </div>
+
+    <!-- Type toggle -->
+    <div style="margin-bottom:0.75rem;">
+      <label>Meeting Type</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+        <button id="meeting-type-virtual" onclick="selectMeetingType('virtual')" style="padding:0.6rem;background:rgba(240,208,128,0.1);border:1.5px solid var(--accent);border-radius:10px;color:var(--accent);font-size:0.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;">💻 Virtual</button>
+        <button id="meeting-type-inperson" onclick="selectMeetingType('inperson')" style="padding:0.6rem;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-size:0.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;">📍 In-person</button>
+      </div>
+    </div>
+
+    <!-- Virtual link -->
+    <div id="meeting-link-wrap" style="margin-bottom:0.75rem;">
+      <label>Meeting Link</label>
+      <input type="url" id="meeting-link" placeholder="https://meet.google.com/..." style="width:100%;padding:0.7rem 0.8rem;background:var(--bg);border:1px solid rgba(240,208,128,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;margin-bottom:0;"/>
+    </div>
+
+    <!-- In-person location -->
+    <div id="meeting-location-wrap" style="margin-bottom:0.75rem;display:none;">
+      <label>Location</label>
+      <input type="text" id="meeting-location" placeholder="e.g. City Library, Room 3" style="width:100%;padding:0.7rem 0.8rem;background:var(--bg);border:1px solid rgba(240,208,128,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;margin-bottom:0;"/>
+    </div>
+
+    <!-- Notes -->
+    <div style="margin-bottom:1rem;">
+      <label>Notes <span style="color:var(--muted);font-size:0.65rem;text-transform:none;">(optional)</span></label>
+      <textarea id="meeting-notes" placeholder="What chapters to cover, what to bring..." style="width:100%;padding:0.7rem 0.8rem;background:var(--bg);border:1px solid rgba(240,208,128,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;resize:none;height:80px;line-height:1.5;"></textarea>
+    </div>
+
+    <div class="err" id="meeting-err"></div>
+    <button class="btn btn-primary" onclick="saveMeeting()">📅 Create Meeting</button>
+  </div>
 </div>
 
 <!-- CLUB: MY CLUBS LIST -->
@@ -2186,6 +2285,13 @@ function renderClubDashboard(clubId, club) {
     inviteHint.style.display = 'none';
   }
 
+  // Meetings — show schedule button for host/admin only
+  const addMeetingBtn = document.getElementById('club-add-meeting-btn');
+  if (addMeetingBtn) {
+    addMeetingBtn.style.display = club.hostId === currentUser?.uid ? 'block' : 'none';
+  }
+  renderClubMeetings(club.meetings || {});
+
   // Feed
   const feed = club.feed || [];
   const feedEl = document.getElementById('club-feed-list');
@@ -2207,6 +2313,175 @@ function timeSince(ts) {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs/24)}d ago`;
 }
+
+// ── MEETINGS ─────────────────────────────────
+
+let selectedDuration = '60';
+let selectedMeetingType = 'virtual';
+
+function openCreateMeeting() {
+  // Set defaults
+  const today = new Date().toISOString().split('T')[0];
+  const timeEl = document.getElementById('meeting-date');
+  if (timeEl) timeEl.value = today;
+
+  // Auto-detect timezone offset
+  const offset = -new Date().getTimezoneOffset() / 60;
+  const sign = offset >= 0 ? '+' : '-';
+  const tzVal = `UTC${sign}${Math.abs(offset)}`;
+  const tzSel = document.getElementById('meeting-timezone');
+  if (tzSel) {
+    const opt = Array.from(tzSel.options).find(o => o.value === tzVal);
+    if (opt) tzSel.value = tzVal;
+    else tzSel.value = 'UTC+2'; // fallback to Skopje
+  }
+
+  // Reset state
+  selectedDuration = '60';
+  selectedMeetingType = 'virtual';
+  document.querySelectorAll('.meeting-dur-btn').forEach(b => {
+    b.style.background = 'var(--surface2)';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+    if (b.dataset.val === '60') {
+      b.style.background = 'rgba(240,208,128,0.1)';
+      b.style.borderColor = 'var(--accent)';
+      b.style.color = 'var(--accent)';
+    }
+  });
+  selectMeetingType('virtual');
+
+  const errEl = document.getElementById('meeting-err');
+  if (errEl) errEl.textContent = '';
+
+  document.getElementById('create-meeting-modal').style.display = 'flex';
+}
+
+function closeCreateMeeting() {
+  document.getElementById('create-meeting-modal').style.display = 'none';
+}
+
+function selectDuration(btn, val) {
+  selectedDuration = val;
+  document.querySelectorAll('.meeting-dur-btn').forEach(b => {
+    b.style.background = 'var(--surface2)';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+  });
+  btn.style.background = 'rgba(240,208,128,0.1)';
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+}
+
+function selectMeetingType(type) {
+  selectedMeetingType = type;
+  const vBtn = document.getElementById('meeting-type-virtual');
+  const iBtn = document.getElementById('meeting-type-inperson');
+  const linkWrap = document.getElementById('meeting-link-wrap');
+  const locWrap = document.getElementById('meeting-location-wrap');
+
+  if (type === 'virtual') {
+    vBtn.style.background = 'rgba(240,208,128,0.1)';
+    vBtn.style.borderColor = 'var(--accent)';
+    vBtn.style.color = 'var(--accent)';
+    iBtn.style.background = 'var(--surface2)';
+    iBtn.style.borderColor = 'var(--border)';
+    iBtn.style.color = 'var(--muted)';
+    linkWrap.style.display = 'block';
+    locWrap.style.display = 'none';
+  } else {
+    iBtn.style.background = 'rgba(240,208,128,0.1)';
+    iBtn.style.borderColor = 'var(--accent)';
+    iBtn.style.color = 'var(--accent)';
+    vBtn.style.background = 'var(--surface2)';
+    vBtn.style.borderColor = 'var(--border)';
+    vBtn.style.color = 'var(--muted)';
+    linkWrap.style.display = 'none';
+    locWrap.style.display = 'block';
+  }
+}
+
+async function saveMeeting() {
+  if (!currentClubId) return;
+  const date = document.getElementById('meeting-date').value;
+  const time = document.getElementById('meeting-time').value;
+  const tz = document.getElementById('meeting-timezone').value;
+  const link = document.getElementById('meeting-link').value.trim();
+  const location = document.getElementById('meeting-location').value.trim();
+  const notes = document.getElementById('meeting-notes').value.trim();
+  const errEl = document.getElementById('meeting-err');
+
+  if (!date) { errEl.textContent = 'Please pick a date.'; return; }
+  if (!time) { errEl.textContent = 'Please pick a time.'; return; }
+  if (selectedMeetingType === 'virtual' && !link) { errEl.textContent = 'Please add a meeting link.'; return; }
+  if (selectedMeetingType === 'inperson' && !location) { errEl.textContent = 'Please add a location.'; return; }
+
+  errEl.textContent = '';
+
+  const meetingId = 'meeting_' + Date.now();
+  const meeting = {
+    id: meetingId,
+    date,
+    time,
+    timezone: tz,
+    duration: parseInt(selectedDuration),
+    type: selectedMeetingType,
+    link: selectedMeetingType === 'virtual' ? link : '',
+    location: selectedMeetingType === 'inperson' ? location : '',
+    notes,
+    createdBy: currentUser.uid,
+    createdAt: Date.now()
+  };
+
+  await set(ref(db, `clubs/${currentClubId}/meetings/${meetingId}`), meeting);
+  closeCreateMeeting();
+}
+
+function renderClubMeetings(meetingsObj) {
+  const el = document.getElementById('club-meetings-list');
+  if (!el) return;
+
+  const meetings = Object.values(meetingsObj || {});
+  const now = new Date();
+
+  // Only upcoming meetings, sorted by date/time
+  const upcoming = meetings
+    .filter(m => new Date(`${m.date}T${m.time}`) >= now)
+    .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+
+  if (upcoming.length === 0) {
+    el.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0.4rem 0;">No upcoming meetings</div>';
+    return;
+  }
+
+  el.innerHTML = upcoming.map(m => {
+    const dt = new Date(`${m.date}T${m.time}`);
+    const dateStr = dt.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    const timeStr = dt.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    const durStr = m.duration >= 60 ? `${m.duration/60}h` : `${m.duration}min`;
+    const typeIcon = m.type === 'virtual' ? '💻' : '📍';
+    const detail = m.type === 'virtual'
+      ? (m.link ? `<a href="${m.link}" target="_blank" style="color:var(--accent);font-size:0.68rem;word-break:break-all;">${m.link}</a>` : '')
+      : `<span style="font-size:0.68rem;color:var(--muted);">${m.location}</span>`;
+
+    return `
+      <div style="padding:0.75rem;background:var(--surface2);border-radius:12px;margin-bottom:0.5rem;border-left:3px solid var(--accent);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;">
+          <div style="font-size:0.85rem;font-weight:600;color:var(--text);">${dateStr} · ${timeStr}</div>
+          <div style="font-size:0.68rem;color:var(--muted);">${typeIcon} ${durStr} · ${m.timezone}</div>
+        </div>
+        ${detail}
+        ${m.notes ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:0.3rem;font-style:italic;">${m.notes}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+window.openCreateMeeting = openCreateMeeting;
+window.closeCreateMeeting = closeCreateMeeting;
+window.selectDuration = selectDuration;
+window.selectMeetingType = selectMeetingType;
+window.saveMeeting = saveMeeting;
 
 function copyClubCode() {
   if (!currentClubId) return;
