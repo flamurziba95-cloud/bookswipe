@@ -748,13 +748,34 @@ input::placeholder{color:var(--muted);}
   <div style="padding:0 1rem;width:100%;">
     <div id="forest-island-nav" style="display:flex;justify-content:center;gap:0.5rem;padding:0.6rem 0;"></div>
     <canvas id="forest-full-canvas" style="width:100%;display:block;max-width:440px;" height="380"></canvas>
-    <div style="padding:0.8rem 0;display:flex;flex-wrap:wrap;gap:0.6rem;">
-      <div style="font-size:0.68rem;color:var(--muted);width:100%;margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.06em;">Species</div>
-      <div class="forest-legend-item"><span style="color:#c9a830;">🌳</span> Oak — finished book</div>
-      <div class="forest-legend-item"><span style="color:#4caf87;">🌲</span> Pine — club book</div>
-      <div class="forest-legend-item"><span style="color:#e05c7a;">🌸</span> Flower — challenge</div>
-      <div class="forest-legend-item"><span style="color:#c49050;">🍄</span> Mushroom — 7-day streak</div>
-    </div>
+    <div style="padding:0.8rem 0;display:flex;flex-wrap:wrap;gap:0.5rem;">
+    <div style="font-size:0.65rem;color:var(--muted);width:100%;margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.06em;">Trees — by genre</div>
+    <div class="forest-legend-item">🌳 Oak — Classic</div>
+    <div class="forest-legend-item">🌸 Cherry — Romance</div>
+    <div class="forest-legend-item">🌲 Dark Pine — Thriller</div>
+    <div class="forest-legend-item">🍁 Maple — Non-Fiction</div>
+    <div class="forest-legend-item">🎋 Bamboo — Philosophy</div>
+    <div class="forest-legend-item">🌴 Palm — Adventure</div>
+    <div class="forest-legend-item">💎 Crystal — Sci-Fi</div>
+    <div class="forest-legend-item">🪵 Deadwood — Horror</div>
+    <div class="forest-legend-item">🌿 Willow — Poetry</div>
+    <div class="forest-legend-item">🌙 Moon Birch — Fantasy</div>
+    <div class="forest-legend-item">🪴 Bonsai — History</div>
+    <div class="forest-legend-item">🤍 Silver Birch — Self-Help</div>
+    <div class="forest-legend-item">🔥 Ember — Dystopia</div>
+    <div class="forest-legend-item">🌑 Dark Oak — Crime</div>
+    <div class="forest-legend-item">💙 Bluebell — YA</div>
+    <div class="forest-legend-item">💜 Jacaranda — Fiction+Romance</div>
+    <div style="font-size:0.65rem;color:var(--muted);width:100%;margin:0.4rem 0 0.2rem;text-transform:uppercase;letter-spacing:0.06em;">Ground Plants</div>
+    <div class="forest-legend-item">🌺 Daily flower — quest complete</div>
+    <div class="forest-legend-item">🍄 Mushroom — 3-day streak</div>
+    <div class="forest-legend-item">✨ Glowing Mushroom — 7 days</div>
+    <div class="forest-legend-item">🟣 Ancient Mushroom — 14 days</div>
+    <div class="forest-legend-item">🔥 Ember Mushroom — 30 days</div>
+    <div class="forest-legend-item">🌿 Fern — 1hr session</div>
+    <div class="forest-legend-item">🌙 Moon Lily — read at midnight</div>
+    <div class="forest-legend-item">💎 Crystal Shard — finish in one day</div>
+  </div>
   </div>
 </div>
 
@@ -2747,192 +2768,644 @@ function drawIsland(ctx, W, H, islandIdx, full) {
   tilePositions.forEach(({ tx, ty, slotIdx }) => {
     const plant = plants[slotIdx];
     if (plant) {
-      drawIsometricPlant(ctx, tx, ty + tileH, plant.type, plant.stage || 3, tileW, full);
+      drawIsometricPlant(ctx, tx, ty + tileH, plant.type, plant.stage || 3, tileW, full, plant.addedAt);
     }
   });
 }
 
-function drawIsometricPlant(ctx, x, y, type, stage, tileW, full) {
-  const s = full ? 1 : 0.7;
+// ═══════════════════════════════════════════════════════════
+// READWOOD FOREST — Full Species System
+// ═══════════════════════════════════════════════════════════
+
+// SPECIES CATALOG
+const TREE_GENRES = {
+  classic:     { type:'oak',          label:'Oak',           color:['#5c8a3a','#6da845','#82c455'] },
+  romance:     { type:'cherry',       label:'Cherry Blossom',color:['#e8a0b0','#f0b8c8','#f8d0d8'] },
+  thriller:    { type:'pine',         label:'Dark Pine',     color:['#1a4a2d','#1f5c38','#256e43'] },
+  nonfiction:  { type:'maple',        label:'Maple',         color:['#c04a1a','#d45a20','#e86a28'] },
+  philosophy:  { type:'bamboo',       label:'Bamboo',        color:['#4a7a2a','#5a9a35','#6ab040'] },
+  adventure:   { type:'palm',         label:'Palm',          color:['#2a7a3a','#38924a','#48a858'] },
+  scifi:       { type:'crystal',      label:'Crystal Tree',  color:['#5ab8e8','#7accf0','#9ae0f8'] },
+  horror:      { type:'deadwood',     label:'Deadwood',      color:['#3a2a1a','#4a3828','#5a4838'] },
+  poetry:      { type:'willow',       label:'Willow',        color:['#4a8a3a','#5aa848','#6ac058'] },
+  fantasy:     { type:'moonbirch',    label:'Moon Birch',    color:['#c8b8e8','#d8c8f0','#e8d8f8'] },
+  history:     { type:'bonsai',       label:'Bonsai',        color:['#5a7a2a','#6a9238','#7aaa48'] },
+  selfhelp:    { type:'silverbirch',  label:'Silver Birch',  color:['#a8c8d8','#b8d8e8','#c8e8f0'] },
+  dystopia:    { type:'ember',        label:'Ember Tree',    color:['#c04a1a','#d85a28','#f06030'] },
+  crime:       { type:'darkoak',      label:'Dark Oak',      color:['#2a2a3a','#383848','#484858'] },
+  ya:          { type:'bluebell',     label:'Bluebell Tree', color:['#5a78e8','#6a88f0','#7a98f8'] },
+  combo:       { type:'jacaranda',    label:'Jacaranda',     color:['#8858c8','#9868d8','#a878e8'] },
+};
+
+const FLOWER_TYPES = [
+  { type:'sunflower',  color:['#f0c020','#f8d030','#fae060'], center:'#8b4a10' },
+  { type:'lavender',   color:['#9878c8','#a888d8','#b898e0'], center:'#6858a8' },
+  { type:'tulip',      color:['#e03850','#f04860','#f85870'], center:'#f0d080' },
+  { type:'daisy',      color:['#f0f0f0','#f8f8f8','#ffffff'], center:'#f0c020' },
+  { type:'rose',       color:['#d02040','#e03050','#f04060'], center:'#f0d080' },
+  { type:'orchid',     color:['#c858d8','#d868e8','#e878f0'], center:'#f0f0f0' },
+  { type:'lily',       color:['#f8d090','#fae0a8','#fcecb8'], center:'#f0a020' },
+  { type:'peony',      color:['#f08898','#f898a8','#f8a8b8'], center:'#e04060' },
+  { type:'iris',       color:['#6858c8','#7868d8','#8878e0'], center:'#f0f0a8' },
+  { type:'poppy',      color:['#e82020','#f03030','#f84040'], center:'#1a1a1a' },
+  { type:'marigold',   color:['#f07820','#f88830','#f89840'], center:'#c04a10' },
+  { type:'jasmine',    color:['#f8f8e8','#fafaf0','#fcfcf8'], center:'#f0d080' },
+  { type:'wisteria',   color:['#a878d8','#b888e0','#c898e8'], center:'#7858b8' },
+  { type:'magnolia',   color:['#f8e8f0','#faf0f8','#fcf4fc'], center:'#f0b8c8' },
+];
+
+const MUSHROOM_TYPES = [
+  { days:3,  type:'mushroom',       color:'#a07840', glow:null },
+  { days:7,  type:'glowmushroom',   color:'#58c888', glow:'rgba(88,200,136,0.3)' },
+  { days:14, type:'ancientmush',    color:'#8858a8', glow:'rgba(136,88,168,0.3)' },
+  { days:30, type:'embermushroom',  color:'#e05020', glow:'rgba(224,80,32,0.4)' },
+];
+
+// Get flower type by day of week + rotation
+function getFlowerType(addedAt) {
+  const d = new Date(addedAt);
+  const dayOfWeek = d.getDay(); // 0=Sun
+  const weekNum = Math.floor(d.getTime() / (7*24*3600*1000));
+  const idx = (dayOfWeek + weekNum) % FLOWER_TYPES.length;
+  return FLOWER_TYPES[idx];
+}
+
+function drawIsometricPlant(ctx, x, y, type, stage, tileW, full, addedAt) {
+  const s = full ? 1 : 0.65;
   ctx.save();
   ctx.translate(x, y);
 
-  switch(type) {
-    case 'oak': drawOak(ctx, stage, s, tileW); break;
-    case 'pine': drawPine(ctx, stage, s, tileW); break;
-    case 'flower': drawFlower(ctx, stage, s, tileW); break;
-    case 'mushroom': drawMushroom(ctx, stage, s, tileW); break;
+  // Route to correct drawer
+  if (type === 'flower' || type === 'sunflower' || type === 'lavender' || type === 'tulip' ||
+      type === 'daisy' || type === 'rose' || type === 'orchid' || type === 'lily' ||
+      type === 'peony' || type === 'iris' || type === 'poppy' || type === 'marigold' ||
+      type === 'jasmine' || type === 'wisteria' || type === 'magnolia') {
+    const ft = type === 'flower' ? getFlowerType(addedAt || Date.now()) : FLOWER_TYPES.find(f=>f.type===type) || FLOWER_TYPES[0];
+    drawFlowerSVG(ctx, stage, s, tileW, ft);
+  } else if (type === 'mushroom') {
+    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[0]);
+  } else if (type === 'glowmushroom') {
+    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[1]);
+  } else if (type === 'ancientmush') {
+    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[2]);
+  } else if (type === 'embermushroom') {
+    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[3]);
+  } else if (type === 'fern' || type === 'giantfern') {
+    drawFern(ctx, stage, s, tileW, type === 'giantfern');
+  } else if (type === 'moonlily') {
+    drawMoonLily(ctx, stage, s, tileW);
+  } else if (type === 'crystalshard') {
+    drawCrystalShard(ctx, stage, s, tileW);
+  } else {
+    // All tree types
+    drawTreeSVG(ctx, type, stage, s, tileW);
   }
 
   ctx.restore();
 }
 
-function drawOak(ctx, stage, s, tw) {
-  const h = (8 + stage * 5) * s;
-  const r = (6 + stage * 4) * s;
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+// ── SHADOW HELPER ────────────────────────
+function drawShadow(ctx, tileW, radiusX, radiusY) {
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.beginPath();
-  ctx.ellipse(0, 0, tw*0.4, tw*0.15, 0, 0, Math.PI*2);
+  ctx.ellipse(0, 0, tileW*radiusX, tileW*radiusY, 0, 0, Math.PI*2);
   ctx.fill();
+}
 
-  // Trunk
-  ctx.fillStyle = '#6b3d1e';
-  ctx.fillRect(-2*s, -h, 4*s, h);
+// ── UNIVERSAL TREE DRAWER ─────────────────
+function drawTreeSVG(ctx, type, stage, s, tileW) {
+  drawShadow(ctx, tileW, 0.38, 0.13);
 
-  // Canopy layers
-  const colors = ['#2d6b1a','#3a8025','#4a9030'];
-  for (let i = 0; i < Math.min(stage+1, 3); i++) {
-    ctx.fillStyle = colors[i];
-    ctx.beginPath();
-    ctx.ellipse(0, -h - r*0.4*i, r*(1-i*0.15), r*0.7*(1-i*0.15), 0, 0, Math.PI*2);
-    ctx.fill();
+  switch(type) {
+    case 'oak':         drawOakSVG(ctx, stage, s); break;
+    case 'cherry':      drawCherrySVG(ctx, stage, s); break;
+    case 'pine':        drawPineSVG(ctx, stage, s); break;
+    case 'maple':       drawMapleSVG(ctx, stage, s); break;
+    case 'bamboo':      drawBambooSVG(ctx, stage, s); break;
+    case 'palm':        drawPalmSVG(ctx, stage, s); break;
+    case 'crystal':     drawCrystalTreeSVG(ctx, stage, s); break;
+    case 'deadwood':    drawDeadwoodSVG(ctx, stage, s); break;
+    case 'willow':      drawWillowSVG(ctx, stage, s); break;
+    case 'moonbirch':   drawMoonBirchSVG(ctx, stage, s); break;
+    case 'bonsai':      drawBonsaiSVG(ctx, stage, s); break;
+    case 'silverbirch': drawSilverBirchSVG(ctx, stage, s); break;
+    case 'ember':       drawEmberTreeSVG(ctx, stage, s); break;
+    case 'darkoak':     drawDarkOakSVG(ctx, stage, s); break;
+    case 'bluebell':    drawBluebellTreeSVG(ctx, stage, s); break;
+    case 'jacaranda':   drawJacarandaSVG(ctx, stage, s); break;
+    default:            drawOakSVG(ctx, stage, s); break;
   }
+}
 
-  // Gold glow for mature
+function trunk(ctx, s, color, w, h) {
+  const grad = ctx.createLinearGradient(-w*s, 0, w*s, 0);
+  grad.addColorStop(0, shadeColor(color, -20));
+  grad.addColorStop(0.4, color);
+  grad.addColorStop(1, shadeColor(color, -30));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(-w*s, -h*s, w*2*s, h*s, [2*s, 2*s, 1*s, 1*s]);
+  ctx.fill();
+}
+
+function canopyLayer(ctx, s, colors, x, y, rx, ry) {
+  const grad = ctx.createRadialGradient(x, y-ry*0.3, ry*0.1, x, y, ry);
+  grad.addColorStop(0, colors[2]);
+  grad.addColorStop(0.5, colors[1]);
+  grad.addColorStop(1, colors[0]);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function shadeColor(hex, amount) {
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+  return `rgb(${r},${g},${b})`;
+}
+
+// ── OAK ───────────────────────────────────
+function drawOakSVG(ctx, stage, s) {
+  const h = (18 + stage*6)*s, r = (10 + stage*4)*s;
+  trunk(ctx, s, '#7a5230', 2.5, h);
+  canopyLayer(ctx, s, ['#2d5c18','#3a7525','#4a9030'], 0, -h-r*0.3, r*1.1, r*0.85);
+  canopyLayer(ctx, s, ['#358020','#4a9030','#5aa840'], -r*0.45, -h-r*0.15, r*0.7, r*0.65);
+  canopyLayer(ctx, s, ['#3a8825','#4a9830','#5aaa40'], r*0.4, -h-r*0.2, r*0.65, r*0.6);
   if (stage >= 4) {
-    ctx.fillStyle = 'rgba(240,208,128,0.12)';
-    ctx.beginPath();
-    ctx.ellipse(0, -h - r*0.3, r*1.3, r, 0, 0, Math.PI*2);
-    ctx.fill();
-    // Acorns
+    ctx.fillStyle = 'rgba(240,208,128,0.18)';
+    ctx.beginPath(); ctx.ellipse(0, -h-r*0.3, r*1.5, r*1.1, 0, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#c9a830';
-    ctx.beginPath(); ctx.arc(-r*0.5, -h - r*0.1, 2*s, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(r*0.4, -h - r*0.2, 2*s, 0, Math.PI*2); ctx.fill();
-  }
-}
-
-function drawPine(ctx, stage, s, tw) {
-  const layers = Math.min(stage + 2, 5);
-  const h = (10 + stage * 4) * s;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, tw*0.3, tw*0.1, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle = '#5a3418';
-  ctx.fillRect(-1.5*s, -8*s, 3*s, 8*s);
-
-  for (let i = 0; i < layers; i++) {
-    const w = (12 - i*1.5) * s;
-    const ly = -h * (0.3 + i * 0.15);
-    ctx.fillStyle = i % 2 === 0 ? '#1a5c2d' : '#1f7038';
-    ctx.beginPath();
-    ctx.moveTo(0, ly - 12*s);
-    ctx.lineTo(-w, ly);
-    ctx.lineTo(w, ly);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  if (stage >= 4) {
-    // Star on top
-    ctx.fillStyle = '#f0d080';
-    ctx.beginPath();
-    ctx.arc(0, -h - 14*s, 3*s, 0, Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(240,208,128,0.15)';
-    ctx.beginPath();
-    ctx.arc(0, -h - 10*s, 8*s, 0, Math.PI*2);
-    ctx.fill();
-  }
-}
-
-function drawFlower(ctx, stage, s, tw) {
-  const stemH = (8 + stage * 4) * s;
-  const petalR = (4 + stage * 1.5) * s;
-  const petals = Math.min(4 + stage, 8);
-
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, tw*0.25, tw*0.08, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Stem
-  ctx.strokeStyle = '#2d7a2d';
-  ctx.lineWidth = 2*s;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(0, -stemH);
-  ctx.stroke();
-
-  // Leaf
-  if (stage > 1) {
-    ctx.fillStyle = '#2d7a2d';
-    ctx.beginPath();
-    ctx.ellipse(-5*s, -stemH*0.5, 5*s, 2.5*s, -0.5, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // Petals
-  for (let i = 0; i < petals; i++) {
-    const angle = (i / petals) * Math.PI * 2;
-    ctx.fillStyle = stage >= 3 ? '#e05c7a' : '#e8a0b0';
-    ctx.save();
-    ctx.translate(0, -stemH);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    ctx.ellipse(0, -petalR, petalR*0.5, petalR, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // Center
-  if (petals > 0) {
-    ctx.fillStyle = '#f0d080';
-    ctx.beginPath();
-    ctx.arc(0, -stemH, petalR*0.4, 0, Math.PI*2);
-    ctx.fill();
-  }
-}
-
-function drawMushroom(ctx, stage, s, tw) {
-  const stemH = (6 + stage * 3) * s;
-  const capW = (8 + stage * 3) * s;
-  const capH = (5 + stage * 2) * s;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, capW*0.8, capW*0.25, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Stem
-  ctx.fillStyle = '#d4c4a0';
-  ctx.beginPath();
-  ctx.ellipse(0, -stemH*0.3, capW*0.4, stemH*0.6, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Cap
-  ctx.fillStyle = '#a07840';
-  ctx.beginPath();
-  ctx.ellipse(0, -stemH, capW, capH, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Lighter top
-  ctx.fillStyle = '#c49050';
-  ctx.beginPath();
-  ctx.ellipse(0, -stemH - capH*0.2, capW*0.7, capH*0.5, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // White spots
-  if (stage >= 2) {
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    [[-capW*0.3, -stemH-capH*0.1], [capW*0.25, -stemH-capH*0.25], [0, -stemH-capH*0.35]].forEach(([wx,wy]) => {
-      ctx.beginPath();
-      ctx.arc(wx, wy, 2*s, 0, Math.PI*2);
-      ctx.fill();
+    [[-r*0.5,-r*0.1],[r*0.4,-r*0.25],[0,-r*0.45]].forEach(([ax,ay]) => {
+      ctx.beginPath(); ctx.arc(ax, -h+ay, 2.5*s, 0, Math.PI*2); ctx.fill();
     });
   }
+}
 
-  if (stage >= 4) {
-    ctx.fillStyle = 'rgba(160,120,64,0.2)';
-    ctx.beginPath();
-    ctx.ellipse(0, -stemH, capW*1.4, capH*1.2, 0, 0, Math.PI*2);
-    ctx.fill();
+// ── CHERRY BLOSSOM ───────────────────────
+function drawCherrySVG(ctx, stage, s) {
+  const h = (16+stage*5)*s, r = (9+stage*4)*s;
+  trunk(ctx, s, '#6a3828', 2, h);
+  // Branch left
+  ctx.strokeStyle = '#7a4838'; ctx.lineWidth = 2*s;
+  ctx.beginPath(); ctx.moveTo(0,-h*0.6); ctx.quadraticCurveTo(-r*0.6,-h*0.8,-r*0.7,-h*0.9); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,-h*0.6); ctx.quadraticCurveTo(r*0.5,-h*0.75,r*0.65,-h*0.88); ctx.stroke();
+  // Blossom clouds
+  const pc = ['#f0b8c8','#f8c8d8','#ffd8e8'];
+  [[-r*0.5,-h-r*0.1],[r*0.45,-h-r*0.15],[0,-h-r*0.4],[-r*0.2,-h-r*0.55],[r*0.25,-h-r*0.48]].forEach(([px,py],i) => {
+    canopyLayer(ctx, s, pc, px, py, r*(0.5-i*0.04), r*(0.42-i*0.03));
+  });
+  // Petals falling
+  if (stage >= 3) {
+    ctx.fillStyle = 'rgba(248,200,216,0.8)';
+    for (let i=0; i<6; i++) {
+      const px = (Math.sin(i*1.1)*r*0.9), py = (-h*0.3 - i*8*s);
+      ctx.save(); ctx.translate(px,py); ctx.rotate(i*0.7);
+      ctx.beginPath(); ctx.ellipse(0,0,3*s,1.5*s,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
   }
 }
+
+// ── DARK PINE ────────────────────────────
+function drawPineSVG(ctx, stage, s) {
+  const layers = Math.min(stage+2,5), h = (12+stage*5)*s;
+  trunk(ctx, s, '#4a2e18', 2, 10*s);
+  for (let i=0; i<layers; i++) {
+    const w=(14-i*2)*s, ly=-h*(0.25+i*0.16);
+    const c = i%2===0?'#1a4a2d':'#206038';
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.moveTo(0, ly-13*s);
+    ctx.lineTo(-w, ly+2*s);
+    ctx.lineTo(w, ly+2*s);
+    ctx.closePath();
+    ctx.fill();
+    // Highlight edge
+    ctx.strokeStyle = 'rgba(50,120,70,0.5)'; ctx.lineWidth = 0.8*s;
+    ctx.beginPath(); ctx.moveTo(0,ly-13*s); ctx.lineTo(-w,ly+2*s); ctx.stroke();
+  }
+  if (stage>=4) {
+    const grd = ctx.createRadialGradient(0,-h-13*s,1,0,-h-13*s,8*s);
+    grd.addColorStop(0,'#f0d080'); grd.addColorStop(1,'rgba(240,208,128,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(0,-h-13*s,8*s,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#f0d080';
+    ctx.beginPath(); ctx.arc(0,-h-13*s,3*s,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── MAPLE ────────────────────────────────
+function drawMapleSVG(ctx, stage, s) {
+  const h=(17+stage*5)*s, r=(10+stage*4)*s;
+  trunk(ctx, s, '#7a4a20', 2.5, h);
+  const mc = ['#b03818','#c84a20','#e05a28'];
+  canopyLayer(ctx, s, mc, 0, -h-r*0.35, r*1.05, r*0.82);
+  canopyLayer(ctx, s, mc, -r*0.5, -h-r*0.1, r*0.68, r*0.6);
+  canopyLayer(ctx, s, mc, r*0.45, -h-r*0.15, r*0.65, r*0.58);
+  // Leaves falling
+  if (stage>=3) {
+    ctx.fillStyle = '#e86028';
+    for (let i=0;i<5;i++) {
+      ctx.save(); ctx.translate(Math.sin(i*1.3)*r*0.8, -h*0.4-i*9*s); ctx.rotate(i*0.6);
+      ctx.beginPath(); ctx.ellipse(0,0,4*s,2*s,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  if (stage>=4) {
+    ctx.fillStyle='rgba(200,80,32,0.15)';
+    ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.6,r*1.15,0,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── BAMBOO ───────────────────────────────
+function drawBambooSVG(ctx, stage, s) {
+  const stalks = Math.min(stage+1,4);
+  const offsets = [0,-6*s,5*s,-3*s];
+  for (let i=0;i<stalks;i++) {
+    const ox=offsets[i], sh=(20+stage*4+i*5)*s;
+    const gc = ctx.createLinearGradient(ox-3*s,0,ox+3*s,0);
+    gc.addColorStop(0,'#4a7a20'); gc.addColorStop(0.5,'#6aa030'); gc.addColorStop(1,'#3a6818');
+    ctx.fillStyle=gc;
+    ctx.beginPath(); ctx.roundRect(ox-2.5*s,-sh,5*s,sh,[3*s]); ctx.fill();
+    // Nodes
+    for (let n=1;n<4;n++) {
+      ctx.fillStyle='#3a6818';
+      ctx.fillRect(ox-3*s,-sh*n*0.28,6*s,2*s);
+    }
+    // Leaves at top
+    ctx.fillStyle='#5a9028';
+    [[-12*s,-2*s],[10*s,-4*s],[-6*s,-8*s]].forEach(([lx,ly]) => {
+      ctx.save(); ctx.translate(ox+lx,-sh+ly); ctx.rotate(lx>0?0.4:-0.4);
+      ctx.beginPath(); ctx.ellipse(0,0,10*s,3*s,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    });
+  }
+}
+
+// ── PALM ─────────────────────────────────
+function drawPalmSVG(ctx, stage, s) {
+  const h=(22+stage*6)*s;
+  // Curved trunk
+  ctx.strokeStyle='#8a6030'; ctx.lineWidth=5*s;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(8*s,-h*0.5,2*s,-h); ctx.stroke();
+  ctx.strokeStyle='#7a5028'; ctx.lineWidth=3*s;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(8*s,-h*0.5,2*s,-h); ctx.stroke();
+  // Fronds
+  const fc = '#3a9030';
+  const fronds=[[-30*s,-15*s,30,0.2],[-15*s,-30*s,60,0.3],[5*s,-32*s,90,0.2],[20*s,-15*s,140,0.15],[25*s,-5*s,160,0.1]];
+  fronds.forEach(([fx,fy,ang,op]) => {
+    ctx.save(); ctx.translate(2*s+fx*0.3,-h+fy*0.3); ctx.rotate(ang*Math.PI/180);
+    ctx.fillStyle=fc;
+    ctx.beginPath(); ctx.ellipse(0,-12*s,4*s,16*s,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+  // Coconuts
+  if (stage>=3) {
+    ctx.fillStyle='#8a6030';
+    [[-4*s,-2*s],[4*s,-5*s],[0,-8*s]].forEach(([cx,cy]) => {
+      ctx.beginPath(); ctx.arc(2*s+cx,-h+cy,3*s,0,Math.PI*2); ctx.fill();
+    });
+  }
+}
+
+// ── CRYSTAL TREE ─────────────────────────
+function drawCrystalTreeSVG(ctx, stage, s) {
+  const h=(20+stage*5)*s;
+  // Glowing trunk
+  const tg = ctx.createLinearGradient(-2*s,0,2*s,0);
+  tg.addColorStop(0,'#5ab8e8'); tg.addColorStop(0.5,'#8ad8f8'); tg.addColorStop(1,'#4aa8d8');
+  ctx.fillStyle=tg;
+  ctx.beginPath(); ctx.roundRect(-2*s,-h,4*s,h,[1*s]); ctx.fill();
+  // Crystal clusters
+  [[0,-h-10*s],[-10*s,-h-5*s],[10*s,-h-7*s],[-6*s,-h-18*s],[6*s,-h-15*s]].forEach(([cx,cy],i) => {
+    const cs=(6+i*2)*s;
+    const cg=ctx.createRadialGradient(cx,cy,1,cx,cy,cs);
+    cg.addColorStop(0,'rgba(200,240,255,0.95)');
+    cg.addColorStop(0.5,'rgba(100,200,240,0.7)');
+    cg.addColorStop(1,'rgba(50,150,200,0.3)');
+    ctx.fillStyle=cg;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(i*0.4);
+    ctx.beginPath();
+    ctx.moveTo(0,-cs); ctx.lineTo(cs*0.6,0); ctx.lineTo(0,cs*0.5); ctx.lineTo(-cs*0.6,0);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
+  // Ambient glow
+  const ag=ctx.createRadialGradient(0,-h-8*s,2,0,-h-8*s,20*s);
+  ag.addColorStop(0,'rgba(120,220,255,0.25)'); ag.addColorStop(1,'rgba(120,220,255,0)');
+  ctx.fillStyle=ag;
+  ctx.beginPath(); ctx.ellipse(0,-h-8*s,20*s,20*s,0,0,Math.PI*2); ctx.fill();
+}
+
+// ── DEADWOOD ─────────────────────────────
+function drawDeadwoodSVG(ctx, stage, s) {
+  const h=(18+stage*4)*s;
+  // Dark gnarled trunk
+  const tg=ctx.createLinearGradient(-4*s,0,4*s,0);
+  tg.addColorStop(0,'#2a1a0a'); tg.addColorStop(0.5,'#3a2a18'); tg.addColorStop(1,'#1a0a00');
+  ctx.fillStyle=tg;
+  ctx.beginPath();
+  ctx.moveTo(-3*s,0); ctx.lineTo(-4*s,-h*0.5); ctx.lineTo(-2*s,-h); ctx.lineTo(2*s,-h); ctx.lineTo(4*s,-h*0.5); ctx.lineTo(3*s,0);
+  ctx.closePath(); ctx.fill();
+  // Dead branches
+  const branchPts=[[-5*s,-h*0.4,-18*s,-h*0.55],[5*s,-h*0.5,18*s,-h*0.62],[-3*s,-h*0.7,-14*s,-h*0.88],[3*s,-h*0.75,14*s,-h*0.9]];
+  ctx.strokeStyle='#2a1a10'; ctx.lineWidth=2.5*s;
+  branchPts.forEach(([x1,y1,x2,y2]) => {
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+  // Eerie glow
+  if (stage>=3) {
+    const eg=ctx.createRadialGradient(0,-h,1,0,-h,14*s);
+    eg.addColorStop(0,'rgba(60,20,80,0.35)'); eg.addColorStop(1,'rgba(60,20,80,0)');
+    ctx.fillStyle=eg;
+    ctx.beginPath(); ctx.ellipse(0,-h,14*s,14*s,0,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── WILLOW ───────────────────────────────
+function drawWillowSVG(ctx, stage, s) {
+  const h=(20+stage*5)*s, r=(12+stage*4)*s;
+  trunk(ctx, s, '#6a7a3a', 2, h);
+  // Main canopy
+  canopyLayer(ctx, s, ['#4a8a2a','#5aa035','#6ab040'], 0,-h-r*0.2,r,r*0.7);
+  // Drooping tendrils
+  const tc='#4a9830';
+  for (let i=0;i<8;i++) {
+    const angle=(i/8)*Math.PI*2;
+    const sx=Math.cos(angle)*r*0.8, sy=-h-r*0.1+Math.sin(angle)*r*0.5;
+    ctx.strokeStyle=tc; ctx.lineWidth=1.5*s;
+    ctx.beginPath(); ctx.moveTo(sx,sy);
+    ctx.quadraticCurveTo(sx*1.1,sy+15*s,sx*0.8,sy+25*s);
+    ctx.stroke();
+  }
+}
+
+// ── MOON BIRCH ───────────────────────────
+function drawMoonBirchSVG(ctx, stage, s) {
+  const h=(22+stage*5)*s, r=(9+stage*4)*s;
+  // White/silver bark trunk
+  const tg=ctx.createLinearGradient(-3*s,0,3*s,0);
+  tg.addColorStop(0,'#b8c8d8'); tg.addColorStop(0.4,'#e8f0f8'); tg.addColorStop(1,'#a8b8c8');
+  ctx.fillStyle=tg;
+  ctx.beginPath(); ctx.roundRect(-2.5*s,-h,5*s,h,[2*s]); ctx.fill();
+  // Bark marks
+  ctx.strokeStyle='rgba(80,100,120,0.4)'; ctx.lineWidth=1*s;
+  for (let i=1;i<4;i++) { ctx.beginPath(); ctx.moveTo(-2*s,-h*i*0.25); ctx.lineTo(2*s,-h*i*0.25); ctx.stroke(); }
+  // Ethereal canopy
+  const mc=['#c8b8e8','#d8c8f0','#e8d8f8'];
+  canopyLayer(ctx, s, mc, 0,-h-r*0.3,r*1.05,r*0.8);
+  canopyLayer(ctx, s, mc, -r*0.4,-h-r*0.1,r*0.65,r*0.55);
+  canopyLayer(ctx, s, mc, r*0.38,-h-r*0.18,r*0.6,r*0.52);
+  // Moon glow
+  const mg=ctx.createRadialGradient(0,-h-r*0.3,r*0.2,0,-h-r*0.3,r*1.3);
+  mg.addColorStop(0,'rgba(200,180,240,0.2)'); mg.addColorStop(1,'rgba(200,180,240,0)');
+  ctx.fillStyle=mg;
+  ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.3,r*1.0,0,0,Math.PI*2); ctx.fill();
+  // Stars
+  if (stage>=3) {
+    ctx.fillStyle='rgba(220,210,255,0.9)';
+    for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(Math.cos(i*1.3)*r*0.7,-h-r*0.3+Math.sin(i*1.3)*r*0.5,1.5*s,0,Math.PI*2);ctx.fill();}
+  }
+}
+
+// ── BONSAI ───────────────────────────────
+function drawBonsaiSVG(ctx, stage, s) {
+  const h=(10+stage*3)*s;
+  // Pot
+  ctx.fillStyle='#c87848';
+  ctx.beginPath(); ctx.roundRect(-8*s,-3*s,16*s,5*s,[2*s]); ctx.fill();
+  ctx.fillStyle='#b86838';
+  ctx.beginPath(); ctx.roundRect(-6*s,-5*s,12*s,3*s,[1*s]); ctx.fill();
+  // Trunk - curved
+  ctx.strokeStyle='#6a4a20'; ctx.lineWidth=4*s;
+  ctx.beginPath(); ctx.moveTo(0,-4*s); ctx.quadraticCurveTo(5*s,-h*0.5,-2*s,-h); ctx.stroke();
+  // Branches
+  ctx.strokeStyle='#5a3a18'; ctx.lineWidth=2*s;
+  ctx.beginPath(); ctx.moveTo(2*s,-h*0.5); ctx.lineTo(-10*s,-h*0.65); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0*s,-h*0.7); ctx.lineTo(10*s,-h*0.8); ctx.stroke();
+  // Canopy pads - classic bonsai look
+  const bc=['#3a7820','#4a9028','#5aa030'];
+  [[-10*s,-h*0.7],[8*s,-h*0.85],[0,-h-4*s],[-4*s,-h*0.92]].forEach(([px,py],i) => {
+    canopyLayer(ctx, s, bc, px, py, (8-i)*s, (5-i)*s);
+  });
+}
+
+// ── SILVER BIRCH ─────────────────────────
+function drawSilverBirchSVG(ctx, stage, s) {
+  const h=(20+stage*5)*s, r=(8+stage*3.5)*s;
+  const tg=ctx.createLinearGradient(-2.5*s,0,2.5*s,0);
+  tg.addColorStop(0,'#c8d8e0'); tg.addColorStop(0.5,'#e8f4f8'); tg.addColorStop(1,'#b8c8d0');
+  ctx.fillStyle=tg;
+  ctx.beginPath(); ctx.roundRect(-2*s,-h,4*s,h,[2*s]); ctx.fill();
+  ctx.fillStyle='rgba(60,80,100,0.3)';
+  for(let i=1;i<5;i++){ctx.beginPath();ctx.ellipse(0,-h*i*0.2,3*s,1*s,0,0,Math.PI*2);ctx.fill();}
+  canopyLayer(ctx, s, ['#b0c8d8','#c8dce8','#d8ecf4'], 0,-h-r*0.3,r,r*0.8);
+  canopyLayer(ctx, s, ['#b0c8d8','#c8dce8','#d8ecf4'], -r*0.4,-h,r*0.6,r*0.55);
+  canopyLayer(ctx, s, ['#b0c8d8','#c8dce8','#d8ecf4'], r*0.38,-h-r*0.1,r*0.55,r*0.5);
+}
+
+// ── EMBER TREE ───────────────────────────
+function drawEmberTreeSVG(ctx, stage, s) {
+  const h=(18+stage*5)*s, r=(9+stage*4)*s;
+  trunk(ctx, s, '#4a2010', 2.5, h);
+  // Scorched canopy
+  canopyLayer(ctx, s, ['#a03010','#c04020','#e05030'], 0,-h-r*0.3,r*1.05,r*0.82);
+  canopyLayer(ctx, s, ['#b03818','#c84828','#e05838'], -r*0.44,-h-r*0.1,r*0.68,r*0.6);
+  canopyLayer(ctx, s, ['#b04020','#c85030','#e06040'], r*0.4,-h-r*0.16,r*0.62,r*0.56);
+  // Ember particles
+  const ep=['#f08020','#f0a030','#f0c040'];
+  for(let i=0;i<8;i++){
+    ctx.fillStyle=ep[i%3];
+    ctx.beginPath();
+    ctx.arc(Math.sin(i*0.8)*r*0.8,-h*0.6-i*12*s,2*s,0,Math.PI*2);
+    ctx.fill();
+  }
+  // Fire glow
+  const fg=ctx.createRadialGradient(0,-h-r*0.3,r*0.2,0,-h-r*0.3,r*1.4);
+  fg.addColorStop(0,'rgba(240,100,30,0.25)'); fg.addColorStop(1,'rgba(240,100,30,0)');
+  ctx.fillStyle=fg;
+  ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.4,r*1.1,0,0,Math.PI*2); ctx.fill();
+}
+
+// ── DARK OAK ─────────────────────────────
+function drawDarkOakSVG(ctx, stage, s) {
+  const h=(18+stage*5)*s, r=(10+stage*4)*s;
+  trunk(ctx, s, '#1a1a28', 2.5, h);
+  canopyLayer(ctx, s, ['#1a1a2a','#282838','#323248'], 0,-h-r*0.3,r*1.1,r*0.85);
+  canopyLayer(ctx, s, ['#1e1e32','#2a2a40','#363650'], -r*0.45,-h-r*0.1,r*0.7,r*0.65);
+  canopyLayer(ctx, s, ['#1e1e32','#2a2a40','#363650'], r*0.4,-h-r*0.18,r*0.65,r*0.6);
+  if(stage>=3){
+    const dg=ctx.createRadialGradient(0,-h-r*0.3,r*0.1,0,-h-r*0.3,r*1.3);
+    dg.addColorStop(0,'rgba(80,60,120,0.2)'); dg.addColorStop(1,'rgba(80,60,120,0)');
+    ctx.fillStyle=dg; ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.3,r,0,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── BLUEBELL TREE ────────────────────────
+function drawBluebellTreeSVG(ctx, stage, s) {
+  const h=(16+stage*5)*s, r=(9+stage*4)*s;
+  trunk(ctx, s, '#6a7ab0', 2, h);
+  canopyLayer(ctx, s, ['#4858c8','#5868d8','#6878e8'], 0,-h-r*0.3,r*1.05,r*0.82);
+  canopyLayer(ctx, s, ['#5060d0','#6070d8','#7080e0'], -r*0.44,-h-r*0.1,r*0.68,r*0.6);
+  canopyLayer(ctx, s, ['#5060d0','#6070d8','#7080e0'], r*0.4,-h-r*0.16,r*0.62,r*0.56);
+  // Tiny bell shapes
+  if(stage>=2){
+    ctx.fillStyle='rgba(180,200,255,0.85)';
+    for(let i=0;i<6;i++){
+      const bx=Math.cos(i)*r*0.7, by=-h-r*0.3+Math.sin(i)*r*0.5;
+      ctx.beginPath(); ctx.arc(bx,by,3*s,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+
+// ── JACARANDA ────────────────────────────
+function drawJacarandaSVG(ctx, stage, s) {
+  const h=(18+stage*5)*s, r=(10+stage*4)*s;
+  trunk(ctx, s, '#8858a8', 2.5, h);
+  const jc=['#6838a8','#8848c8','#9858d8'];
+  canopyLayer(ctx, s, jc, 0,-h-r*0.35,r*1.1,r*0.85);
+  canopyLayer(ctx, s, jc, -r*0.46,-h-r*0.12,r*0.7,r*0.64);
+  canopyLayer(ctx, s, jc, r*0.42,-h-r*0.18,r*0.66,r*0.6);
+  if(stage>=3){
+    ctx.fillStyle='rgba(160,100,220,0.18)';
+    ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.55,r*1.1,0,0,Math.PI*2); ctx.fill();
+    // Petal rain
+    ctx.fillStyle='rgba(170,100,220,0.75)';
+    for(let i=0;i<8;i++){
+      ctx.save(); ctx.translate(Math.sin(i*0.9)*r*0.9,-h*0.4-i*10*s); ctx.rotate(i*0.5);
+      ctx.beginPath(); ctx.ellipse(0,0,3.5*s,2*s,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+// ── FLOWER ───────────────────────────────
+function drawFlowerSVG(ctx, stage, s, tileW, ft) {
+  drawShadow(ctx, tileW, 0.22, 0.07);
+  const stemH=(10+stage*4)*s, petalR=(4+stage*1.8)*s;
+  const petals=Math.min(5+stage,8);
+  ctx.strokeStyle='#2d7a2d'; ctx.lineWidth=2*s;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-stemH); ctx.stroke();
+  if(stage>1){
+    ctx.fillStyle='#2d8a2d';
+    ctx.save(); ctx.translate(-5*s,-stemH*0.5); ctx.rotate(-0.5);
+    ctx.beginPath(); ctx.ellipse(0,0,5*s,2.5*s,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  const pc=ft.color;
+  for(let i=0;i<petals;i++){
+    const angle=(i/petals)*Math.PI*2;
+    const pg=ctx.createRadialGradient(0,-petalR*0.6,0,0,-petalR*0.6,petalR);
+    pg.addColorStop(0,pc[2]); pg.addColorStop(1,pc[0]);
+    ctx.fillStyle=pg;
+    ctx.save(); ctx.translate(0,-stemH); ctx.rotate(angle);
+    ctx.beginPath(); ctx.ellipse(0,-petalR,petalR*0.45,petalR,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  const cg=ctx.createRadialGradient(0,-stemH,0,0,-stemH,petalR*0.45);
+  cg.addColorStop(0,ft.center==='#f0c020'?'#f8e040':ft.center);
+  cg.addColorStop(1,ft.center);
+  ctx.fillStyle=cg;
+  ctx.beginPath(); ctx.arc(0,-stemH,petalR*0.4,0,Math.PI*2); ctx.fill();
+}
+
+// ── MUSHROOM ─────────────────────────────
+function drawMushroomSVG(ctx, stage, s, tileW, mt) {
+  drawShadow(ctx, tileW, 0.3, 0.1);
+  const stemH=(8+stage*3)*s, capW=(10+stage*4)*s, capH=(7+stage*3)*s;
+  // Stem
+  const sg=ctx.createLinearGradient(-capW*0.4,0,capW*0.4,0);
+  sg.addColorStop(0,'#c8b890'); sg.addColorStop(0.5,'#dccca8'); sg.addColorStop(1,'#b8a880');
+  ctx.fillStyle=sg;
+  ctx.beginPath(); ctx.ellipse(0,-stemH*0.35,capW*0.38,stemH*0.65,0,0,Math.PI*2); ctx.fill();
+  // Cap
+  const cg=ctx.createRadialGradient(0,-stemH-capH*0.3,capH*0.1,0,-stemH,capW);
+  cg.addColorStop(0,shadeColor(mt.color,30)); cg.addColorStop(0.5,mt.color); cg.addColorStop(1,shadeColor(mt.color,-20));
+  ctx.fillStyle=cg;
+  ctx.beginPath(); ctx.ellipse(0,-stemH,capW,capH,0,0,Math.PI*2); ctx.fill();
+  // Lighter top
+  ctx.fillStyle=shadeColor(mt.color,50);
+  ctx.beginPath(); ctx.ellipse(0,-stemH-capH*0.25,capW*0.65,capH*0.45,0,0,Math.PI*2); ctx.fill();
+  // Spots
+  if(stage>=2){
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    [[-capW*0.3,-stemH-capH*0.1],[capW*0.28,-stemH-capH*0.28],[0,-stemH-capH*0.42]].forEach(([wx,wy])=>{
+      ctx.beginPath(); ctx.arc(wx,wy,2.5*s,0,Math.PI*2); ctx.fill();
+    });
+  }
+  // Glow
+  if(mt.glow){
+    const gg=ctx.createRadialGradient(0,-stemH,capH*0.2,0,-stemH,capW*1.5);
+    gg.addColorStop(0,mt.glow); gg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=gg; ctx.beginPath(); ctx.ellipse(0,-stemH,capW*1.5,capW*1.1,0,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── FERN ─────────────────────────────────
+function drawFern(ctx, stage, s, tileW, giant) {
+  drawShadow(ctx, tileW, 0.28, 0.09);
+  const sc=giant?1.6:1, nh=(12+stage*3)*s*sc;
+  const fronds=[[-8*s,0.7,15*s],[-4*s,0.85,12*s],[0,1,13*s],[4*s,0.85,12*s],[8*s,0.7,11*s]];
+  fronds.forEach(([ox,sh,fl])=>{
+    ctx.strokeStyle='#3a7820'; ctx.lineWidth=1.5*s*sc;
+    ctx.beginPath(); ctx.moveTo(ox,0); ctx.quadraticCurveTo(ox*1.5,-nh*sh*0.6,ox*0.5,-nh*sh); ctx.stroke();
+    // Pinnae
+    for(let i=1;i<5;i++){
+      const t=i/5, px=ox+(ox*0.5-ox)*t, py=-nh*sh*t*0.9;
+      ctx.fillStyle=i%2===0?'#4a9030':'#3a8020';
+      ctx.save(); ctx.translate(px,py); ctx.rotate(ox>0?0.5:-0.5);
+      ctx.beginPath(); ctx.ellipse(0,0,fl*s*0.4*sc,fl*s*0.18*sc,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  });
+}
+
+// ── MOON LILY ────────────────────────────
+function drawMoonLily(ctx, stage, s, tileW) {
+  drawShadow(ctx, tileW, 0.2, 0.07);
+  const stemH=(12+stage*3)*s;
+  ctx.strokeStyle='#3a5a4a'; ctx.lineWidth=2*s;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-stemH); ctx.stroke();
+  const petals=6, pr=(7+stage*2)*s;
+  for(let i=0;i<petals;i++){
+    const angle=(i/petals)*Math.PI*2;
+    const lg=ctx.createLinearGradient(0,0,0,-pr*1.5);
+    lg.addColorStop(0,'rgba(200,220,255,0.9)'); lg.addColorStop(1,'rgba(220,240,255,0.6)');
+    ctx.fillStyle=lg;
+    ctx.save(); ctx.translate(0,-stemH); ctx.rotate(angle);
+    ctx.beginPath(); ctx.ellipse(0,-pr,pr*0.4,pr,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  const mg=ctx.createRadialGradient(0,-stemH,0,0,-stemH,pr*1.2);
+  mg.addColorStop(0,'rgba(200,220,255,0.3)'); mg.addColorStop(1,'rgba(200,220,255,0)');
+  ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(0,-stemH,pr*1.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(240,240,200,0.95)';
+  ctx.beginPath(); ctx.arc(0,-stemH,pr*0.35,0,Math.PI*2); ctx.fill();
+}
+
+// ── CRYSTAL SHARD ────────────────────────
+function drawCrystalShard(ctx, stage, s, tileW) {
+  drawShadow(ctx, tileW, 0.25, 0.08);
+  const shards=[[0,-(15+stage*4)*s,8*s],[-6*s,-(10+stage*3)*s,5*s],[6*s,-(11+stage*3)*s,5.5*s]];
+  shards.forEach(([sx,sy,sw])=>{
+    const sg=ctx.createLinearGradient(sx-sw,sy,sx+sw,sy);
+    sg.addColorStop(0,'rgba(160,220,255,0.8)'); sg.addColorStop(0.5,'rgba(200,240,255,0.95)'); sg.addColorStop(1,'rgba(120,200,240,0.7)');
+    ctx.fillStyle=sg;
+    ctx.beginPath();
+    ctx.moveTo(sx,sy); ctx.lineTo(sx+sw*0.7,sy+sw); ctx.lineTo(sx,sy+sw*2); ctx.lineTo(sx-sw*0.7,sy+sw);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(180,230,255,0.8)'; ctx.lineWidth=1*s;
+    ctx.stroke();
+  });
+  const cg=ctx.createRadialGradient(0,-(15+stage*4)*s,1,0,-(12+stage*3)*s,10*s);
+  cg.addColorStop(0,'rgba(160,220,255,0.25)'); cg.addColorStop(1,'rgba(160,220,255,0)');
+  ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(0,-(12+stage*3)*s,10*s,0,Math.PI*2); ctx.fill();
+}
+
+
 
 function forestAddTestPlants() {
   // Forest starts empty — grows from real reading
