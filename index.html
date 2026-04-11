@@ -2669,7 +2669,7 @@ function updateForestNav() {
 }
 window.updateForestNav = updateForestNav;
 
-function renderForestFull() {
+async function renderForestFull() {
   const canvas = document.getElementById('forest-full-canvas');
   if (!canvas) return;
   const W = canvas.offsetWidth || 400;
@@ -2677,10 +2677,10 @@ function renderForestFull() {
   canvas.height = 420 * window.devicePixelRatio;
   const ctx = canvas.getContext('2d');
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  drawIsland(ctx, W, 420, forestIslandIdx, true);
+  await drawIslandAsync(ctx, W, 420, forestIslandIdx, true);
 }
 
-function renderForest() {
+async function renderForest() {
   // Update coins display
   const coins = parseInt(localStorage.getItem('bs_coins') || '0');
   ['forest-coins','forest-coins-full'].forEach(id => {
@@ -2696,720 +2696,665 @@ function renderForest() {
   canvas.height = 160 * window.devicePixelRatio;
   const ctx = canvas.getContext('2d');
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  drawIsland(ctx, W, 160, 0, false);
+  await drawIslandAsync(ctx, W, 160, 0, false);
 }
 
-function drawIsland(ctx, W, H, islandIdx, full) {
+// ═══════════════════════════════════════════════════════════
+// READWOOD FOREST — SVG Sprite System
+// Each plant is a real SVG, rendered via drawImage onto canvas
+// ═══════════════════════════════════════════════════════════
+
+const SVG_CACHE = {};
+
+function makeSVG(w, h, content) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${content}</svg>`;
+}
+
+function svgToImage(svgStr) {
+  return new Promise(resolve => {
+    const blob = new Blob([svgStr], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.src = url;
+  });
+}
+
+async function getPlantImage(type, stage, addedAt) {
+  const key = type + '_' + stage;
+  if (SVG_CACHE[key]) return SVG_CACHE[key];
+  const svgStr = buildPlantSVG(type, stage, addedAt);
+  if (!svgStr) return null;
+  const img = await svgToImage(svgStr);
+  SVG_CACHE[key] = img;
+  return img;
+}
+
+// ── SVG DEFINITIONS ──────────────────────────────────────
+
+function buildPlantSVG(type, stage, addedAt) {
+  const sz = 120; // base canvas size for SVG
+  switch(type) {
+    case 'oak':         return svgOak(sz, stage);
+    case 'cherry':      return svgCherry(sz, stage);
+    case 'pine':        return svgPine(sz, stage);
+    case 'maple':       return svgMaple(sz, stage);
+    case 'bamboo':      return svgBamboo(sz, stage);
+    case 'palm':        return svgPalm(sz, stage);
+    case 'crystal':     return svgCrystalTree(sz, stage);
+    case 'deadwood':    return svgDeadwood(sz, stage);
+    case 'willow':      return svgWillow(sz, stage);
+    case 'moonbirch':   return svgMoonBirch(sz, stage);
+    case 'bonsai':      return svgBonsai(sz, stage);
+    case 'silverbirch': return svgSilverBirch(sz, stage);
+    case 'ember':       return svgEmberTree(sz, stage);
+    case 'darkoak':     return svgDarkOak(sz, stage);
+    case 'bluebell':    return svgBluebellTree(sz, stage);
+    case 'jacaranda':   return svgJacaranda(sz, stage);
+    case 'mushroom':    return svgMushroom(sz, stage, '#b8824a', '#d4a060', null);
+    case 'glowmushroom':return svgMushroom(sz, stage, '#3a9a60', '#50c880', 'rgba(50,180,100,0.5)');
+    case 'ancientmush': return svgMushroom(sz, stage, '#7848a8', '#9860c0', 'rgba(120,80,180,0.5)');
+    case 'embermushroom':return svgMushroom(sz, stage, '#c04020', '#e05830', 'rgba(220,80,40,0.6)');
+    case 'fern':        return svgFern(sz, stage, false);
+    case 'giantfern':   return svgFern(sz, stage, true);
+    case 'moonlily':    return svgMoonLily(sz, stage);
+    case 'crystalshard':return svgCrystalShard(sz, stage);
+    case 'flower':
+    default:
+      if (type === 'flower') {
+        const d = new Date(addedAt||Date.now());
+        const idx = (d.getDay() + Math.floor(d.getTime()/(7*86400000))) % FLOWER_SVGS.length;
+        return FLOWER_SVGS[idx](sz, stage);
+      }
+      const fsvg = FLOWER_SVG_MAP[type];
+      return fsvg ? fsvg(sz, stage) : svgOak(sz, stage);
+  }
+}
+
+// ── OAK ─────────────────────────────────────────────────
+function svgOak(sz, st) {
+  const h = 40 + st*10, r = 28 + st*6, cx = sz/2, base = sz-10;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="oc" cx="40%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#6abf3a"/>
+        <stop offset="60%" stop-color="#4a9020"/>
+        <stop offset="100%" stop-color="#2d6010"/>
+      </radialGradient>
+      <radialGradient id="oc2" cx="40%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#58b030"/>
+        <stop offset="100%" stop-color="#2a5810"/>
+      </radialGradient>
+      <linearGradient id="otr" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#5a3810"/>
+        <stop offset="50%" stop-color="#8a5828"/>
+        <stop offset="100%" stop-color="#4a2808"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="22" ry="7" fill="rgba(0,0,0,0.2)"/>
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="url(#otr)"/>
+    <ellipse cx="${cx-r*0.35}" cy="${base-h-r*0.15}" rx="${r*0.72}" ry="${r*0.65}" fill="url(#oc2)"/>
+    <ellipse cx="${cx+r*0.3}" cy="${base-h-r*0.2}" rx="${r*0.68}" ry="${r*0.62}" fill="url(#oc2)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.5}" rx="${r*0.85}" ry="${r*0.78}" fill="url(#oc)"/>
+    ${st>=4 ? `<ellipse cx="${cx}" cy="${base-h-r*0.5}" rx="${r*1.1}" ry="${r*0.95}" fill="rgba(240,208,128,0.12)"/>
+    <circle cx="${cx-r*0.4}" cy="${base-h-r*0.1}" r="3" fill="#c9a830"/>
+    <circle cx="${cx+r*0.35}" cy="${base-h-r*0.25}" r="2.5" fill="#c9a830"/>` : ''}
+    <ellipse cx="${cx}" cy="${base-h-r*0.55}" rx="${r*0.4}" ry="${r*0.3}" fill="rgba(255,255,255,0.08)"/>
+  `);
+}
+
+// ── CHERRY BLOSSOM ──────────────────────────────────────
+function svgCherry(sz, st) {
+  const cx = sz/2, base = sz-10, h = 38+st*8, r = 26+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="cc" cx="45%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#ffd8e8"/>
+        <stop offset="50%" stop-color="#f0a8c0"/>
+        <stop offset="100%" stop-color="#d87898"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="20" ry="6" fill="rgba(0,0,0,0.18)"/>
+    <path d="M${cx} ${base} Q${cx+8} ${base-h*0.5} ${cx+2} ${base-h}" stroke="#7a4838" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M${cx+2} ${base-h*0.5} Q${cx-r*0.7} ${base-h*0.65} ${cx-r*0.75} ${base-h*0.8}" stroke="#8a5848" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M${cx+2} ${base-h*0.55} Q${cx+r*0.6} ${base-h*0.7} ${cx+r*0.65} ${base-h*0.82}" stroke="#8a5848" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="${cx-r*0.5}" cy="${base-h-r*0.1}" rx="${r*0.62}" ry="${r*0.55}" fill="url(#cc)"/>
+    <ellipse cx="${cx+r*0.45}" cy="${base-h-r*0.15}" rx="${r*0.6}" ry="${r*0.52}" fill="url(#cc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.45}" rx="${r*0.75}" ry="${r*0.68}" fill="url(#cc)"/>
+    <ellipse cx="${cx-r*0.2}" cy="${base-h-r*0.58}" rx="${r*0.5}" ry="${r*0.45}" fill="#ffeaf4"/>
+    ${st>=3 ? [0,1,2,3,4,5].map(i=>`<ellipse cx="${cx+Math.sin(i*1.1)*r*0.85}" cy="${base-h*0.35-i*9}" rx="4" ry="2.5" fill="rgba(248,192,216,0.85)" transform="rotate(${i*25} ${cx+Math.sin(i*1.1)*r*0.85} ${base-h*0.35-i*9})"/>`).join('') : ''}
+  `);
+}
+
+// ── DARK PINE ───────────────────────────────────────────
+function svgPine(sz, st) {
+  const cx = sz/2, base = sz-10, h = 45+st*10;
+  const layers = Math.min(st+3, 6);
+  let tris = '';
+  for(let i=0;i<layers;i++){
+    const w=32-i*3.5, ly=base-h*(0.2+i*0.14);
+    const c = i%2===0?'#1a5028':'#226038';
+    const lc = i%2===0?'rgba(40,120,70,0.6)':'rgba(50,140,80,0.5)';
+    tris += `<polygon points="${cx},${ly-16} ${cx-w},${ly+4} ${cx+w},${ly+4}" fill="${c}"/>`;
+    tris += `<line x1="${cx}" y1="${ly-16}" x2="${cx-w}" y2="${ly+4}" stroke="${lc}" stroke-width="1.2"/>`;
+  }
+  return makeSVG(sz, sz, `
+    <ellipse cx="${cx}" cy="${base}" rx="18" ry="6" fill="rgba(0,0,0,0.2)"/>
+    <rect x="${cx-4}" y="${base-14}" width="8" height="14" rx="3" fill="#4a2e18"/>
+    ${tris}
+    ${st>=4 ? `<radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f8e880"/><stop offset="100%" stop-color="rgba(240,208,128,0)"/></radialGradient>
+    <ellipse cx="${cx}" cy="${base-h-14}" rx="12" ry="12" fill="url(#sg)"/>
+    <circle cx="${cx}" cy="${base-h-14}" r="4" fill="#f0d080"/>` : ''}
+  `);
+}
+
+// ── MAPLE ───────────────────────────────────────────────
+function svgMaple(sz, st) {
+  const cx = sz/2, base = sz-10, h = 38+st*9, r = 27+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="mc" cx="40%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#f07030"/>
+        <stop offset="55%" stop-color="#c84820"/>
+        <stop offset="100%" stop-color="#902810"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="22" ry="7" fill="rgba(0,0,0,0.2)"/>
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="#7a4a20"/>
+    <ellipse cx="${cx-r*0.38}" cy="${base-h-r*0.15}" rx="${r*0.7}" ry="${r*0.63}" fill="url(#mc)"/>
+    <ellipse cx="${cx+r*0.32}" cy="${base-h-r*0.2}" rx="${r*0.66}" ry="${r*0.6}" fill="url(#mc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.48}" rx="${r*0.82}" ry="${r*0.75}" fill="url(#mc)"/>
+    ${st>=3 ? [0,1,2,3,4].map(i=>`<ellipse cx="${cx+Math.sin(i*1.3)*r*0.85}" cy="${base-h*0.4-i*9}" rx="4.5" ry="2.5" fill="#e86028" opacity="0.9" transform="rotate(${i*30} ${cx} ${base})"/>`).join('') : ''}
+    <ellipse cx="${cx}" cy="${base-h-r*0.5}" rx="${r*0.38}" ry="${r*0.28}" fill="rgba(255,255,255,0.1)"/>
+  `);
+}
+
+// ── BAMBOO ──────────────────────────────────────────────
+function svgBamboo(sz, st) {
+  const base = sz-10;
+  const stalks = Math.min(st+1,4);
+  const oxs = [sz/2, sz/2-10, sz/2+10, sz/2-5];
+  let content = '';
+  for(let i=0;i<stalks;i++){
+    const ox=oxs[i], sh=30+st*8+i*6;
+    content += `
+      <rect x="${ox-5}" y="${base-sh}" width="10" height="${sh}" rx="5" fill="url(#bg${i})"/>
+      ${[1,2,3].map(n=>`<rect x="${ox-6}" y="${base-sh*n*0.3}" width="12" height="3" rx="1.5" fill="#386018"/>`).join('')}
+      ${[-14,10,-7].map((lx,li)=>`<ellipse cx="${ox+lx}" cy="${base-sh+li*8}" rx="12" ry="3.5" fill="#5a9028" transform="rotate(${lx>0?25:-25} ${ox+lx} ${base-sh+li*8})"/>`).join('')}
+    `;
+  }
+  let defs = '';
+  for(let i=0;i<stalks;i++) defs += `<linearGradient id="bg${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4a7a20"/><stop offset="50%" stop-color="#6aa030"/><stop offset="100%" stop-color="#386018"/></linearGradient>`;
+  return makeSVG(sz, sz, `<defs>${defs}</defs><ellipse cx="${sz/2}" cy="${base}" rx="24" ry="7" fill="rgba(0,0,0,0.18)"/>${content}`);
+}
+
+// ── PALM ────────────────────────────────────────────────
+function svgPalm(sz, st) {
+  const cx = sz/2, base = sz-10, h = 48+st*10;
+  const fronds = [
+    [-30,-18,30],[-14,-30,60],[4,-32,95],[20,-16,140],[26,-6,162]
+  ];
+  return makeSVG(sz, sz, `
+    <defs>
+      <linearGradient id="ptr" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stop-color="#7a5828"/>
+        <stop offset="100%" stop-color="#9a7038"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="16" ry="5" fill="rgba(0,0,0,0.18)"/>
+    <path d="M${cx} ${base} Q${cx+10} ${base-h*0.5} ${cx+3} ${base-h}" stroke="url(#ptr)" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M${cx} ${base} Q${cx+10} ${base-h*0.5} ${cx+3} ${base-h}" stroke="#b89048" stroke-width="4" fill="none" stroke-linecap="round"/>
+    ${fronds.map(([fx,fy,ang])=>`<ellipse cx="${cx+3+fx*0.4}" cy="${base-h+fy*0.4}" rx="5" ry="18" fill="#3a9030" transform="rotate(${ang} ${cx+3+fx*0.4} ${base-h+fy*0.4})"/>`).join('')}
+    ${st>=3?`<circle cx="${cx}" cy="${base-h+2}" r="4" fill="#8a6030"/>
+    <circle cx="${cx+6}" cy="${base-h+5}" r="3.5" fill="#7a5020"/>
+    <circle cx="${cx-5}" cy="${base-h+4}" r="3.5" fill="#8a6030"/>`:''}
+  `);
+}
+
+// ── CRYSTAL TREE ────────────────────────────────────────
+function svgCrystalTree(sz, st) {
+  const cx = sz/2, base = sz-10, h = 40+st*9;
+  const crystals = [[cx,base-h-18,10],[cx-16,base-h-8,7],[cx+14,base-h-10,8],[cx-8,base-h-25,6],[cx+10,base-h-22,7]];
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="cg" cx="50%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="rgba(200,245,255,0.95)"/>
+        <stop offset="50%" stop-color="rgba(100,210,245,0.7)"/>
+        <stop offset="100%" stop-color="rgba(50,160,210,0.3)"/>
+      </radialGradient>
+      <filter id="cglow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="18" ry="6" fill="rgba(0,0,0,0.18)"/>
+    <rect x="${cx-3}" y="${base-h}" width="6" height="${h}" rx="3" fill="rgba(150,220,255,0.8)"/>
+    <ellipse cx="${cx}" cy="${base-h-8}" rx="18" ry="18" fill="rgba(120,210,255,0.15)" filter="url(#cglow)"/>
+    ${crystals.map(([ccx,ccy,cr])=>`<polygon points="${ccx},${ccy-cr*1.8} ${ccx+cr*0.7},${ccy} ${ccx},${ccy+cr*0.7} ${ccx-cr*0.7},${ccy}" fill="url(#cg)" stroke="rgba(180,240,255,0.8)" stroke-width="0.8"/>`).join('')}
+  `);
+}
+
+// ── DEADWOOD ─────────────────────────────────────────────
+function svgDeadwood(sz, st) {
+  const cx = sz/2, base = sz-10, h = 40+st*8;
+  return makeSVG(sz, sz, `
+    <defs>
+      <linearGradient id="dtr" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#1a1008"/>
+        <stop offset="50%" stop-color="#2e2018"/>
+        <stop offset="100%" stop-color="#120800"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="20" ry="6" fill="rgba(0,0,0,0.25)"/>
+    <path d="M${cx-4} ${base} L${cx-5} ${base-h*0.5} L${cx-3} ${base-h}" stroke="url(#dtr)" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M${cx+4} ${base} L${cx+5} ${base-h*0.5} L${cx+3} ${base-h}" stroke="url(#dtr)" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <line x1="${cx-4}" y1="${base-h*0.4}" x2="${cx-22}" y2="${base-h*0.56}" stroke="#241408" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="${cx+4}" y1="${base-h*0.5}" x2="${cx+22}" y2="${base-h*0.63}" stroke="#241408" stroke-width="3" stroke-linecap="round"/>
+    <line x1="${cx-3}" y1="${base-h*0.7}" x2="${cx-16}" y2="${base-h*0.88}" stroke="#1e1008" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="${cx+3}" y1="${base-h*0.72}" x2="${cx+16}" y2="${base-h*0.9}" stroke="#1e1008" stroke-width="2.5" stroke-linecap="round"/>
+    ${st>=3?`<ellipse cx="${cx}" cy="${base-h}" rx="14" ry="14" fill="rgba(70,20,100,0.2)"/>`:''}
+  `);
+}
+
+// ── WILLOW ──────────────────────────────────────────────
+function svgWillow(sz, st) {
+  const cx = sz/2, base = sz-10, h = 42+st*9, r = 28+st*5;
+  let tendrils = '';
+  for(let i=0;i<8;i++){
+    const ang=(i/8)*Math.PI*2;
+    const sx=cx+Math.cos(ang)*r*0.75, sy=base-h-r*0.1+Math.sin(ang)*r*0.45;
+    tendrils += `<path d="M${sx} ${sy} Q${sx*1.05} ${sy+18} ${sx*0.9} ${sy+30}" stroke="#3a9020" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+  }
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="wc" cx="45%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#6ac040"/>
+        <stop offset="100%" stop-color="#3a8020"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="22" ry="7" fill="rgba(0,0,0,0.2)"/>
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="#6a7a3a"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.25}" rx="${r*0.95}" ry="${r*0.72}" fill="url(#wc)"/>
+    ${tendrils}
+  `);
+}
+
+// ── MOON BIRCH ──────────────────────────────────────────
+function svgMoonBirch(sz, st) {
+  const cx = sz/2, base = sz-10, h = 42+st*9, r = 26+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <linearGradient id="mbt" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#c0d0e0"/>
+        <stop offset="50%" stop-color="#eef4f8"/>
+        <stop offset="100%" stop-color="#a8b8c8"/>
+      </linearGradient>
+      <radialGradient id="mbc" cx="45%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#e8d8f8"/>
+        <stop offset="60%" stop-color="#c8b0e8"/>
+        <stop offset="100%" stop-color="#a890d0"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="20" ry="6" fill="rgba(0,0,0,0.18)"/>
+    <rect x="${cx-4.5}" y="${base-h}" width="9" height="${h}" rx="4" fill="url(#mbt)"/>
+    ${[1,2,3,4].map(i=>`<line x1="${cx-5}" y1="${base-h*i*0.22}" x2="${cx+5}" y2="${base-h*i*0.22}" stroke="rgba(80,100,130,0.4)" stroke-width="1.5"/>`).join('')}
+    <ellipse cx="${cx-r*0.38}" cy="${base-h-r*0.12}" rx="${r*0.68}" ry="${r*0.6}" fill="url(#mbc)"/>
+    <ellipse cx="${cx+r*0.33}" cy="${base-h-r*0.18}" rx="${r*0.63}" ry="${r*0.57}" fill="url(#mbc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.46}" rx="${r*0.82}" ry="${r*0.75}" fill="url(#mbc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.5}" rx="${r*1.15}" ry="${r*1.0}" fill="rgba(200,180,240,0.15)"/>
+    ${st>=3?[0,1,2,3,4].map(i=>`<circle cx="${cx+Math.cos(i*1.3)*r*0.65}" cy="${base-h-r*0.35+Math.sin(i*1.3)*r*0.45}" r="1.8" fill="rgba(230,215,255,0.9)"/>`).join(''):''}
+  `);
+}
+
+// ── BONSAI ──────────────────────────────────────────────
+function svgBonsai(sz, st) {
+  const cx = sz/2, base = sz-14;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="bc" cx="45%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#70b040"/>
+        <stop offset="100%" stop-color="#3a7020"/>
+      </radialGradient>
+    </defs>
+    <rect x="${cx-14}" y="${base-5}" width="28" height="8" rx="3" fill="#c07848"/>
+    <rect x="${cx-10}" y="${base-9}" width="20" height="5" rx="2" fill="#b06838"/>
+    <path d="M${cx} ${base-8} Q${cx+8} ${base-22} ${cx-3} ${base-34}" stroke="#6a4a20" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <line x1="${cx+2}" y1="${base-20}" x2="${cx-16}" y2="${base-27}" stroke="#5a3a18" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${base-26}" x2="${cx+16}" y2="${base-32}" stroke="#5a3a18" stroke-width="2" stroke-linecap="round"/>
+    <ellipse cx="${cx-14}" cy="${base-28}" rx="12" ry="9" fill="url(#bc)"/>
+    <ellipse cx="${cx+12}" cy="${base-32}" rx="10" ry="8" fill="url(#bc)"/>
+    <ellipse cx="${cx-3}" cy="${base-38}" rx="13" ry="9" fill="url(#bc)"/>
+  `);
+}
+
+// ── SILVER BIRCH ────────────────────────────────────────
+function svgSilverBirch(sz, st) {
+  const cx = sz/2, base = sz-10, h = 42+st*9, r = 24+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <linearGradient id="sbt" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#c8d8e8"/>
+        <stop offset="50%" stop-color="#ecf4f8"/>
+        <stop offset="100%" stop-color="#b8c8d8"/>
+      </linearGradient>
+      <radialGradient id="sbc" cx="45%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#d8ecf4"/>
+        <stop offset="100%" stop-color="#a8c8d8"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="18" ry="6" fill="rgba(0,0,0,0.18)"/>
+    <rect x="${cx-4}" y="${base-h}" width="8" height="${h}" rx="4" fill="url(#sbt)"/>
+    ${[1,2,3,4].map(i=>`<ellipse cx="${cx}" cy="${base-h*i*0.2}" rx="5" ry="2" fill="rgba(60,80,100,0.3)"/>`).join('')}
+    <ellipse cx="${cx-r*0.36}" cy="${base-h-r*0.12}" rx="${r*0.66}" ry="${r*0.58}" fill="url(#sbc)"/>
+    <ellipse cx="${cx+r*0.32}" cy="${base-h-r*0.18}" rx="${r*0.62}" ry="${r*0.55}" fill="url(#sbc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.44}" rx="${r*0.8}" ry="${r*0.72}" fill="url(#sbc)"/>
+  `);
+}
+
+// ── EMBER TREE ──────────────────────────────────────────
+function svgEmberTree(sz, st) {
+  const cx = sz/2, base = sz-10, h = 38+st*9, r = 26+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="ec" cx="40%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#f07030"/>
+        <stop offset="55%" stop-color="#c04020"/>
+        <stop offset="100%" stop-color="#801808"/>
+      </radialGradient>
+      <filter id="eglow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="22" ry="7" fill="rgba(0,0,0,0.22)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.4}" rx="${r*1.3}" ry="${r*1.05}" fill="rgba(240,80,20,0.18)" filter="url(#eglow)"/>
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="#4a2010"/>
+    <ellipse cx="${cx-r*0.38}" cy="${base-h-r*0.15}" rx="${r*0.7}" ry="${r*0.63}" fill="url(#ec)"/>
+    <ellipse cx="${cx+r*0.32}" cy="${base-h-r*0.2}" rx="${r*0.65}" ry="${r*0.59}" fill="url(#ec)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.48}" rx="${r*0.82}" ry="${r*0.76}" fill="url(#ec)"/>
+    ${[0,1,2,3,4,5,6,7].map(i=>`<circle cx="${cx+Math.sin(i*0.8)*r*0.82}" cy="${base-h*0.55-i*10}" r="2.5" fill="${['#f08020','#f0a030','#f0c040'][i%3]}" opacity="0.88"/>`).join('')}
+  `);
+}
+
+// ── DARK OAK ────────────────────────────────────────────
+function svgDarkOak(sz, st) {
+  const cx = sz/2, base = sz-10, h = 38+st*9, r = 27+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="doc" cx="40%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#3a3a52"/>
+        <stop offset="60%" stop-color="#22223a"/>
+        <stop offset="100%" stop-color="#10101e"/>
+      </radialGradient>
+      <filter id="dglow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="22" ry="7" fill="rgba(0,0,0,0.3)"/>
+    ${st>=3?`<ellipse cx="${cx}" cy="${base-h-r*0.4}" rx="${r*1.2}" ry="${r*0.95}" fill="rgba(80,60,130,0.18)" filter="url(#dglow)"/>`:''}
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="#1a1a2a"/>
+    <ellipse cx="${cx-r*0.38}" cy="${base-h-r*0.15}" rx="${r*0.7}" ry="${r*0.63}" fill="url(#doc)"/>
+    <ellipse cx="${cx+r*0.32}" cy="${base-h-r*0.2}" rx="${r*0.65}" ry="${r*0.59}" fill="url(#doc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.48}" rx="${r*0.82}" ry="${r*0.76}" fill="url(#doc)"/>
+  `);
+}
+
+// ── BLUEBELL TREE ───────────────────────────────────────
+function svgBluebellTree(sz, st) {
+  const cx = sz/2, base = sz-10, h = 36+st*8, r = 25+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="blc" cx="45%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="#8090f8"/>
+        <stop offset="60%" stop-color="#5060d8"/>
+        <stop offset="100%" stop-color="#3040a0"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="20" ry="6" fill="rgba(0,0,0,0.2)"/>
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="#5060a8"/>
+    <ellipse cx="${cx-r*0.38}" cy="${base-h-r*0.13}" rx="${r*0.68}" ry="${r*0.61}" fill="url(#blc)"/>
+    <ellipse cx="${cx+r*0.32}" cy="${base-h-r*0.18}" rx="${r*0.63}" ry="${r*0.57}" fill="url(#blc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.45}" rx="${r*0.8}" ry="${r*0.73}" fill="url(#blc)"/>
+    ${st>=2?[0,1,2,3,4,5].map(i=>`<circle cx="${cx+Math.cos(i)*r*0.65}" cy="${base-h-r*0.3+Math.sin(i)*r*0.45}" r="3.5" fill="rgba(180,200,255,0.85)"/>`).join(''):''}
+  `);
+}
+
+// ── JACARANDA ───────────────────────────────────────────
+function svgJacaranda(sz, st) {
+  const cx = sz/2, base = sz-10, h = 38+st*9, r = 27+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="jc" cx="40%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="#c080f0"/>
+        <stop offset="55%" stop-color="#9050c8"/>
+        <stop offset="100%" stop-color="#6030a0"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="22" ry="7" fill="rgba(0,0,0,0.2)"/>
+    <rect x="${cx-5}" y="${base-h}" width="10" height="${h}" rx="4" fill="#7848a0"/>
+    <ellipse cx="${cx-r*0.4}" cy="${base-h-r*0.13}" rx="${r*0.7}" ry="${r*0.63}" fill="url(#jc)"/>
+    <ellipse cx="${cx+r*0.34}" cy="${base-h-r*0.18}" rx="${r*0.66}" ry="${r*0.59}" fill="url(#jc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.48}" rx="${r*0.84}" ry="${r*0.77}" fill="url(#jc)"/>
+    <ellipse cx="${cx}" cy="${base-h-r*0.5}" rx="${r*1.15}" ry="${r*0.95}" fill="rgba(180,120,240,0.16)"/>
+    ${st>=3?[0,1,2,3,4,5,6,7].map(i=>`<ellipse cx="${cx+Math.sin(i*0.9)*r*0.88}" cy="${base-h*0.38-i*9.5}" rx="4.5" ry="2.5" fill="rgba(180,100,235,0.78)" transform="rotate(${i*22} ${cx} ${base})"/>`).join(''):''}
+  `);
+}
+
+// ── MUSHROOM ────────────────────────────────────────────
+function svgMushroom(sz, st, capColor, highlightColor, glowColor) {
+  const cx = sz/2, base = sz-10, stemH = 18+st*5, capW = 22+st*5, capH = 15+st*4;
+  return makeSVG(sz, sz, `
+    <defs>
+      <radialGradient id="mcc" cx="40%" cy="30%" r="65%">
+        <stop offset="0%" stop-color="${highlightColor}"/>
+        <stop offset="55%" stop-color="${capColor}"/>
+        <stop offset="100%" stop-color="${capColor}88"/>
+      </radialGradient>
+      ${glowColor?`<filter id="mglow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`:''}
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="${capW*0.9}" ry="${capW*0.28}" fill="rgba(0,0,0,0.22)"/>
+    ${glowColor?`<ellipse cx="${cx}" cy="${base-stemH}" rx="${capW*1.5}" ry="${capW*1.1}" fill="${glowColor}" filter="url(#mglow)"/>`:''}
+    <ellipse cx="${cx}" cy="${base-stemH*0.35}" rx="${capW*0.38}" ry="${stemH*0.72}" fill="url(#sc)"/>
+    <defs><radialGradient id="sc" cx="40%" cy="50%" r="60%"><stop offset="0%" stop-color="#dcd0b0"/><stop offset="100%" stop-color="#b0a080"/></radialGradient></defs>
+    <ellipse cx="${cx}" cy="${base-stemH}" rx="${capW}" ry="${capH}" fill="url(#mcc)"/>
+    <ellipse cx="${cx}" cy="${base-stemH-capH*0.3}" rx="${capW*0.65}" ry="${capH*0.45}" fill="${highlightColor}" opacity="0.7"/>
+    ${st>=2?`<circle cx="${cx-capW*0.32}" cy="${base-stemH-capH*0.12}" r="3" fill="rgba(255,255,255,0.75)"/>
+    <circle cx="${cx+capW*0.28}" cy="${base-stemH-capH*0.3}" r="2.5" fill="rgba(255,255,255,0.75)"/>
+    <circle cx="${cx}" cy="${base-stemH-capH*0.45}" r="2.5" fill="rgba(255,255,255,0.75)"/>`:''}
+  `);
+}
+
+// ── FERN ────────────────────────────────────────────────
+function svgFern(sz, st, giant) {
+  const cx = sz/2, base = sz-10, sc = giant?1.5:1;
+  const fronds = [[-10,0.75,16],[-5,0.88,14],[0,1,15],[5,0.88,13],[10,0.72,12]];
+  let paths = '';
+  fronds.forEach(([ox,sh,fl])=>{
+    const nh=(18+st*5)*sc, fx=cx+ox;
+    paths += `<path d="M${fx} ${base} Q${fx+ox*1.2} ${base-nh*sh*0.55} ${fx+ox*0.4} ${base-nh*sh}" stroke="#3a8020" stroke-width="${2*sc}" fill="none" stroke-linecap="round"/>`;
+    for(let i=1;i<=4;i++){
+      const t=i/5, px=fx+(fx+ox*0.4-fx)*t, py=base+(base-nh*sh-base)*t*0.9;
+      const rot=ox>0?28:-28;
+      paths += `<ellipse cx="${px}" cy="${py}" rx="${fl*sc*0.42}" ry="${fl*sc*0.18}" fill="${i%2===0?'#4a9030':'#3a8020'}" transform="rotate(${rot} ${px} ${py})"/>`;
+    }
+  });
+  return makeSVG(sz, sz, `<ellipse cx="${cx}" cy="${base}" rx="20" ry="6" fill="rgba(0,0,0,0.18)"/>${paths}`);
+}
+
+// ── MOON LILY ───────────────────────────────────────────
+function svgMoonLily(sz, st) {
+  const cx = sz/2, base = sz-10, stemH = 22+st*5, pr = 12+st*3;
+  let petals = '';
+  for(let i=0;i<6;i++){
+    const ang=(i/6)*360;
+    petals += `<ellipse cx="${cx}" cy="${base-stemH-pr}" rx="${pr*0.42}" ry="${pr}" fill="rgba(210,225,255,0.88)" transform="rotate(${ang} ${cx} ${base-stemH})"/>`;
+  }
+  return makeSVG(sz, sz, `
+    <ellipse cx="${cx}" cy="${base}" rx="14" ry="5" fill="rgba(0,0,0,0.18)"/>
+    <line x1="${cx}" y1="${base}" x2="${cx}" y2="${base-stemH}" stroke="#3a5a4a" stroke-width="2.5" stroke-linecap="round"/>
+    ${petals}
+    <ellipse cx="${cx}" cy="${base-stemH}" rx="${pr*1.3}" ry="${pr*1.05}" fill="rgba(200,215,255,0.2)"/>
+    <circle cx="${cx}" cy="${base-stemH}" r="${pr*0.38}" fill="rgba(245,245,210,0.95)"/>
+  `);
+}
+
+// ── CRYSTAL SHARD ───────────────────────────────────────
+function svgCrystalShard(sz, st) {
+  const cx = sz/2, base = sz-10, sh = 18+st*5;
+  return makeSVG(sz, sz, `
+    <defs>
+      <linearGradient id="csg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="rgba(200,240,255,0.9)"/>
+        <stop offset="50%" stop-color="rgba(140,210,250,0.7)"/>
+        <stop offset="100%" stop-color="rgba(90,180,230,0.5)"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="${cx}" cy="${base}" rx="18" ry="6" fill="rgba(0,0,0,0.18)"/>
+    <polygon points="${cx},${base-sh*2.2} ${cx+sh*0.8},${base-sh} ${cx},${base-sh*0.6} ${cx-sh*0.8},${base-sh}" fill="url(#csg)" stroke="rgba(180,235,255,0.85)" stroke-width="1"/>
+    <polygon points="${cx-sh*0.7},${base-sh*1.3} ${cx-sh*0.3},${base-sh*0.5} ${cx-sh},${base-sh*0.5}" fill="url(#csg)" stroke="rgba(180,235,255,0.7)" stroke-width="0.8"/>
+    <polygon points="${cx+sh*0.7},${base-sh*1.4} ${cx+sh*0.3},${base-sh*0.5} ${cx+sh},${base-sh*0.5}" fill="url(#csg)" stroke="rgba(180,235,255,0.7)" stroke-width="0.8"/>
+    <ellipse cx="${cx}" cy="${base-sh*1.4}" rx="${sh*0.9}" ry="${sh*0.7}" fill="rgba(160,220,255,0.18)"/>
+  `);
+}
+
+// ── FLOWER SVGs (14 types) ──────────────────────────────
+function makeFlower(sz, st, petalColor, petalLight, centerColor) {
+  const cx = sz/2, base = sz-10, stemH = 16+st*5, pr = 8+st*2;
+  const petals = Math.min(5+st, 8);
+  let pts = '';
+  for(let i=0;i<petals;i++){
+    const ang=(i/petals)*360;
+    pts += `<ellipse cx="${cx}" cy="${base-stemH-pr}" rx="${pr*0.48}" ry="${pr}" fill="${i%2===0?petalColor:petalLight}" opacity="0.95" transform="rotate(${ang} ${cx} ${base-stemH})"/>`;
+  }
+  return makeSVG(sz, sz, `
+    <ellipse cx="${cx}" cy="${base}" rx="12" ry="4" fill="rgba(0,0,0,0.18)"/>
+    <line x1="${cx}" y1="${base}" x2="${cx}" y2="${base-stemH}" stroke="#2d7a2d" stroke-width="2.5" stroke-linecap="round"/>
+    ${st>1?`<ellipse cx="${cx-7}" cy="${base-stemH*0.5}" rx="7" ry="3" fill="#2d8a2d" transform="rotate(-35 ${cx-7} ${base-stemH*0.5})"/>`:''}
+    ${pts}
+    <circle cx="${cx}" cy="${base-stemH}" r="${pr*0.42}" fill="${centerColor}"/>
+    <circle cx="${cx}" cy="${base-stemH}" r="${pr*0.22}" fill="rgba(255,255,255,0.5)"/>
+  `);
+}
+
+const FLOWER_SVGS = [
+  (sz,st)=>makeFlower(sz,st,'#f0c020','#f8d840','#8b4a10'), // sunflower
+  (sz,st)=>makeFlower(sz,st,'#9878c8','#b898d8','#6858a8'), // lavender
+  (sz,st)=>makeFlower(sz,st,'#e03850','#f05868','#f0d080'), // tulip
+  (sz,st)=>makeFlower(sz,st,'#f0f0f0','#ffffff','#f0c020'), // daisy
+  (sz,st)=>makeFlower(sz,st,'#d02040','#f04060','#f0d080'), // rose
+  (sz,st)=>makeFlower(sz,st,'#c858d8','#d868e8','#f0f0f0'), // orchid
+  (sz,st)=>makeFlower(sz,st,'#f8d090','#fae0a8','#f0a020'), // lily
+  (sz,st)=>makeFlower(sz,st,'#f08898','#f8a8b8','#e04060'), // peony
+  (sz,st)=>makeFlower(sz,st,'#6858c8','#8878d8','#f0f0a8'), // iris
+  (sz,st)=>makeFlower(sz,st,'#e82020','#f84040','#1a1a1a'), // poppy
+  (sz,st)=>makeFlower(sz,st,'#f07820','#f89840','#c04a10'), // marigold
+  (sz,st)=>makeFlower(sz,st,'#f8f8e8','#fcfcf8','#f0d080'), // jasmine
+  (sz,st)=>makeFlower(sz,st,'#a878d8','#c898e8','#7858b8'), // wisteria
+  (sz,st)=>makeFlower(sz,st,'#f8e8f0','#fcf4fc','#f0b8c8'), // magnolia
+];
+
+const FLOWER_SVG_MAP = {
+  sunflower:FLOWER_SVGS[0], lavender:FLOWER_SVGS[1], tulip:FLOWER_SVGS[2],
+  daisy:FLOWER_SVGS[3], rose:FLOWER_SVGS[4], orchid:FLOWER_SVGS[5],
+  lily:FLOWER_SVGS[6], peony:FLOWER_SVGS[7], iris:FLOWER_SVGS[8],
+  poppy:FLOWER_SVGS[9], marigold:FLOWER_SVGS[10], jasmine:FLOWER_SVGS[11],
+  wisteria:FLOWER_SVGS[12], magnolia:FLOWER_SVGS[13],
+};
+
+// ── DRAW PLANT ON CANVAS VIA SVG IMAGE ──────────────────
+async function drawIsometricPlant(ctx, x, y, type, stage, tileW, full, addedAt) {
+  const size = full ? tileW * 2.2 : tileW * 1.6;
+  try {
+    const img = await getPlantImage(type, stage, addedAt);
+    if (img) {
+      ctx.drawImage(img, x - size/2, y - size*0.88, size, size);
+    }
+  } catch(e) {
+    // fallback: draw nothing rather than crash
+  }
+}
+
+// ── REDRAW ISLAND ASYNC ──────────────────────────────────
+async function drawIslandAsync(ctx, W, H, islandIdx, full) {
   const forest = getForest();
   const startSlot = islandIdx * GRID * GRID;
   const plants = forest.slice(startSlot, startSlot + GRID*GRID);
   const scale = full ? 1 : 0.55;
 
-  // Background
   ctx.fillStyle = '#0e0e10';
   ctx.fillRect(0, 0, W, H);
 
-  // Isometric island base
-  const cx = W / 2;
-  const cy = full ? H * 0.52 : H * 0.58;
+  const cx = W/2, cy = full ? H*0.52 : H*0.58;
   const tileW = (full ? 52 : 38) * scale;
   const tileH = tileW * 0.5;
-  const depth = full ? 18 : 12;
+  const depth = full ? 22 : 14;
 
-  // Draw dirt sides
-  ctx.fillStyle = '#5c3d1a';
+  // Rich dirt sides with layers
+  const dirtDark = '#3d2208', dirtMid = '#5c3414', dirtLight = '#7a4e20';
+  ctx.fillStyle = dirtDark;
   ctx.beginPath();
-  ctx.moveTo(cx, cy + tileH * 2);
-  ctx.lineTo(cx - tileW * 2, cy);
-  ctx.lineTo(cx - tileW * 2, cy + depth);
-  ctx.lineTo(cx, cy + tileH * 2 + depth);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = '#7a5225';
+  ctx.moveTo(cx, cy+tileH*2); ctx.lineTo(cx-tileW*2, cy);
+  ctx.lineTo(cx-tileW*2, cy+depth+4); ctx.lineTo(cx, cy+tileH*2+depth+4);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = dirtMid;
   ctx.beginPath();
-  ctx.moveTo(cx, cy + tileH * 2);
-  ctx.lineTo(cx + tileW * 2, cy);
-  ctx.lineTo(cx + tileW * 2, cy + depth);
-  ctx.lineTo(cx, cy + tileH * 2 + depth);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(cx, cy+tileH*2); ctx.lineTo(cx-tileW*2, cy);
+  ctx.lineTo(cx-tileW*2, cy+depth); ctx.lineTo(cx, cy+tileH*2+depth);
+  ctx.closePath(); ctx.fill();
 
-  // Draw grass tiles (4x4)
+  ctx.fillStyle = dirtDark;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy+tileH*2); ctx.lineTo(cx+tileW*2, cy);
+  ctx.lineTo(cx+tileW*2, cy+depth+4); ctx.lineTo(cx, cy+tileH*2+depth+4);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = dirtLight;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy+tileH*2); ctx.lineTo(cx+tileW*2, cy);
+  ctx.lineTo(cx+tileW*2, cy+depth); ctx.lineTo(cx, cy+tileH*2+depth);
+  ctx.closePath(); ctx.fill();
+
+  // Grass tiles with richer shading
   const rows = GRID, cols = GRID;
   const tilePositions = [];
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const tx = cx + (col - row) * tileW;
-      const ty = cy + (col + row) * tileH - tileH * (rows - 1);
-
-      // Grass tile
-      const shade = ((row + col) % 2 === 0) ? '#3a8a3a' : '#358535';
+  for(let row=0; row<rows; row++) {
+    for(let col=0; col<cols; col++) {
+      const tx = cx + (col-row)*tileW;
+      const ty = cy + (col+row)*tileH - tileH*(rows-1);
+      const edge = row===0||col===0||row===rows-1||col===cols-1;
+      const shade = (row+col)%2===0 ? (edge?'#2e7a2e':'#358535') : (edge?'#2a7228':'#318030');
       ctx.fillStyle = shade;
       ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(tx + tileW, ty + tileH);
-      ctx.lineTo(tx, ty + tileH * 2);
-      ctx.lineTo(tx - tileW, ty + tileH);
-      ctx.closePath();
-      ctx.fill();
-
-      // Subtle edge
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      tilePositions.push({ tx, ty, row, col, slotIdx: row * cols + col });
+      ctx.moveTo(tx,ty); ctx.lineTo(tx+tileW,ty+tileH);
+      ctx.lineTo(tx,ty+tileH*2); ctx.lineTo(tx-tileW,ty+tileH);
+      ctx.closePath(); ctx.fill();
+      // Subtle edge line
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 0.5; ctx.stroke();
+      // Grass highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.beginPath();
+      ctx.moveTo(tx,ty); ctx.lineTo(tx+tileW,ty+tileH); ctx.lineTo(tx,ty+tileH*0.5);
+      ctx.closePath(); ctx.fill();
+      tilePositions.push({tx, ty, row, col, slotIdx: row*cols+col});
     }
   }
 
-  // Draw plants on tiles
-  tilePositions.forEach(({ tx, ty, slotIdx }) => {
+  // Draw plants sorted back-to-front
+  const sorted = tilePositions.slice().sort((a,b)=>(a.row+a.col)-(b.row+b.col));
+  for(const {tx, ty, slotIdx} of sorted) {
     const plant = plants[slotIdx];
-    if (plant) {
-      drawIsometricPlant(ctx, tx, ty + tileH, plant.type, plant.stage || 3, tileW, full, plant.addedAt);
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// READWOOD FOREST — Full Species System
-// ═══════════════════════════════════════════════════════════
-
-// SPECIES CATALOG
-const TREE_GENRES = {
-  classic:     { type:'oak',          label:'Oak',           color:['#5c8a3a','#6da845','#82c455'] },
-  romance:     { type:'cherry',       label:'Cherry Blossom',color:['#e8a0b0','#f0b8c8','#f8d0d8'] },
-  thriller:    { type:'pine',         label:'Dark Pine',     color:['#1a4a2d','#1f5c38','#256e43'] },
-  nonfiction:  { type:'maple',        label:'Maple',         color:['#c04a1a','#d45a20','#e86a28'] },
-  philosophy:  { type:'bamboo',       label:'Bamboo',        color:['#4a7a2a','#5a9a35','#6ab040'] },
-  adventure:   { type:'palm',         label:'Palm',          color:['#2a7a3a','#38924a','#48a858'] },
-  scifi:       { type:'crystal',      label:'Crystal Tree',  color:['#5ab8e8','#7accf0','#9ae0f8'] },
-  horror:      { type:'deadwood',     label:'Deadwood',      color:['#3a2a1a','#4a3828','#5a4838'] },
-  poetry:      { type:'willow',       label:'Willow',        color:['#4a8a3a','#5aa848','#6ac058'] },
-  fantasy:     { type:'moonbirch',    label:'Moon Birch',    color:['#c8b8e8','#d8c8f0','#e8d8f8'] },
-  history:     { type:'bonsai',       label:'Bonsai',        color:['#5a7a2a','#6a9238','#7aaa48'] },
-  selfhelp:    { type:'silverbirch',  label:'Silver Birch',  color:['#a8c8d8','#b8d8e8','#c8e8f0'] },
-  dystopia:    { type:'ember',        label:'Ember Tree',    color:['#c04a1a','#d85a28','#f06030'] },
-  crime:       { type:'darkoak',      label:'Dark Oak',      color:['#2a2a3a','#383848','#484858'] },
-  ya:          { type:'bluebell',     label:'Bluebell Tree', color:['#5a78e8','#6a88f0','#7a98f8'] },
-  combo:       { type:'jacaranda',    label:'Jacaranda',     color:['#8858c8','#9868d8','#a878e8'] },
-};
-
-const FLOWER_TYPES = [
-  { type:'sunflower',  color:['#f0c020','#f8d030','#fae060'], center:'#8b4a10' },
-  { type:'lavender',   color:['#9878c8','#a888d8','#b898e0'], center:'#6858a8' },
-  { type:'tulip',      color:['#e03850','#f04860','#f85870'], center:'#f0d080' },
-  { type:'daisy',      color:['#f0f0f0','#f8f8f8','#ffffff'], center:'#f0c020' },
-  { type:'rose',       color:['#d02040','#e03050','#f04060'], center:'#f0d080' },
-  { type:'orchid',     color:['#c858d8','#d868e8','#e878f0'], center:'#f0f0f0' },
-  { type:'lily',       color:['#f8d090','#fae0a8','#fcecb8'], center:'#f0a020' },
-  { type:'peony',      color:['#f08898','#f898a8','#f8a8b8'], center:'#e04060' },
-  { type:'iris',       color:['#6858c8','#7868d8','#8878e0'], center:'#f0f0a8' },
-  { type:'poppy',      color:['#e82020','#f03030','#f84040'], center:'#1a1a1a' },
-  { type:'marigold',   color:['#f07820','#f88830','#f89840'], center:'#c04a10' },
-  { type:'jasmine',    color:['#f8f8e8','#fafaf0','#fcfcf8'], center:'#f0d080' },
-  { type:'wisteria',   color:['#a878d8','#b888e0','#c898e8'], center:'#7858b8' },
-  { type:'magnolia',   color:['#f8e8f0','#faf0f8','#fcf4fc'], center:'#f0b8c8' },
-];
-
-const MUSHROOM_TYPES = [
-  { days:3,  type:'mushroom',       color:'#a07840', glow:null },
-  { days:7,  type:'glowmushroom',   color:'#58c888', glow:'rgba(88,200,136,0.3)' },
-  { days:14, type:'ancientmush',    color:'#8858a8', glow:'rgba(136,88,168,0.3)' },
-  { days:30, type:'embermushroom',  color:'#e05020', glow:'rgba(224,80,32,0.4)' },
-];
-
-// Get flower type by day of week + rotation
-function getFlowerType(addedAt) {
-  const d = new Date(addedAt);
-  const dayOfWeek = d.getDay(); // 0=Sun
-  const weekNum = Math.floor(d.getTime() / (7*24*3600*1000));
-  const idx = (dayOfWeek + weekNum) % FLOWER_TYPES.length;
-  return FLOWER_TYPES[idx];
-}
-
-function drawIsometricPlant(ctx, x, y, type, stage, tileW, full, addedAt) {
-  const s = full ? 1 : 0.65;
-  ctx.save();
-  ctx.translate(x, y);
-
-  // Route to correct drawer
-  if (type === 'flower' || type === 'sunflower' || type === 'lavender' || type === 'tulip' ||
-      type === 'daisy' || type === 'rose' || type === 'orchid' || type === 'lily' ||
-      type === 'peony' || type === 'iris' || type === 'poppy' || type === 'marigold' ||
-      type === 'jasmine' || type === 'wisteria' || type === 'magnolia') {
-    const ft = type === 'flower' ? getFlowerType(addedAt || Date.now()) : FLOWER_TYPES.find(f=>f.type===type) || FLOWER_TYPES[0];
-    drawFlowerSVG(ctx, stage, s, tileW, ft);
-  } else if (type === 'mushroom') {
-    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[0]);
-  } else if (type === 'glowmushroom') {
-    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[1]);
-  } else if (type === 'ancientmush') {
-    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[2]);
-  } else if (type === 'embermushroom') {
-    drawMushroomSVG(ctx, stage, s, tileW, MUSHROOM_TYPES[3]);
-  } else if (type === 'fern' || type === 'giantfern') {
-    drawFern(ctx, stage, s, tileW, type === 'giantfern');
-  } else if (type === 'moonlily') {
-    drawMoonLily(ctx, stage, s, tileW);
-  } else if (type === 'crystalshard') {
-    drawCrystalShard(ctx, stage, s, tileW);
-  } else {
-    // All tree types
-    drawTreeSVG(ctx, type, stage, s, tileW);
-  }
-
-  ctx.restore();
-}
-
-// ── SHADOW HELPER ────────────────────────
-function drawShadow(ctx, tileW, radiusX, radiusY) {
-  ctx.fillStyle = 'rgba(0,0,0,0.22)';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, tileW*radiusX, tileW*radiusY, 0, 0, Math.PI*2);
-  ctx.fill();
-}
-
-// ── UNIVERSAL TREE DRAWER ─────────────────
-function drawTreeSVG(ctx, type, stage, s, tileW) {
-  drawShadow(ctx, tileW, 0.38, 0.13);
-
-  switch(type) {
-    case 'oak':         drawOakSVG(ctx, stage, s); break;
-    case 'cherry':      drawCherrySVG(ctx, stage, s); break;
-    case 'pine':        drawPineSVG(ctx, stage, s); break;
-    case 'maple':       drawMapleSVG(ctx, stage, s); break;
-    case 'bamboo':      drawBambooSVG(ctx, stage, s); break;
-    case 'palm':        drawPalmSVG(ctx, stage, s); break;
-    case 'crystal':     drawCrystalTreeSVG(ctx, stage, s); break;
-    case 'deadwood':    drawDeadwoodSVG(ctx, stage, s); break;
-    case 'willow':      drawWillowSVG(ctx, stage, s); break;
-    case 'moonbirch':   drawMoonBirchSVG(ctx, stage, s); break;
-    case 'bonsai':      drawBonsaiSVG(ctx, stage, s); break;
-    case 'silverbirch': drawSilverBirchSVG(ctx, stage, s); break;
-    case 'ember':       drawEmberTreeSVG(ctx, stage, s); break;
-    case 'darkoak':     drawDarkOakSVG(ctx, stage, s); break;
-    case 'bluebell':    drawBluebellTreeSVG(ctx, stage, s); break;
-    case 'jacaranda':   drawJacarandaSVG(ctx, stage, s); break;
-    default:            drawOakSVG(ctx, stage, s); break;
-  }
-}
-
-function trunk(ctx, s, color, w, h) {
-  const grad = ctx.createLinearGradient(-w*s, 0, w*s, 0);
-  grad.addColorStop(0, shadeColor(color, -20));
-  grad.addColorStop(0.4, color);
-  grad.addColorStop(1, shadeColor(color, -30));
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.roundRect(-w*s, -h*s, w*2*s, h*s, [2*s, 2*s, 1*s, 1*s]);
-  ctx.fill();
-}
-
-function canopyLayer(ctx, s, colors, x, y, rx, ry) {
-  const grad = ctx.createRadialGradient(x, y-ry*0.3, ry*0.1, x, y, ry);
-  grad.addColorStop(0, colors[2]);
-  grad.addColorStop(0.5, colors[1]);
-  grad.addColorStop(1, colors[0]);
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function shadeColor(hex, amount) {
-  const num = parseInt(hex.replace('#',''), 16);
-  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
-  const b = Math.min(255, Math.max(0, (num & 0xff) + amount));
-  return `rgb(${r},${g},${b})`;
-}
-
-// ── OAK ───────────────────────────────────
-function drawOakSVG(ctx, stage, s) {
-  const h = (18 + stage*6)*s, r = (10 + stage*4)*s;
-  trunk(ctx, s, '#7a5230', 2.5, h);
-  canopyLayer(ctx, s, ['#2d5c18','#3a7525','#4a9030'], 0, -h-r*0.3, r*1.1, r*0.85);
-  canopyLayer(ctx, s, ['#358020','#4a9030','#5aa840'], -r*0.45, -h-r*0.15, r*0.7, r*0.65);
-  canopyLayer(ctx, s, ['#3a8825','#4a9830','#5aaa40'], r*0.4, -h-r*0.2, r*0.65, r*0.6);
-  if (stage >= 4) {
-    ctx.fillStyle = 'rgba(240,208,128,0.18)';
-    ctx.beginPath(); ctx.ellipse(0, -h-r*0.3, r*1.5, r*1.1, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#c9a830';
-    [[-r*0.5,-r*0.1],[r*0.4,-r*0.25],[0,-r*0.45]].forEach(([ax,ay]) => {
-      ctx.beginPath(); ctx.arc(ax, -h+ay, 2.5*s, 0, Math.PI*2); ctx.fill();
-    });
-  }
-}
-
-// ── CHERRY BLOSSOM ───────────────────────
-function drawCherrySVG(ctx, stage, s) {
-  const h = (16+stage*5)*s, r = (9+stage*4)*s;
-  trunk(ctx, s, '#6a3828', 2, h);
-  // Branch left
-  ctx.strokeStyle = '#7a4838'; ctx.lineWidth = 2*s;
-  ctx.beginPath(); ctx.moveTo(0,-h*0.6); ctx.quadraticCurveTo(-r*0.6,-h*0.8,-r*0.7,-h*0.9); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,-h*0.6); ctx.quadraticCurveTo(r*0.5,-h*0.75,r*0.65,-h*0.88); ctx.stroke();
-  // Blossom clouds
-  const pc = ['#f0b8c8','#f8c8d8','#ffd8e8'];
-  [[-r*0.5,-h-r*0.1],[r*0.45,-h-r*0.15],[0,-h-r*0.4],[-r*0.2,-h-r*0.55],[r*0.25,-h-r*0.48]].forEach(([px,py],i) => {
-    canopyLayer(ctx, s, pc, px, py, r*(0.5-i*0.04), r*(0.42-i*0.03));
-  });
-  // Petals falling
-  if (stage >= 3) {
-    ctx.fillStyle = 'rgba(248,200,216,0.8)';
-    for (let i=0; i<6; i++) {
-      const px = (Math.sin(i*1.1)*r*0.9), py = (-h*0.3 - i*8*s);
-      ctx.save(); ctx.translate(px,py); ctx.rotate(i*0.7);
-      ctx.beginPath(); ctx.ellipse(0,0,3*s,1.5*s,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
+    if(plant) {
+      await drawIsometricPlant(ctx, tx, ty+tileH, plant.type, plant.stage||3, tileW, full, plant.addedAt);
     }
   }
-}
-
-// ── DARK PINE ────────────────────────────
-function drawPineSVG(ctx, stage, s) {
-  const layers = Math.min(stage+2,5), h = (12+stage*5)*s;
-  trunk(ctx, s, '#4a2e18', 2, 10*s);
-  for (let i=0; i<layers; i++) {
-    const w=(14-i*2)*s, ly=-h*(0.25+i*0.16);
-    const c = i%2===0?'#1a4a2d':'#206038';
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.moveTo(0, ly-13*s);
-    ctx.lineTo(-w, ly+2*s);
-    ctx.lineTo(w, ly+2*s);
-    ctx.closePath();
-    ctx.fill();
-    // Highlight edge
-    ctx.strokeStyle = 'rgba(50,120,70,0.5)'; ctx.lineWidth = 0.8*s;
-    ctx.beginPath(); ctx.moveTo(0,ly-13*s); ctx.lineTo(-w,ly+2*s); ctx.stroke();
-  }
-  if (stage>=4) {
-    const grd = ctx.createRadialGradient(0,-h-13*s,1,0,-h-13*s,8*s);
-    grd.addColorStop(0,'#f0d080'); grd.addColorStop(1,'rgba(240,208,128,0)');
-    ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(0,-h-13*s,8*s,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#f0d080';
-    ctx.beginPath(); ctx.arc(0,-h-13*s,3*s,0,Math.PI*2); ctx.fill();
-  }
-}
-
-// ── MAPLE ────────────────────────────────
-function drawMapleSVG(ctx, stage, s) {
-  const h=(17+stage*5)*s, r=(10+stage*4)*s;
-  trunk(ctx, s, '#7a4a20', 2.5, h);
-  const mc = ['#b03818','#c84a20','#e05a28'];
-  canopyLayer(ctx, s, mc, 0, -h-r*0.35, r*1.05, r*0.82);
-  canopyLayer(ctx, s, mc, -r*0.5, -h-r*0.1, r*0.68, r*0.6);
-  canopyLayer(ctx, s, mc, r*0.45, -h-r*0.15, r*0.65, r*0.58);
-  // Leaves falling
-  if (stage>=3) {
-    ctx.fillStyle = '#e86028';
-    for (let i=0;i<5;i++) {
-      ctx.save(); ctx.translate(Math.sin(i*1.3)*r*0.8, -h*0.4-i*9*s); ctx.rotate(i*0.6);
-      ctx.beginPath(); ctx.ellipse(0,0,4*s,2*s,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-  }
-  if (stage>=4) {
-    ctx.fillStyle='rgba(200,80,32,0.15)';
-    ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.6,r*1.15,0,0,Math.PI*2); ctx.fill();
-  }
-}
-
-// ── BAMBOO ───────────────────────────────
-function drawBambooSVG(ctx, stage, s) {
-  const stalks = Math.min(stage+1,4);
-  const offsets = [0,-6*s,5*s,-3*s];
-  for (let i=0;i<stalks;i++) {
-    const ox=offsets[i], sh=(20+stage*4+i*5)*s;
-    const gc = ctx.createLinearGradient(ox-3*s,0,ox+3*s,0);
-    gc.addColorStop(0,'#4a7a20'); gc.addColorStop(0.5,'#6aa030'); gc.addColorStop(1,'#3a6818');
-    ctx.fillStyle=gc;
-    ctx.beginPath(); ctx.roundRect(ox-2.5*s,-sh,5*s,sh,[3*s]); ctx.fill();
-    // Nodes
-    for (let n=1;n<4;n++) {
-      ctx.fillStyle='#3a6818';
-      ctx.fillRect(ox-3*s,-sh*n*0.28,6*s,2*s);
-    }
-    // Leaves at top
-    ctx.fillStyle='#5a9028';
-    [[-12*s,-2*s],[10*s,-4*s],[-6*s,-8*s]].forEach(([lx,ly]) => {
-      ctx.save(); ctx.translate(ox+lx,-sh+ly); ctx.rotate(lx>0?0.4:-0.4);
-      ctx.beginPath(); ctx.ellipse(0,0,10*s,3*s,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-    });
-  }
-}
-
-// ── PALM ─────────────────────────────────
-function drawPalmSVG(ctx, stage, s) {
-  const h=(22+stage*6)*s;
-  // Curved trunk
-  ctx.strokeStyle='#8a6030'; ctx.lineWidth=5*s;
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(8*s,-h*0.5,2*s,-h); ctx.stroke();
-  ctx.strokeStyle='#7a5028'; ctx.lineWidth=3*s;
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(8*s,-h*0.5,2*s,-h); ctx.stroke();
-  // Fronds
-  const fc = '#3a9030';
-  const fronds=[[-30*s,-15*s,30,0.2],[-15*s,-30*s,60,0.3],[5*s,-32*s,90,0.2],[20*s,-15*s,140,0.15],[25*s,-5*s,160,0.1]];
-  fronds.forEach(([fx,fy,ang,op]) => {
-    ctx.save(); ctx.translate(2*s+fx*0.3,-h+fy*0.3); ctx.rotate(ang*Math.PI/180);
-    ctx.fillStyle=fc;
-    ctx.beginPath(); ctx.ellipse(0,-12*s,4*s,16*s,0,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  });
-  // Coconuts
-  if (stage>=3) {
-    ctx.fillStyle='#8a6030';
-    [[-4*s,-2*s],[4*s,-5*s],[0,-8*s]].forEach(([cx,cy]) => {
-      ctx.beginPath(); ctx.arc(2*s+cx,-h+cy,3*s,0,Math.PI*2); ctx.fill();
-    });
-  }
-}
-
-// ── CRYSTAL TREE ─────────────────────────
-function drawCrystalTreeSVG(ctx, stage, s) {
-  const h=(20+stage*5)*s;
-  // Glowing trunk
-  const tg = ctx.createLinearGradient(-2*s,0,2*s,0);
-  tg.addColorStop(0,'#5ab8e8'); tg.addColorStop(0.5,'#8ad8f8'); tg.addColorStop(1,'#4aa8d8');
-  ctx.fillStyle=tg;
-  ctx.beginPath(); ctx.roundRect(-2*s,-h,4*s,h,[1*s]); ctx.fill();
-  // Crystal clusters
-  [[0,-h-10*s],[-10*s,-h-5*s],[10*s,-h-7*s],[-6*s,-h-18*s],[6*s,-h-15*s]].forEach(([cx,cy],i) => {
-    const cs=(6+i*2)*s;
-    const cg=ctx.createRadialGradient(cx,cy,1,cx,cy,cs);
-    cg.addColorStop(0,'rgba(200,240,255,0.95)');
-    cg.addColorStop(0.5,'rgba(100,200,240,0.7)');
-    cg.addColorStop(1,'rgba(50,150,200,0.3)');
-    ctx.fillStyle=cg;
-    ctx.save(); ctx.translate(cx,cy); ctx.rotate(i*0.4);
-    ctx.beginPath();
-    ctx.moveTo(0,-cs); ctx.lineTo(cs*0.6,0); ctx.lineTo(0,cs*0.5); ctx.lineTo(-cs*0.6,0);
-    ctx.closePath(); ctx.fill();
-    ctx.restore();
-  });
-  // Ambient glow
-  const ag=ctx.createRadialGradient(0,-h-8*s,2,0,-h-8*s,20*s);
-  ag.addColorStop(0,'rgba(120,220,255,0.25)'); ag.addColorStop(1,'rgba(120,220,255,0)');
-  ctx.fillStyle=ag;
-  ctx.beginPath(); ctx.ellipse(0,-h-8*s,20*s,20*s,0,0,Math.PI*2); ctx.fill();
-}
-
-// ── DEADWOOD ─────────────────────────────
-function drawDeadwoodSVG(ctx, stage, s) {
-  const h=(18+stage*4)*s;
-  // Dark gnarled trunk
-  const tg=ctx.createLinearGradient(-4*s,0,4*s,0);
-  tg.addColorStop(0,'#2a1a0a'); tg.addColorStop(0.5,'#3a2a18'); tg.addColorStop(1,'#1a0a00');
-  ctx.fillStyle=tg;
-  ctx.beginPath();
-  ctx.moveTo(-3*s,0); ctx.lineTo(-4*s,-h*0.5); ctx.lineTo(-2*s,-h); ctx.lineTo(2*s,-h); ctx.lineTo(4*s,-h*0.5); ctx.lineTo(3*s,0);
-  ctx.closePath(); ctx.fill();
-  // Dead branches
-  const branchPts=[[-5*s,-h*0.4,-18*s,-h*0.55],[5*s,-h*0.5,18*s,-h*0.62],[-3*s,-h*0.7,-14*s,-h*0.88],[3*s,-h*0.75,14*s,-h*0.9]];
-  ctx.strokeStyle='#2a1a10'; ctx.lineWidth=2.5*s;
-  branchPts.forEach(([x1,y1,x2,y2]) => {
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  });
-  // Eerie glow
-  if (stage>=3) {
-    const eg=ctx.createRadialGradient(0,-h,1,0,-h,14*s);
-    eg.addColorStop(0,'rgba(60,20,80,0.35)'); eg.addColorStop(1,'rgba(60,20,80,0)');
-    ctx.fillStyle=eg;
-    ctx.beginPath(); ctx.ellipse(0,-h,14*s,14*s,0,0,Math.PI*2); ctx.fill();
-  }
-}
-
-// ── WILLOW ───────────────────────────────
-function drawWillowSVG(ctx, stage, s) {
-  const h=(20+stage*5)*s, r=(12+stage*4)*s;
-  trunk(ctx, s, '#6a7a3a', 2, h);
-  // Main canopy
-  canopyLayer(ctx, s, ['#4a8a2a','#5aa035','#6ab040'], 0,-h-r*0.2,r,r*0.7);
-  // Drooping tendrils
-  const tc='#4a9830';
-  for (let i=0;i<8;i++) {
-    const angle=(i/8)*Math.PI*2;
-    const sx=Math.cos(angle)*r*0.8, sy=-h-r*0.1+Math.sin(angle)*r*0.5;
-    ctx.strokeStyle=tc; ctx.lineWidth=1.5*s;
-    ctx.beginPath(); ctx.moveTo(sx,sy);
-    ctx.quadraticCurveTo(sx*1.1,sy+15*s,sx*0.8,sy+25*s);
-    ctx.stroke();
-  }
-}
-
-// ── MOON BIRCH ───────────────────────────
-function drawMoonBirchSVG(ctx, stage, s) {
-  const h=(22+stage*5)*s, r=(9+stage*4)*s;
-  // White/silver bark trunk
-  const tg=ctx.createLinearGradient(-3*s,0,3*s,0);
-  tg.addColorStop(0,'#b8c8d8'); tg.addColorStop(0.4,'#e8f0f8'); tg.addColorStop(1,'#a8b8c8');
-  ctx.fillStyle=tg;
-  ctx.beginPath(); ctx.roundRect(-2.5*s,-h,5*s,h,[2*s]); ctx.fill();
-  // Bark marks
-  ctx.strokeStyle='rgba(80,100,120,0.4)'; ctx.lineWidth=1*s;
-  for (let i=1;i<4;i++) { ctx.beginPath(); ctx.moveTo(-2*s,-h*i*0.25); ctx.lineTo(2*s,-h*i*0.25); ctx.stroke(); }
-  // Ethereal canopy
-  const mc=['#c8b8e8','#d8c8f0','#e8d8f8'];
-  canopyLayer(ctx, s, mc, 0,-h-r*0.3,r*1.05,r*0.8);
-  canopyLayer(ctx, s, mc, -r*0.4,-h-r*0.1,r*0.65,r*0.55);
-  canopyLayer(ctx, s, mc, r*0.38,-h-r*0.18,r*0.6,r*0.52);
-  // Moon glow
-  const mg=ctx.createRadialGradient(0,-h-r*0.3,r*0.2,0,-h-r*0.3,r*1.3);
-  mg.addColorStop(0,'rgba(200,180,240,0.2)'); mg.addColorStop(1,'rgba(200,180,240,0)');
-  ctx.fillStyle=mg;
-  ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.3,r*1.0,0,0,Math.PI*2); ctx.fill();
-  // Stars
-  if (stage>=3) {
-    ctx.fillStyle='rgba(220,210,255,0.9)';
-    for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(Math.cos(i*1.3)*r*0.7,-h-r*0.3+Math.sin(i*1.3)*r*0.5,1.5*s,0,Math.PI*2);ctx.fill();}
-  }
-}
-
-// ── BONSAI ───────────────────────────────
-function drawBonsaiSVG(ctx, stage, s) {
-  const h=(10+stage*3)*s;
-  // Pot
-  ctx.fillStyle='#c87848';
-  ctx.beginPath(); ctx.roundRect(-8*s,-3*s,16*s,5*s,[2*s]); ctx.fill();
-  ctx.fillStyle='#b86838';
-  ctx.beginPath(); ctx.roundRect(-6*s,-5*s,12*s,3*s,[1*s]); ctx.fill();
-  // Trunk - curved
-  ctx.strokeStyle='#6a4a20'; ctx.lineWidth=4*s;
-  ctx.beginPath(); ctx.moveTo(0,-4*s); ctx.quadraticCurveTo(5*s,-h*0.5,-2*s,-h); ctx.stroke();
-  // Branches
-  ctx.strokeStyle='#5a3a18'; ctx.lineWidth=2*s;
-  ctx.beginPath(); ctx.moveTo(2*s,-h*0.5); ctx.lineTo(-10*s,-h*0.65); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0*s,-h*0.7); ctx.lineTo(10*s,-h*0.8); ctx.stroke();
-  // Canopy pads - classic bonsai look
-  const bc=['#3a7820','#4a9028','#5aa030'];
-  [[-10*s,-h*0.7],[8*s,-h*0.85],[0,-h-4*s],[-4*s,-h*0.92]].forEach(([px,py],i) => {
-    canopyLayer(ctx, s, bc, px, py, (8-i)*s, (5-i)*s);
-  });
-}
-
-// ── SILVER BIRCH ─────────────────────────
-function drawSilverBirchSVG(ctx, stage, s) {
-  const h=(20+stage*5)*s, r=(8+stage*3.5)*s;
-  const tg=ctx.createLinearGradient(-2.5*s,0,2.5*s,0);
-  tg.addColorStop(0,'#c8d8e0'); tg.addColorStop(0.5,'#e8f4f8'); tg.addColorStop(1,'#b8c8d0');
-  ctx.fillStyle=tg;
-  ctx.beginPath(); ctx.roundRect(-2*s,-h,4*s,h,[2*s]); ctx.fill();
-  ctx.fillStyle='rgba(60,80,100,0.3)';
-  for(let i=1;i<5;i++){ctx.beginPath();ctx.ellipse(0,-h*i*0.2,3*s,1*s,0,0,Math.PI*2);ctx.fill();}
-  canopyLayer(ctx, s, ['#b0c8d8','#c8dce8','#d8ecf4'], 0,-h-r*0.3,r,r*0.8);
-  canopyLayer(ctx, s, ['#b0c8d8','#c8dce8','#d8ecf4'], -r*0.4,-h,r*0.6,r*0.55);
-  canopyLayer(ctx, s, ['#b0c8d8','#c8dce8','#d8ecf4'], r*0.38,-h-r*0.1,r*0.55,r*0.5);
-}
-
-// ── EMBER TREE ───────────────────────────
-function drawEmberTreeSVG(ctx, stage, s) {
-  const h=(18+stage*5)*s, r=(9+stage*4)*s;
-  trunk(ctx, s, '#4a2010', 2.5, h);
-  // Scorched canopy
-  canopyLayer(ctx, s, ['#a03010','#c04020','#e05030'], 0,-h-r*0.3,r*1.05,r*0.82);
-  canopyLayer(ctx, s, ['#b03818','#c84828','#e05838'], -r*0.44,-h-r*0.1,r*0.68,r*0.6);
-  canopyLayer(ctx, s, ['#b04020','#c85030','#e06040'], r*0.4,-h-r*0.16,r*0.62,r*0.56);
-  // Ember particles
-  const ep=['#f08020','#f0a030','#f0c040'];
-  for(let i=0;i<8;i++){
-    ctx.fillStyle=ep[i%3];
-    ctx.beginPath();
-    ctx.arc(Math.sin(i*0.8)*r*0.8,-h*0.6-i*12*s,2*s,0,Math.PI*2);
-    ctx.fill();
-  }
-  // Fire glow
-  const fg=ctx.createRadialGradient(0,-h-r*0.3,r*0.2,0,-h-r*0.3,r*1.4);
-  fg.addColorStop(0,'rgba(240,100,30,0.25)'); fg.addColorStop(1,'rgba(240,100,30,0)');
-  ctx.fillStyle=fg;
-  ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.4,r*1.1,0,0,Math.PI*2); ctx.fill();
-}
-
-// ── DARK OAK ─────────────────────────────
-function drawDarkOakSVG(ctx, stage, s) {
-  const h=(18+stage*5)*s, r=(10+stage*4)*s;
-  trunk(ctx, s, '#1a1a28', 2.5, h);
-  canopyLayer(ctx, s, ['#1a1a2a','#282838','#323248'], 0,-h-r*0.3,r*1.1,r*0.85);
-  canopyLayer(ctx, s, ['#1e1e32','#2a2a40','#363650'], -r*0.45,-h-r*0.1,r*0.7,r*0.65);
-  canopyLayer(ctx, s, ['#1e1e32','#2a2a40','#363650'], r*0.4,-h-r*0.18,r*0.65,r*0.6);
-  if(stage>=3){
-    const dg=ctx.createRadialGradient(0,-h-r*0.3,r*0.1,0,-h-r*0.3,r*1.3);
-    dg.addColorStop(0,'rgba(80,60,120,0.2)'); dg.addColorStop(1,'rgba(80,60,120,0)');
-    ctx.fillStyle=dg; ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.3,r,0,0,Math.PI*2); ctx.fill();
-  }
-}
-
-// ── BLUEBELL TREE ────────────────────────
-function drawBluebellTreeSVG(ctx, stage, s) {
-  const h=(16+stage*5)*s, r=(9+stage*4)*s;
-  trunk(ctx, s, '#6a7ab0', 2, h);
-  canopyLayer(ctx, s, ['#4858c8','#5868d8','#6878e8'], 0,-h-r*0.3,r*1.05,r*0.82);
-  canopyLayer(ctx, s, ['#5060d0','#6070d8','#7080e0'], -r*0.44,-h-r*0.1,r*0.68,r*0.6);
-  canopyLayer(ctx, s, ['#5060d0','#6070d8','#7080e0'], r*0.4,-h-r*0.16,r*0.62,r*0.56);
-  // Tiny bell shapes
-  if(stage>=2){
-    ctx.fillStyle='rgba(180,200,255,0.85)';
-    for(let i=0;i<6;i++){
-      const bx=Math.cos(i)*r*0.7, by=-h-r*0.3+Math.sin(i)*r*0.5;
-      ctx.beginPath(); ctx.arc(bx,by,3*s,0,Math.PI*2); ctx.fill();
-    }
-  }
-}
-
-// ── JACARANDA ────────────────────────────
-function drawJacarandaSVG(ctx, stage, s) {
-  const h=(18+stage*5)*s, r=(10+stage*4)*s;
-  trunk(ctx, s, '#8858a8', 2.5, h);
-  const jc=['#6838a8','#8848c8','#9858d8'];
-  canopyLayer(ctx, s, jc, 0,-h-r*0.35,r*1.1,r*0.85);
-  canopyLayer(ctx, s, jc, -r*0.46,-h-r*0.12,r*0.7,r*0.64);
-  canopyLayer(ctx, s, jc, r*0.42,-h-r*0.18,r*0.66,r*0.6);
-  if(stage>=3){
-    ctx.fillStyle='rgba(160,100,220,0.18)';
-    ctx.beginPath(); ctx.ellipse(0,-h-r*0.3,r*1.55,r*1.1,0,0,Math.PI*2); ctx.fill();
-    // Petal rain
-    ctx.fillStyle='rgba(170,100,220,0.75)';
-    for(let i=0;i<8;i++){
-      ctx.save(); ctx.translate(Math.sin(i*0.9)*r*0.9,-h*0.4-i*10*s); ctx.rotate(i*0.5);
-      ctx.beginPath(); ctx.ellipse(0,0,3.5*s,2*s,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-  }
-}
-
-// ── FLOWER ───────────────────────────────
-function drawFlowerSVG(ctx, stage, s, tileW, ft) {
-  drawShadow(ctx, tileW, 0.22, 0.07);
-  const stemH=(10+stage*4)*s, petalR=(4+stage*1.8)*s;
-  const petals=Math.min(5+stage,8);
-  ctx.strokeStyle='#2d7a2d'; ctx.lineWidth=2*s;
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-stemH); ctx.stroke();
-  if(stage>1){
-    ctx.fillStyle='#2d8a2d';
-    ctx.save(); ctx.translate(-5*s,-stemH*0.5); ctx.rotate(-0.5);
-    ctx.beginPath(); ctx.ellipse(0,0,5*s,2.5*s,0,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-  const pc=ft.color;
-  for(let i=0;i<petals;i++){
-    const angle=(i/petals)*Math.PI*2;
-    const pg=ctx.createRadialGradient(0,-petalR*0.6,0,0,-petalR*0.6,petalR);
-    pg.addColorStop(0,pc[2]); pg.addColorStop(1,pc[0]);
-    ctx.fillStyle=pg;
-    ctx.save(); ctx.translate(0,-stemH); ctx.rotate(angle);
-    ctx.beginPath(); ctx.ellipse(0,-petalR,petalR*0.45,petalR,0,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-  const cg=ctx.createRadialGradient(0,-stemH,0,0,-stemH,petalR*0.45);
-  cg.addColorStop(0,ft.center==='#f0c020'?'#f8e040':ft.center);
-  cg.addColorStop(1,ft.center);
-  ctx.fillStyle=cg;
-  ctx.beginPath(); ctx.arc(0,-stemH,petalR*0.4,0,Math.PI*2); ctx.fill();
-}
-
-// ── MUSHROOM ─────────────────────────────
-function drawMushroomSVG(ctx, stage, s, tileW, mt) {
-  drawShadow(ctx, tileW, 0.3, 0.1);
-  const stemH=(8+stage*3)*s, capW=(10+stage*4)*s, capH=(7+stage*3)*s;
-  // Stem
-  const sg=ctx.createLinearGradient(-capW*0.4,0,capW*0.4,0);
-  sg.addColorStop(0,'#c8b890'); sg.addColorStop(0.5,'#dccca8'); sg.addColorStop(1,'#b8a880');
-  ctx.fillStyle=sg;
-  ctx.beginPath(); ctx.ellipse(0,-stemH*0.35,capW*0.38,stemH*0.65,0,0,Math.PI*2); ctx.fill();
-  // Cap
-  const cg=ctx.createRadialGradient(0,-stemH-capH*0.3,capH*0.1,0,-stemH,capW);
-  cg.addColorStop(0,shadeColor(mt.color,30)); cg.addColorStop(0.5,mt.color); cg.addColorStop(1,shadeColor(mt.color,-20));
-  ctx.fillStyle=cg;
-  ctx.beginPath(); ctx.ellipse(0,-stemH,capW,capH,0,0,Math.PI*2); ctx.fill();
-  // Lighter top
-  ctx.fillStyle=shadeColor(mt.color,50);
-  ctx.beginPath(); ctx.ellipse(0,-stemH-capH*0.25,capW*0.65,capH*0.45,0,0,Math.PI*2); ctx.fill();
-  // Spots
-  if(stage>=2){
-    ctx.fillStyle='rgba(255,255,255,0.75)';
-    [[-capW*0.3,-stemH-capH*0.1],[capW*0.28,-stemH-capH*0.28],[0,-stemH-capH*0.42]].forEach(([wx,wy])=>{
-      ctx.beginPath(); ctx.arc(wx,wy,2.5*s,0,Math.PI*2); ctx.fill();
-    });
-  }
-  // Glow
-  if(mt.glow){
-    const gg=ctx.createRadialGradient(0,-stemH,capH*0.2,0,-stemH,capW*1.5);
-    gg.addColorStop(0,mt.glow); gg.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=gg; ctx.beginPath(); ctx.ellipse(0,-stemH,capW*1.5,capW*1.1,0,0,Math.PI*2); ctx.fill();
-  }
-}
-
-// ── FERN ─────────────────────────────────
-function drawFern(ctx, stage, s, tileW, giant) {
-  drawShadow(ctx, tileW, 0.28, 0.09);
-  const sc=giant?1.6:1, nh=(12+stage*3)*s*sc;
-  const fronds=[[-8*s,0.7,15*s],[-4*s,0.85,12*s],[0,1,13*s],[4*s,0.85,12*s],[8*s,0.7,11*s]];
-  fronds.forEach(([ox,sh,fl])=>{
-    ctx.strokeStyle='#3a7820'; ctx.lineWidth=1.5*s*sc;
-    ctx.beginPath(); ctx.moveTo(ox,0); ctx.quadraticCurveTo(ox*1.5,-nh*sh*0.6,ox*0.5,-nh*sh); ctx.stroke();
-    // Pinnae
-    for(let i=1;i<5;i++){
-      const t=i/5, px=ox+(ox*0.5-ox)*t, py=-nh*sh*t*0.9;
-      ctx.fillStyle=i%2===0?'#4a9030':'#3a8020';
-      ctx.save(); ctx.translate(px,py); ctx.rotate(ox>0?0.5:-0.5);
-      ctx.beginPath(); ctx.ellipse(0,0,fl*s*0.4*sc,fl*s*0.18*sc,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-  });
-}
-
-// ── MOON LILY ────────────────────────────
-function drawMoonLily(ctx, stage, s, tileW) {
-  drawShadow(ctx, tileW, 0.2, 0.07);
-  const stemH=(12+stage*3)*s;
-  ctx.strokeStyle='#3a5a4a'; ctx.lineWidth=2*s;
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-stemH); ctx.stroke();
-  const petals=6, pr=(7+stage*2)*s;
-  for(let i=0;i<petals;i++){
-    const angle=(i/petals)*Math.PI*2;
-    const lg=ctx.createLinearGradient(0,0,0,-pr*1.5);
-    lg.addColorStop(0,'rgba(200,220,255,0.9)'); lg.addColorStop(1,'rgba(220,240,255,0.6)');
-    ctx.fillStyle=lg;
-    ctx.save(); ctx.translate(0,-stemH); ctx.rotate(angle);
-    ctx.beginPath(); ctx.ellipse(0,-pr,pr*0.4,pr,0,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-  const mg=ctx.createRadialGradient(0,-stemH,0,0,-stemH,pr*1.2);
-  mg.addColorStop(0,'rgba(200,220,255,0.3)'); mg.addColorStop(1,'rgba(200,220,255,0)');
-  ctx.fillStyle=mg; ctx.beginPath(); ctx.arc(0,-stemH,pr*1.2,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='rgba(240,240,200,0.95)';
-  ctx.beginPath(); ctx.arc(0,-stemH,pr*0.35,0,Math.PI*2); ctx.fill();
-}
-
-// ── CRYSTAL SHARD ────────────────────────
-function drawCrystalShard(ctx, stage, s, tileW) {
-  drawShadow(ctx, tileW, 0.25, 0.08);
-  const shards=[[0,-(15+stage*4)*s,8*s],[-6*s,-(10+stage*3)*s,5*s],[6*s,-(11+stage*3)*s,5.5*s]];
-  shards.forEach(([sx,sy,sw])=>{
-    const sg=ctx.createLinearGradient(sx-sw,sy,sx+sw,sy);
-    sg.addColorStop(0,'rgba(160,220,255,0.8)'); sg.addColorStop(0.5,'rgba(200,240,255,0.95)'); sg.addColorStop(1,'rgba(120,200,240,0.7)');
-    ctx.fillStyle=sg;
-    ctx.beginPath();
-    ctx.moveTo(sx,sy); ctx.lineTo(sx+sw*0.7,sy+sw); ctx.lineTo(sx,sy+sw*2); ctx.lineTo(sx-sw*0.7,sy+sw);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='rgba(180,230,255,0.8)'; ctx.lineWidth=1*s;
-    ctx.stroke();
-  });
-  const cg=ctx.createRadialGradient(0,-(15+stage*4)*s,1,0,-(12+stage*3)*s,10*s);
-  cg.addColorStop(0,'rgba(160,220,255,0.25)'); cg.addColorStop(1,'rgba(160,220,255,0)');
-  ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(0,-(12+stage*3)*s,10*s,0,Math.PI*2); ctx.fill();
 }
 
 
 
 function forestAddTestPlants() {
-  // Forest starts empty — grows from real reading
-  // Only add demo plants if explicitly requested
+  const existing = getForest();
+  if (existing.length > 0) return; // only seed if empty
+  const testPlants = [
+    { type:'oak',         stage:4, label:'Test Oak',     addedAt: Date.now()-86400000*5 },
+    { type:'cherry',      stage:3, label:'Cherry',       addedAt: Date.now()-86400000*4 },
+    { type:'pine',        stage:4, label:'Pine',         addedAt: Date.now()-86400000*3 },
+    { type:'mushroom',    stage:3, label:'Mushroom',     addedAt: Date.now()-86400000*2 },
+    { type:'flower',      stage:3, label:'Flower',       addedAt: Date.now()-86400000   },
+    { type:'maple',       stage:3, label:'Maple',        addedAt: Date.now()            },
+  ];
+  localStorage.setItem('bs_forest', JSON.stringify(testPlants));
+  renderForest();
 }
 window.rouletteStart = rouletteStart;
 window.rouletteMove = rouletteMove;
