@@ -14,6 +14,18 @@
   --text:#f0ede8;--muted:#8a8680;--accent:#f0d080;--yes:#4caf87;--no:#e05c5c;--r:16px;
   --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
 }
+/* Light mode variables */
+[data-theme="light"]{
+  --bg:#f5f0e8;--surface:#ede8df;--surface2:#e4ddd2;--border:rgba(60,45,20,0.1);
+  --text:#2a2018;--muted:#7a6a50;--accent:#b8860b;--yes:#2e8a5a;--no:#c04040;
+}
+/* Auto light from OS when no manual override */
+@media(prefers-color-scheme:light){
+  :root:not([data-theme="dark"]):not([data-theme="light"]){
+    --bg:#f5f0e8;--surface:#ede8df;--surface2:#e4ddd2;--border:rgba(60,45,20,0.1);
+    --text:#2a2018;--muted:#7a6a50;--accent:#b8860b;--yes:#2e8a5a;--no:#c04040;
+  }
+}
 html,body{height:100%;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(var(--safe-top) + 0.25rem) 1rem 0;overflow-x:hidden;overflow-y:auto;}
 .screen{display:none;width:100%;max-width:440px;animation:fadeUp 0.35s ease;flex-direction:column;align-items:center;padding-bottom:2rem;}
@@ -46,7 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sub{font-size:0.82rem;color:var(--muted);text-align:center;margin-bottom:1.2rem;line-height:1.6;}
 .card-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;width:100%;margin-bottom:0.9rem;}
 label{font-size:0.75rem;color:var(--muted);display:block;margin-bottom:0.35rem;letter-spacing:0.04em;text-transform:uppercase;}
-input[type=text],input[type=number],input[type=email],input[type=password]{width:100%;padding:0.8rem 1rem;background:#0e0e10;border:1px solid rgba(232,200,122,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;margin-bottom:0.75rem;outline:none;transition:border 0.2s;-webkit-appearance:none;appearance:none;}
+input[type=text],input[type=number],input[type=email],input[type=password]{width:100%;padding:0.8rem 1rem;background:var(--bg);border:1px solid rgba(232,200,122,0.25);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;margin-bottom:0.75rem;outline:none;transition:border 0.2s;-webkit-appearance:none;appearance:none;}
 input:focus{border-color:rgba(232,200,122,0.7);}
 input::placeholder{color:var(--muted);}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:0.9rem 1.6rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:500;cursor:pointer;transition:all 0.18s;border:none;width:100%;margin-bottom:0.6rem;min-height:52px;touch-action:manipulation;}
@@ -613,7 +625,10 @@ input::placeholder{color:var(--muted);}
         <div id="dash-name" style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--text);line-height:1.2;"></div>
       </div>
     </div>
-    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.68rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <button onclick="toggleTheme()" id="theme-toggle-btn" style="background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" title="Toggle theme">🌙</button>
+      <button onclick="doLogout()" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.3rem 0.7rem;font-size:0.68rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Log out</button>
+    </div>
   </div>
 
   <!-- Compact calendar + streak -->
@@ -1283,6 +1298,51 @@ const auth = getAuth(app);
 // ── AUTH STATE ───────────────────────────────
 let currentUser = null;
 
+// ── THEME SYSTEM ──────────────────────────────
+(function initTheme() {
+  const saved = localStorage.getItem('rw_theme'); // 'dark' | 'light' | null (auto)
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+  // Update toggle icon whenever called
+  updateThemeIcon();
+})();
+
+function updateThemeIcon() {
+  const btn = document.getElementById('theme-toggle-btn');
+  if (!btn) return;
+  const current = getEffectiveTheme();
+  btn.textContent = current === 'dark' ? '☀️' : '🌙';
+  btn.title = current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+}
+
+function getEffectiveTheme() {
+  const saved = localStorage.getItem('rw_theme');
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function toggleTheme() {
+  const current = getEffectiveTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('rw_theme', next);
+  document.documentElement.setAttribute('data-theme', next);
+  updateThemeIcon();
+  // Also update reader background if in reader
+  if (document.getElementById('s-reader')?.classList.contains('active')) {
+    applyReaderTheme(readerTheme);
+  }
+}
+
+// Listen for OS theme changes
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (!localStorage.getItem('rw_theme')) {
+    updateThemeIcon();
+  }
+});
+
+window.toggleTheme = toggleTheme;
+
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (user) {
@@ -1308,7 +1368,7 @@ function showDashboard(user) {
   loadUserClubs();
   updateContinueReading();
   showNav('home');
-  setTimeout(() => renderForest(), 50);
+  setTimeout(() => { renderForest(); updateThemeIcon(); }, 50);
 }
 
 // ── NAV BAR ─────────────────────────────────
@@ -3273,7 +3333,7 @@ async function drawIslandAsync(ctx, W, H, islandIdx, full) {
   const plants = forest.slice(startSlot, startSlot + GRID*GRID);
   const scale = full ? 1 : 0.55;
 
-  ctx.fillStyle = '#0e0e10';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0e0e10';
   ctx.fillRect(0, 0, W, H);
 
   const cx = W/2, cy = full ? H*0.52 : H*0.58;
@@ -3498,7 +3558,20 @@ async function openReader(bookId) {
   document.getElementById('reader-loading').style.display = 'flex';
   document.getElementById('reader-canvas').style.display = 'none';
 
+  // Apply saved theme
+  applyReaderTheme(readerTheme);
+  setReaderTheme(readerTheme);
+
+  // Init slider
+  const slider = document.getElementById('reader-page-slider');
+  if (slider) { slider.min = 1; slider.value = 1; }
+
+  // Show UI initially, then auto-hide after 4s
+  readerUIVisible = true;
   show('reader');
+  showReaderUI();
+
+  setTimeout(() => setupReaderLongPress(), 500);
 
   try {
     readerPdf = await pdfjsLib.getDocument({ data: pdfMemoryStore[id] }).promise;
@@ -3549,7 +3622,8 @@ async function renderReaderPage(pageNum) {
   canvas.style.display = 'block';
 
   document.getElementById('reader-page-info').textContent = `Page ${pageNum} of ${readerTotalPages}`;
-  // Progress bar now driven by validated pages, not current page
+  const slider = document.getElementById('reader-page-slider');
+  if (slider) { slider.max = readerTotalPages; slider.value = pageNum; }
   const validatedPct = readerTotalPages > 0 ? Math.round((validatedPages.size / readerTotalPages) * 100) : 0;
   document.getElementById('reader-progress').style.width = validatedPct + '%';
   document.getElementById('reader-prev').style.opacity = pageNum <= 1 ? '0.3' : '1';
@@ -3557,6 +3631,241 @@ async function renderReaderPage(pageNum) {
 
   saveReaderProgress(pageNum);
 }
+
+// ── READER UI CONTROLS ────────────────────────
+
+let readerUIVisible = true;
+let readerUITimeout = null;
+let readerTheme = localStorage.getItem('reader_theme') || 'white';
+let readerQuestExpanded = false;
+let readerLongPressTimer = null;
+
+function handleReaderTap(e) {
+  // Don't trigger on button taps
+  if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+  closeDictPopup();
+  const x = e.clientX, w = window.innerWidth;
+  // Left 30%: prev page, Right 30%: next page, Middle: toggle UI
+  if (x < w * 0.25) { readerPrevPage(); return; }
+  if (x > w * 0.75) { readerNextPage(); return; }
+  toggleReaderUI();
+}
+
+function toggleReaderUI() {
+  readerUIVisible = !readerUIVisible;
+  const topbar = document.getElementById('reader-topbar');
+  const bottombar = document.getElementById('reader-bottombar');
+  const questpill = document.getElementById('reader-quest-pill');
+  const opacity = readerUIVisible ? '1' : '0';
+  const translateY = readerUIVisible ? 'translateX(-50%)' : '';
+  [topbar, bottombar, questpill].forEach(el => {
+    if (el) {
+      el.style.opacity = opacity;
+      el.style.pointerEvents = readerUIVisible ? 'auto' : 'none';
+    }
+  });
+  clearTimeout(readerUITimeout);
+  if (readerUIVisible) {
+    readerUITimeout = setTimeout(() => {
+      if (readerUIVisible) toggleReaderUI();
+    }, 5000);
+  }
+}
+
+function showReaderUI() {
+  readerUIVisible = false;
+  toggleReaderUI();
+  clearTimeout(readerUITimeout);
+  readerUITimeout = setTimeout(() => {
+    if (readerUIVisible) toggleReaderUI();
+  }, 5000);
+}
+
+function toggleQuestExpand() {
+  readerQuestExpanded = !readerQuestExpanded;
+  const expanded = document.getElementById('quest-expanded');
+  const collapsed = document.getElementById('quest-pill-collapsed');
+  if (expanded) expanded.style.display = readerQuestExpanded ? 'block' : 'none';
+}
+
+function applyReaderTheme(theme) {
+  const wrap = document.getElementById('reader-canvas-wrap');
+  const themes = {
+    white: { bg: '#ffffff', pt: '88px' },
+    sepia: { bg: '#f8f0e0', pt: '88px' },
+    dark:  { bg: '#1a1a1e', pt: '88px' },
+  };
+  const t = themes[theme] || themes.white;
+  if (wrap) wrap.style.background = t.bg;
+}
+
+function setReaderTheme(theme) {
+  readerTheme = theme;
+  localStorage.setItem('reader_theme', theme);
+  applyReaderTheme(theme);
+  // Update button states
+  ['white','sepia','dark'].forEach(t => {
+    const btn = document.getElementById('theme-' + t);
+    if (btn) btn.style.border = t === theme ? '2px solid var(--accent)' : '1.5px solid var(--border)';
+  });
+  // Re-render current page with new background
+  if (readerPdf) renderReaderPage(readerCurrentPage);
+}
+
+function openReaderSettings() {
+  const panel = document.getElementById('reader-settings-panel');
+  const overlay = document.getElementById('reader-settings-overlay');
+  if (panel) panel.style.display = 'block';
+  if (overlay) overlay.style.display = 'block';
+}
+
+function closeReaderSettings() {
+  const panel = document.getElementById('reader-settings-panel');
+  const overlay = document.getElementById('reader-settings-overlay');
+  if (panel) panel.style.display = 'none';
+  if (overlay) overlay.style.display = 'none';
+}
+
+function readerSliderInput(val) {
+  document.getElementById('reader-page-info').textContent = `Page ${val} of ${readerTotalPages}`;
+}
+
+function readerSliderChange(val) {
+  const page = parseInt(val);
+  if (page !== readerCurrentPage) {
+    readerCurrentPage = page;
+    renderReaderPage(page);
+  }
+}
+
+// ── LONG PRESS / DICTIONARY ───────────────────
+
+function setupReaderLongPress() {
+  const canvas = document.getElementById('reader-canvas');
+  if (!canvas) return;
+
+  canvas.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    readerLongPressTimer = setTimeout(() => {
+      handleLongPress(touch.clientX, touch.clientY);
+    }, 600);
+  }, { passive: true });
+
+  canvas.addEventListener('touchend', () => {
+    clearTimeout(readerLongPressTimer);
+  }, { passive: true });
+
+  canvas.addEventListener('touchmove', () => {
+    clearTimeout(readerLongPressTimer);
+  }, { passive: true });
+
+  // Mouse support for desktop
+  canvas.addEventListener('mousedown', (e) => {
+    readerLongPressTimer = setTimeout(() => {
+      handleLongPress(e.clientX, e.clientY);
+    }, 600);
+  });
+  canvas.addEventListener('mouseup', () => clearTimeout(readerLongPressTimer));
+  canvas.addEventListener('mousemove', () => clearTimeout(readerLongPressTimer));
+}
+
+async function handleLongPress(clientX, clientY) {
+  if (!readerPdf) return;
+  // Get word from PDF text layer at this position
+  try {
+    const page = await readerPdf.getPage(readerCurrentPage);
+    const textContent = await page.getTextContent();
+    const canvas = document.getElementById('reader-canvas');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const px = (clientX - rect.left) * scaleX;
+    const py = (clientY - rect.top) * scaleY;
+
+    const viewport = page.getViewport({ scale: canvas.width / page.getViewport({scale:1}).width });
+    let closestWord = null, closestDist = Infinity;
+
+    for (const item of textContent.items) {
+      if (!item.str.trim()) continue;
+      const [,, ,, tx, ty] = item.transform;
+      const screenPt = viewport.convertToViewportPoint(tx, ty);
+      const dist = Math.hypot(px - screenPt[0], py - screenPt[1]);
+      if (dist < closestDist) {
+        closestDist = dist;
+        // Extract single word closest to tap
+        const words = item.str.trim().split(/\s+/);
+        const charWidth = item.width / item.str.length;
+        const relX = px - screenPt[0];
+        const wordIdx = Math.max(0, Math.min(words.length-1, Math.floor(relX / (charWidth * words[0].length + 1))));
+        closestWord = words[wordIdx] || words[0];
+      }
+    }
+
+    if (closestWord) {
+      const word = closestWord.replace(/[^a-zA-Z'-]/g, '');
+      if (word.length > 1) lookupWord(word, clientX, clientY);
+    }
+  } catch(e) {
+    // silently fail
+  }
+}
+
+async function lookupWord(word, x, y) {
+  const popup = document.getElementById('dict-popup');
+  const loading = document.getElementById('dict-loading');
+  if (!popup) return;
+
+  document.getElementById('dict-word').textContent = word;
+  document.getElementById('dict-phonetic').textContent = '';
+  document.getElementById('dict-pos').textContent = '';
+  document.getElementById('dict-def').textContent = '';
+  document.getElementById('dict-example').textContent = '';
+  if (loading) loading.style.display = 'block';
+
+  // Position popup near tap
+  const pw = 260, ph = 160;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = Math.min(x - pw/2, vw - pw - 12);
+  left = Math.max(12, left);
+  let top = y - ph - 16;
+  if (top < 60) top = y + 24;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  popup.style.display = 'block';
+
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    const entry = data[0];
+    const meaning = entry.meanings?.[0];
+    const def = meaning?.definitions?.[0];
+
+    if (loading) loading.style.display = 'none';
+    document.getElementById('dict-phonetic').textContent = entry.phonetic || '';
+    document.getElementById('dict-pos').textContent = meaning?.partOfSpeech || '';
+    document.getElementById('dict-def').textContent = def?.definition || 'No definition found.';
+    document.getElementById('dict-example').textContent = def?.example ? `"${def.example}"` : '';
+  } catch(e) {
+    if (loading) loading.style.display = 'none';
+    document.getElementById('dict-def').textContent = 'No definition found for this word.';
+  }
+}
+
+function closeDictPopup() {
+  const p = document.getElementById('dict-popup');
+  if (p) p.style.display = 'none';
+}
+
+window.openReaderSettings = openReaderSettings;
+window.closeReaderSettings = closeReaderSettings;
+window.setReaderTheme = setReaderTheme;
+window.readerSliderInput = readerSliderInput;
+window.readerSliderChange = readerSliderChange;
+window.handleReaderTap = handleReaderTap;
+window.toggleQuestExpand = toggleQuestExpand;
+window.closeDictPopup = closeDictPopup;
 
 // ── PAGE VALIDATION SYSTEM ───────────────────
 let pageArrivalTime = null;      // when user arrived on current page
@@ -3733,6 +4042,14 @@ function updateQuestUI() {
   if (cd) cd.textContent = remaining > 0 ? `${m}:${s.toString().padStart(2,'0')}` : '✓';
   if (bar) { bar.style.width = pct + '%'; bar.style.background = q.barColor; }
   if (rew) rew.textContent = `🪙 ${q.reward}`;
+
+  // Sync mini pill
+  const miniBar = document.getElementById('quest-bar-mini-fill');
+  const miniLabel = document.getElementById('quest-label-mini');
+  const miniReward = document.getElementById('quest-reward-mini');
+  if (miniBar) { miniBar.style.width = pct + '%'; miniBar.style.background = q.barColor; }
+  if (miniLabel) miniLabel.textContent = q.label;
+  if (miniReward) miniReward.textContent = `🪙 ${q.reward}`;
 }
 
 function tickQuestChain() {
@@ -6545,56 +6862,102 @@ initHomeParticles();
 </div>
 
 <!-- PDF READER -->
-<div id="s-reader" class="screen" style="padding:0;max-width:100%;width:100%;background:var(--bg);">
+<div id="s-reader" class="screen" style="padding:0;max-width:100%;width:100%;background:#fff;overflow:hidden;position:relative;">
 
-  <!-- Reader top bar -->
-  <div id="reader-topbar" style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
-    <button onclick="closeReader()" style="background:none;border:none;color:var(--accent);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0.2rem;">← Back</button>
-    <div id="reader-title" style="font-family:'Playfair Display',serif;font-size:0.9rem;color:var(--text);text-align:center;flex:1;padding:0 0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-    <!-- Timer in blue square position -->
-    <div style="display:flex;align-items:center;gap:0.4rem;flex-shrink:0;">
-      <div id="reader-timer" style="font-size:0.85rem;color:var(--accent);font-weight:700;min-width:36px;text-align:right;">0:00</div>
-      <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:rgba(240,208,128,0.1);border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.65rem;color:var(--accent);">⏸</button>
+  <!-- Auto-hiding top bar -->
+  <div id="reader-topbar" style="position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;z-index:100;background:rgba(15,15,18,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.6rem 1rem;display:flex;align-items:center;justify-content:space-between;transition:transform 0.3s ease,opacity 0.3s ease;">
+    <button onclick="closeReader()" style="background:none;border:none;color:var(--accent);font-size:0.88rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0.2rem 0.4rem;">← Back</button>
+    <div id="reader-title" style="font-family:'Playfair Display',serif;font-size:0.88rem;color:var(--text);flex:1;text-align:center;padding:0 0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+    <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+      <div id="reader-timer" style="font-size:0.82rem;color:var(--accent);font-weight:700;min-width:32px;">0:00</div>
+      <button id="reader-pause-btn" onclick="toggleReaderTimer()" style="background:rgba(240,208,128,0.12);border:1px solid rgba(240,208,128,0.3);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;color:var(--accent);">⏸</button>
+      <button onclick="openReaderSettings()" style="background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0.2rem;">⚙</button>
     </div>
   </div>
 
-  <!-- Animated Quest Strip -->
-  <div style="width:100%;max-width:440px;background:var(--surface);border-bottom:1px solid var(--border);padding:0.4rem 0.8rem;display:flex;align-items:center;gap:0.7rem;">
-    <!-- Quest canvas animation -->
-    <canvas id="quest-canvas" width="80" height="44" style="border-radius:8px;background:rgba(255,255,255,0.03);flex-shrink:0;"></canvas>
-    <!-- Quest info -->
-    <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;">
-        <div id="quest-label" style="font-size:0.65rem;color:var(--muted);letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-        <div id="quest-countdown" style="font-size:0.65rem;color:var(--accent);font-weight:700;flex-shrink:0;margin-left:0.4rem;"></div>
+  <!-- Quest pill — collapsed during reading, tap to expand -->
+  <div id="reader-quest-pill" onclick="toggleQuestExpand()" style="position:fixed;top:52px;left:50%;transform:translateX(-50%);width:100%;max-width:440px;z-index:99;background:rgba(15,15,18,0.88);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,0.06);transition:transform 0.3s ease,opacity 0.3s ease;">
+    <!-- Collapsed pill -->
+    <div id="quest-pill-collapsed" style="display:flex;align-items:center;gap:0.5rem;padding:0.3rem 1rem;cursor:pointer;">
+      <div id="quest-bar-mini" style="flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+        <div id="quest-bar-mini-fill" style="height:100%;width:0%;border-radius:2px;background:var(--accent);transition:width 1s linear;"></div>
       </div>
-      <div style="height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
-        <div id="quest-bar" style="height:100%;width:0%;border-radius:3px;transition:width 1s linear;"></div>
+      <div id="quest-label-mini" style="font-size:0.62rem;color:var(--muted);white-space:nowrap;"></div>
+      <div id="quest-reward-mini" style="font-size:0.62rem;color:var(--accent);font-weight:700;flex-shrink:0;"></div>
+    </div>
+    <!-- Expanded quest strip -->
+    <div id="quest-expanded" style="display:none;padding:0.4rem 0.8rem 0.5rem;display:none;">
+      <div style="display:flex;align-items:center;gap:0.7rem;">
+        <canvas id="quest-canvas" width="80" height="44" style="border-radius:8px;background:rgba(255,255,255,0.03);flex-shrink:0;"></canvas>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;">
+            <div id="quest-label" style="font-size:0.65rem;color:var(--muted);letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+            <div id="quest-countdown" style="font-size:0.65rem;color:var(--accent);font-weight:700;flex-shrink:0;margin-left:0.4rem;"></div>
+          </div>
+          <div style="height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+            <div id="quest-bar" style="height:100%;width:0%;border-radius:3px;transition:width 1s linear;"></div>
+          </div>
+        </div>
+        <div id="quest-reward" style="font-size:0.72rem;color:var(--accent);font-weight:700;flex-shrink:0;">🪙 5</div>
       </div>
     </div>
-    <!-- Reward -->
-    <div id="quest-reward" style="font-size:0.72rem;color:var(--accent);font-weight:700;flex-shrink:0;">🪙 5</div>
   </div>
 
-  <!-- Book progress bar -->
-  <div style="width:100%;max-width:440px;height:2px;background:var(--surface2);">
-    <div id="reader-progress" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;"></div>
-  </div>
-
-  <!-- Canvas area -->
-  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:center;min-height:60vh;padding:0.5rem 0;position:relative;">
-    <canvas id="reader-canvas" style="max-width:100%;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.4);"></canvas>
-    <div id="reader-loading" style="position:absolute;display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
+  <!-- Main canvas tap area -->
+  <div id="reader-canvas-wrap" onclick="handleReaderTap(event)" style="width:100%;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:88px;padding-bottom:56px;background:#fff;position:relative;cursor:pointer;">
+    <canvas id="reader-canvas" style="max-width:100%;display:none;"></canvas>
+    <div id="reader-loading" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
       <div class="spinner"></div>
       <div style="font-size:0.78rem;color:var(--muted);">Loading page…</div>
     </div>
   </div>
 
-  <!-- Page navigation -->
-  <div style="width:100%;max-width:440px;display:flex;align-items:center;justify-content:space-between;padding:0.8rem 1rem;background:var(--surface);border-top:1px solid var(--border);position:sticky;bottom:0;">
-    <button onclick="readerPrevPage()" id="reader-prev" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">‹ Prev</button>
-    <div id="reader-page-info" style="font-size:0.78rem;color:var(--muted);text-align:center;"></div>
-    <button onclick="readerNextPage()" id="reader-next" style="background:none;border:1px solid var(--border);border-radius:50px;padding:0.5rem 1.1rem;color:var(--text);font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;">Next ›</button>
+  <!-- Bottom bar: progress slider + page info -->
+  <div id="reader-bottombar" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;z-index:100;background:rgba(15,15,18,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.08);padding:0.5rem 1rem 0.7rem;transition:transform 0.3s ease,opacity 0.3s ease;">
+    <!-- Thin book progress bar -->
+    <div style="width:100%;height:2px;background:rgba(255,255,255,0.08);border-radius:1px;margin-bottom:0.5rem;overflow:hidden;">
+      <div id="reader-progress" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;border-radius:1px;"></div>
+    </div>
+    <!-- Page slider + nav -->
+    <div style="display:flex;align-items:center;gap:0.8rem;">
+      <button onclick="readerPrevPage()" id="reader-prev" style="background:none;border:none;color:var(--accent);font-size:1.2rem;cursor:pointer;padding:0.2rem 0.4rem;opacity:0.5;">‹</button>
+      <input type="range" id="reader-page-slider" min="1" max="1" value="1" oninput="readerSliderInput(this.value)" onchange="readerSliderChange(this.value)" style="flex:1;accent-color:var(--accent);height:3px;cursor:pointer;"/>
+      <button onclick="readerNextPage()" id="reader-next" style="background:none;border:none;color:var(--accent);font-size:1.2rem;cursor:pointer;padding:0.2rem 0.4rem;opacity:0.5;">›</button>
+    </div>
+    <div id="reader-page-info" style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.2rem;"></div>
+  </div>
+
+  <!-- Settings panel (slides up) -->
+  <div id="reader-settings-panel" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;z-index:200;background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--border);padding:1.2rem 1.2rem 2rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:1rem;">Display Settings</div>
+      <button onclick="closeReaderSettings()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <!-- Theme -->
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">Theme</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
+        <button onclick="setReaderTheme('white')" id="theme-white" style="padding:0.6rem;border-radius:10px;border:2px solid var(--accent);background:#fff;color:#1a1a1a;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;">White</button>
+        <button onclick="setReaderTheme('sepia')" id="theme-sepia" style="padding:0.6rem;border-radius:10px;border:1.5px solid var(--border);background:#f8f0e0;color:#3a2a10;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;">Sepia</button>
+        <button onclick="setReaderTheme('dark')" id="theme-dark" style="padding:0.6rem;border-radius:10px;border:1.5px solid var(--border);background:#1a1a1e;color:#f0ede8;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;">Dark</button>
+      </div>
+    </div>
+  </div>
+  <div id="reader-settings-overlay" onclick="closeReaderSettings()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:199;"></div>
+
+  <!-- Dictionary popup -->
+  <div id="dict-popup" style="display:none;position:fixed;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.9rem 1rem;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.4rem;">
+      <div style="flex:1;">
+        <div id="dict-word" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--text);margin-bottom:0.1rem;"></div>
+        <div id="dict-phonetic" style="font-size:0.68rem;color:var(--muted);"></div>
+      </div>
+      <button onclick="closeDictPopup()" style="background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0 0 0 0.5rem;">✕</button>
+    </div>
+    <div id="dict-pos" style="font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;"></div>
+    <div id="dict-def" style="font-size:0.78rem;color:var(--text);line-height:1.5;margin-bottom:0.4rem;"></div>
+    <div id="dict-example" style="font-size:0.72rem;color:var(--muted);font-style:italic;line-height:1.4;"></div>
+    <div id="dict-loading" style="font-size:0.75rem;color:var(--muted);display:none;">Looking up…</div>
   </div>
 
 </div>
