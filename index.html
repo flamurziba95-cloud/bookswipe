@@ -3571,7 +3571,7 @@ async function openReader(bookId) {
   show('reader');
   showReaderUI();
 
-  setTimeout(() => setupReaderLongPress(), 500);
+  setTimeout(() => setupReaderGestures(), 300);
 
   try {
     readerPdf = await pdfjsLib.getDocument({ data: pdfMemoryStore[id] }).promise;
@@ -3640,14 +3640,77 @@ let readerTheme = localStorage.getItem('reader_theme') || 'white';
 let readerQuestExpanded = false;
 let readerLongPressTimer = null;
 
+// Swipe tracking
+let readerTouchStartX = 0;
+let readerTouchStartY = 0;
+let readerTouchStartTime = 0;
+let readerIsSwiping = false;
+
+function setupReaderGestures() {
+  const wrap = document.getElementById('reader-canvas-wrap');
+  if (!wrap) return;
+
+  wrap.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    readerTouchStartX = t.clientX;
+    readerTouchStartY = t.clientY;
+    readerTouchStartTime = Date.now();
+    readerIsSwiping = false;
+
+    // Long press timer — only when UI is hidden (reading mode)
+    if (!readerUIVisible) {
+      readerLongPressTimer = setTimeout(() => {
+        readerIsSwiping = true; // prevent tap from firing
+        handleLongPress(t.clientX, t.clientY);
+      }, 550);
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', (e) => {
+    const dx = Math.abs(e.touches[0].clientX - readerTouchStartX);
+    const dy = Math.abs(e.touches[0].clientY - readerTouchStartY);
+    if (dx > 8 || dy > 8) {
+      clearTimeout(readerLongPressTimer);
+      if (dx > 12) readerIsSwiping = true;
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', (e) => {
+    clearTimeout(readerLongPressTimer);
+    const t = e.changedTouches[0];
+    const dx = t.clientX - readerTouchStartX;
+    const dy = t.clientY - readerTouchStartY;
+    const dt = Date.now() - readerTouchStartTime;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    // Horizontal swipe: fast, mostly horizontal, enough distance
+    if (absDx > 50 && absDx > absDy * 1.5 && dt < 400) {
+      closeDictPopup();
+      if (dx < 0) readerNextPage(); // swipe left = next
+      else readerPrevPage();         // swipe right = prev
+      return;
+    }
+
+    // Short tap (not a swipe)
+    if (!readerIsSwiping && absDx < 15 && absDy < 15 && dt < 300) {
+      closeDictPopup();
+      const x = t.clientX, w = window.innerWidth;
+      if (x < w * 0.22) { readerPrevPage(); return; }
+      if (x > w * 0.78) { readerNextPage(); return; }
+      toggleReaderUI();
+    }
+  }, { passive: true });
+}
+
 function handleReaderTap(e) {
-  // Don't trigger on button taps
+  // Fallback for mouse clicks only — touch handled by setupReaderGestures
+  if (e.pointerType === 'touch') return;
   if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
   closeDictPopup();
   const x = e.clientX, w = window.innerWidth;
-  // Left 30%: prev page, Right 30%: next page, Middle: toggle UI
-  if (x < w * 0.25) { readerPrevPage(); return; }
-  if (x > w * 0.75) { readerNextPage(); return; }
+  if (x < w * 0.22) { readerPrevPage(); return; }
+  if (x > w * 0.78) { readerNextPage(); return; }
   toggleReaderUI();
 }
 
@@ -3656,11 +3719,9 @@ function toggleReaderUI() {
   const topbar = document.getElementById('reader-topbar');
   const bottombar = document.getElementById('reader-bottombar');
   const questpill = document.getElementById('reader-quest-pill');
-  const opacity = readerUIVisible ? '1' : '0';
-  const translateY = readerUIVisible ? 'translateX(-50%)' : '';
   [topbar, bottombar, questpill].forEach(el => {
     if (el) {
-      el.style.opacity = opacity;
+      el.style.opacity = readerUIVisible ? '1' : '0';
       el.style.pointerEvents = readerUIVisible ? 'auto' : 'none';
     }
   });
@@ -3684,46 +3745,34 @@ function showReaderUI() {
 function toggleQuestExpand() {
   readerQuestExpanded = !readerQuestExpanded;
   const expanded = document.getElementById('quest-expanded');
-  const collapsed = document.getElementById('quest-pill-collapsed');
   if (expanded) expanded.style.display = readerQuestExpanded ? 'block' : 'none';
 }
 
 function applyReaderTheme(theme) {
   const wrap = document.getElementById('reader-canvas-wrap');
-  const themes = {
-    white: { bg: '#ffffff', pt: '88px' },
-    sepia: { bg: '#f8f0e0', pt: '88px' },
-    dark:  { bg: '#1a1a1e', pt: '88px' },
-  };
-  const t = themes[theme] || themes.white;
-  if (wrap) wrap.style.background = t.bg;
+  const themes = { white:'#ffffff', sepia:'#f8f0e0', dark:'#1a1a1e' };
+  if (wrap) wrap.style.background = themes[theme] || '#ffffff';
 }
 
 function setReaderTheme(theme) {
   readerTheme = theme;
   localStorage.setItem('reader_theme', theme);
   applyReaderTheme(theme);
-  // Update button states
   ['white','sepia','dark'].forEach(t => {
     const btn = document.getElementById('theme-' + t);
     if (btn) btn.style.border = t === theme ? '2px solid var(--accent)' : '1.5px solid var(--border)';
   });
-  // Re-render current page with new background
   if (readerPdf) renderReaderPage(readerCurrentPage);
 }
 
 function openReaderSettings() {
-  const panel = document.getElementById('reader-settings-panel');
-  const overlay = document.getElementById('reader-settings-overlay');
-  if (panel) panel.style.display = 'block';
-  if (overlay) overlay.style.display = 'block';
+  document.getElementById('reader-settings-panel').style.display = 'block';
+  document.getElementById('reader-settings-overlay').style.display = 'block';
 }
 
 function closeReaderSettings() {
-  const panel = document.getElementById('reader-settings-panel');
-  const overlay = document.getElementById('reader-settings-overlay');
-  if (panel) panel.style.display = 'none';
-  if (overlay) overlay.style.display = 'none';
+  document.getElementById('reader-settings-panel').style.display = 'none';
+  document.getElementById('reader-settings-overlay').style.display = 'none';
 }
 
 function readerSliderInput(val) {
@@ -3741,70 +3790,74 @@ function readerSliderChange(val) {
 // ── LONG PRESS / DICTIONARY ───────────────────
 
 function setupReaderLongPress() {
-  const canvas = document.getElementById('reader-canvas');
-  if (!canvas) return;
-
-  canvas.addEventListener('touchstart', (e) => {
-    const touch = e.touches[0];
-    readerLongPressTimer = setTimeout(() => {
-      handleLongPress(touch.clientX, touch.clientY);
-    }, 600);
-  }, { passive: true });
-
-  canvas.addEventListener('touchend', () => {
-    clearTimeout(readerLongPressTimer);
-  }, { passive: true });
-
-  canvas.addEventListener('touchmove', () => {
-    clearTimeout(readerLongPressTimer);
-  }, { passive: true });
-
-  // Mouse support for desktop
-  canvas.addEventListener('mousedown', (e) => {
-    readerLongPressTimer = setTimeout(() => {
-      handleLongPress(e.clientX, e.clientY);
-    }, 600);
-  });
-  canvas.addEventListener('mouseup', () => clearTimeout(readerLongPressTimer));
-  canvas.addEventListener('mousemove', () => clearTimeout(readerLongPressTimer));
+  // Handled inside setupReaderGestures — nothing needed here
 }
 
 async function handleLongPress(clientX, clientY) {
   if (!readerPdf) return;
-  // Get word from PDF text layer at this position
   try {
     const page = await readerPdf.getPage(readerCurrentPage);
-    const textContent = await page.getTextContent();
     const canvas = document.getElementById('reader-canvas');
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+
+    // Convert screen coords to canvas pixel coords
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const px = (clientX - rect.left) * scaleX;
-    const py = (clientY - rect.top) * scaleY;
+    const canvasX = (clientX - rect.left) * scaleX;
+    const canvasY = (clientY - rect.top) * scaleY;
 
-    const viewport = page.getViewport({ scale: canvas.width / page.getViewport({scale:1}).width });
-    let closestWord = null, closestDist = Infinity;
+    // Get PDF viewport matching how we rendered
+    const dpr = window.devicePixelRatio || 1;
+    const containerWidth = Math.min(window.innerWidth - 16, 440);
+    const baseVP = page.getViewport({ scale: 1 });
+    const scale = (containerWidth / baseVP.width) * dpr;
+    const viewport = page.getViewport({ scale });
+
+    const textContent = await page.getTextContent();
+    let bestWord = null;
+    let bestDist = Infinity;
 
     for (const item of textContent.items) {
-      if (!item.str.trim()) continue;
-      const [,, ,, tx, ty] = item.transform;
-      const screenPt = viewport.convertToViewportPoint(tx, ty);
-      const dist = Math.hypot(px - screenPt[0], py - screenPt[1]);
-      if (dist < closestDist) {
-        closestDist = dist;
-        // Extract single word closest to tap
+      if (!item.str || !item.str.trim()) continue;
+
+      // item.transform = [scaleX, skewY, skewX, scaleY, tx, ty] in PDF user space
+      const [, , , , pdfX, pdfY] = item.transform;
+
+      // Convert PDF user space → canvas pixel coords
+      // viewport.convertToViewportPoint flips Y correctly
+      const [vx, vy] = viewport.convertToViewportPoint(pdfX, pdfY);
+
+      const dist = Math.hypot(canvasX - vx, canvasY - vy);
+
+      // Item width in canvas pixels
+      const itemWidthPx = (item.width || 50) * (scale / (baseVP.width / containerWidth));
+
+      if (dist < bestDist && dist < itemWidthPx * 2.5) {
+        bestDist = dist;
+        // Figure out which word within this text item was tapped
         const words = item.str.trim().split(/\s+/);
-        const charWidth = item.width / item.str.length;
-        const relX = px - screenPt[0];
-        const wordIdx = Math.max(0, Math.min(words.length-1, Math.floor(relX / (charWidth * words[0].length + 1))));
-        closestWord = words[wordIdx] || words[0];
+        if (words.length === 1) {
+          bestWord = words[0];
+        } else {
+          // Estimate char width and find word index
+          const charW = itemWidthPx / Math.max(item.str.length, 1);
+          const relX = canvasX - vx;
+          const charIdx = Math.floor(relX / charW);
+          // Map character index to word
+          let charCount = 0;
+          let foundWord = words[0];
+          for (const w of words) {
+            charCount += w.length + 1;
+            if (charIdx <= charCount) { foundWord = w; break; }
+          }
+          bestWord = foundWord;
+        }
       }
     }
 
-    if (closestWord) {
-      const word = closestWord.replace(/[^a-zA-Z'-]/g, '');
-      if (word.length > 1) lookupWord(word, clientX, clientY);
+    if (bestWord) {
+      const clean = bestWord.replace(/[^a-zA-Z'-]/g, '');
+      if (clean.length > 1) lookupWord(clean, clientX, clientY);
     }
   } catch(e) {
     // silently fail
@@ -3813,23 +3866,24 @@ async function handleLongPress(clientX, clientY) {
 
 async function lookupWord(word, x, y) {
   const popup = document.getElementById('dict-popup');
-  const loading = document.getElementById('dict-loading');
   if (!popup) return;
 
+  // Show popup immediately with "looking up..."
   document.getElementById('dict-word').textContent = word;
   document.getElementById('dict-phonetic').textContent = '';
   document.getElementById('dict-pos').textContent = '';
   document.getElementById('dict-def').textContent = '';
   document.getElementById('dict-example').textContent = '';
-  if (loading) loading.style.display = 'block';
+  document.getElementById('dict-loading').style.display = 'block';
 
-  // Position popup near tap
-  const pw = 260, ph = 160;
+  // Position near finger, keep on screen
+  const pw = 260;
   const vw = window.innerWidth, vh = window.innerHeight;
-  let left = Math.min(x - pw/2, vw - pw - 12);
+  let left = Math.min(x - pw / 2, vw - pw - 12);
   left = Math.max(12, left);
-  let top = y - ph - 16;
-  if (top < 60) top = y + 24;
+  let top = y - 180;
+  if (top < 70) top = y + 30;
+  if (top + 180 > vh) top = vh - 200;
   popup.style.left = left + 'px';
   popup.style.top = top + 'px';
   popup.style.display = 'block';
@@ -3842,14 +3896,14 @@ async function lookupWord(word, x, y) {
     const meaning = entry.meanings?.[0];
     const def = meaning?.definitions?.[0];
 
-    if (loading) loading.style.display = 'none';
+    document.getElementById('dict-loading').style.display = 'none';
     document.getElementById('dict-phonetic').textContent = entry.phonetic || '';
     document.getElementById('dict-pos').textContent = meaning?.partOfSpeech || '';
     document.getElementById('dict-def').textContent = def?.definition || 'No definition found.';
     document.getElementById('dict-example').textContent = def?.example ? `"${def.example}"` : '';
   } catch(e) {
-    if (loading) loading.style.display = 'none';
-    document.getElementById('dict-def').textContent = 'No definition found for this word.';
+    document.getElementById('dict-loading').style.display = 'none';
+    document.getElementById('dict-def').textContent = 'Word not found in dictionary.';
   }
 }
 
@@ -3866,6 +3920,8 @@ window.readerSliderChange = readerSliderChange;
 window.handleReaderTap = handleReaderTap;
 window.toggleQuestExpand = toggleQuestExpand;
 window.closeDictPopup = closeDictPopup;
+window.setupReaderGestures = setupReaderGestures;
+
 
 // ── PAGE VALIDATION SYSTEM ───────────────────
 let pageArrivalTime = null;      // when user arrived on current page
@@ -6904,7 +6960,7 @@ initHomeParticles();
   </div>
 
   <!-- Main canvas tap area -->
-  <div id="reader-canvas-wrap" onclick="handleReaderTap(event)" style="width:100%;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:88px;padding-bottom:56px;background:#fff;position:relative;cursor:pointer;">
+  <div id="reader-canvas-wrap" onclick="handleReaderTap(event)" style="width:100%;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:88px;padding-bottom:56px;background:#fff;position:relative;">
     <canvas id="reader-canvas" style="max-width:100%;display:none;"></canvas>
     <div id="reader-loading" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
       <div class="spinner"></div>
