@@ -562,7 +562,8 @@ input::placeholder{color:var(--muted);}
 </div>
 
 <!-- LOGIN SCREEN -->
-<div id="s-login" class="screen">
+<div id="s-login" class="screen" style="position:relative;">
+  <button onclick="toggleTheme()" style="position:absolute;top:1rem;right:1rem;background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" id="login-theme-btn" title="Toggle theme">🌙</button>
   <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="home-logo" style="font-size:2.2rem;margin-bottom:0.2rem;">Readwood</div>
   <div class="sub">Log in to your reading journey</div>
@@ -580,7 +581,8 @@ input::placeholder{color:var(--muted);}
 </div>
 
 <!-- SIGNUP SCREEN -->
-<div id="s-signup" class="screen">
+<div id="s-signup" class="screen" style="position:relative;">
+  <button onclick="toggleTheme()" style="position:absolute;top:1rem;right:1rem;background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" id="signup-theme-btn" title="Toggle theme">🌙</button>
   <button class="back-btn" onclick="currentUser ? showDashboard(currentUser) : show('home')">← Back</button>
   <div class="home-logo" style="font-size:2.2rem;margin-bottom:0.2rem;">Readwood</div>
   <div class="h2" style="margin-top:1rem;">Start your journey</div>
@@ -1309,11 +1311,13 @@ let currentUser = null;
 })();
 
 function updateThemeIcon() {
-  const btn = document.getElementById('theme-toggle-btn');
-  if (!btn) return;
   const current = getEffectiveTheme();
-  btn.textContent = current === 'dark' ? '☀️' : '🌙';
-  btn.title = current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+  const icon = current === 'dark' ? '☀️' : '🌙';
+  const title = current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+  ['theme-toggle-btn', 'login-theme-btn', 'signup-theme-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = icon; btn.title = title; }
+  });
 }
 
 function getEffectiveTheme() {
@@ -3595,9 +3599,12 @@ async function renderReaderPage(pageNum) {
   const canvas = document.getElementById('reader-canvas');
   const ctx = canvas.getContext('2d');
 
-  const dpr = window.devicePixelRatio || 2;
-  const containerWidth = Math.min(window.innerWidth - 16, 440);
+  // Use actual device pixel ratio (min 2) for crisp rendering
+  const dpr = Math.max(window.devicePixelRatio || 1, 2);
+  // Render at full screen width — cap at 600px for readability on tablets
+  const containerWidth = Math.min(window.innerWidth, 600);
   const baseViewport = page.getViewport({ scale: 1 });
+  // Scale to fill container width, multiply by DPR for sharpness
   const scale = (containerWidth / baseViewport.width) * dpr;
   const viewport = page.getViewport({ scale });
 
@@ -3606,7 +3613,15 @@ async function renderReaderPage(pageNum) {
   canvas.style.width = containerWidth + 'px';
   canvas.style.height = (viewport.height / dpr) + 'px';
 
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  // Disable smoothing — critical for sharp text
+  ctx.imageSmoothingEnabled = false;
+
+  // Paint theme background before rendering PDF content
+  const themeBg = { white: '#ffffff', sepia: '#f8f0e0', dark: '#1a1a1e' };
+  ctx.fillStyle = themeBg[readerTheme] || '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  await page.render({ canvasContext: ctx, viewport, intent: 'display' }).promise;
 
   // Extract word count for anti-cheat validation
   try {
@@ -3638,7 +3653,6 @@ let readerUIVisible = true;
 let readerUITimeout = null;
 let readerTheme = localStorage.getItem('reader_theme') || 'white';
 let readerQuestExpanded = false;
-let readerLongPressTimer = null;
 
 // Swipe tracking
 let readerTouchStartX = 0;
@@ -3657,26 +3671,18 @@ function setupReaderGestures() {
     readerTouchStartTime = Date.now();
     readerIsSwiping = false;
 
-    // Long press timer — only when UI is hidden (reading mode)
-    if (!readerUIVisible) {
-      readerLongPressTimer = setTimeout(() => {
-        readerIsSwiping = true; // prevent tap from firing
-        handleLongPress(t.clientX, t.clientY);
-      }, 550);
-    }
+
   }, { passive: true });
 
   wrap.addEventListener('touchmove', (e) => {
     const dx = Math.abs(e.touches[0].clientX - readerTouchStartX);
     const dy = Math.abs(e.touches[0].clientY - readerTouchStartY);
     if (dx > 8 || dy > 8) {
-      clearTimeout(readerLongPressTimer);
       if (dx > 12) readerIsSwiping = true;
     }
   }, { passive: true });
 
   wrap.addEventListener('touchend', (e) => {
-    clearTimeout(readerLongPressTimer);
     const t = e.changedTouches[0];
     const dx = t.clientX - readerTouchStartX;
     const dy = t.clientY - readerTouchStartY;
@@ -3686,7 +3692,6 @@ function setupReaderGestures() {
 
     // Horizontal swipe: fast, mostly horizontal, enough distance
     if (absDx > 50 && absDx > absDy * 1.5 && dt < 400) {
-      closeDictPopup();
       if (dx < 0) readerNextPage(); // swipe left = next
       else readerPrevPage();         // swipe right = prev
       return;
@@ -3694,7 +3699,6 @@ function setupReaderGestures() {
 
     // Short tap (not a swipe)
     if (!readerIsSwiping && absDx < 15 && absDy < 15 && dt < 300) {
-      closeDictPopup();
       const x = t.clientX, w = window.innerWidth;
       if (x < w * 0.22) { readerPrevPage(); return; }
       if (x > w * 0.78) { readerNextPage(); return; }
@@ -3707,7 +3711,6 @@ function handleReaderTap(e) {
   // Fallback for mouse clicks only — touch handled by setupReaderGestures
   if (e.pointerType === 'touch') return;
   if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-  closeDictPopup();
   const x = e.clientX, w = window.innerWidth;
   if (x < w * 0.22) { readerPrevPage(); return; }
   if (x > w * 0.78) { readerNextPage(); return; }
@@ -3787,139 +3790,7 @@ function readerSliderChange(val) {
   }
 }
 
-// ── LONG PRESS / DICTIONARY ───────────────────
 
-function setupReaderLongPress() {
-  // Handled inside setupReaderGestures — nothing needed here
-}
-
-async function handleLongPress(clientX, clientY) {
-  if (!readerPdf) return;
-  try {
-    const page = await readerPdf.getPage(readerCurrentPage);
-    const canvas = document.getElementById('reader-canvas');
-    const rect = canvas.getBoundingClientRect();
-
-    // Convert screen coords to canvas pixel coords
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const canvasX = (clientX - rect.left) * scaleX;
-    const canvasY = (clientY - rect.top) * scaleY;
-
-    // Get PDF viewport matching how we rendered
-    const dpr = window.devicePixelRatio || 1;
-    const containerWidth = Math.min(window.innerWidth - 16, 440);
-    const baseVP = page.getViewport({ scale: 1 });
-    const scale = (containerWidth / baseVP.width) * dpr;
-    const viewport = page.getViewport({ scale });
-
-    const textContent = await page.getTextContent();
-    let bestWord = null;
-    let bestDist = Infinity;
-
-    for (const item of textContent.items) {
-      if (!item.str || !item.str.trim()) continue;
-
-      // item.transform = [scaleX, skewY, skewX, scaleY, tx, ty] in PDF user space
-      const [, , , , pdfX, pdfY] = item.transform;
-
-      // Convert PDF user space → canvas pixel coords
-      // viewport.convertToViewportPoint flips Y correctly
-      const [vx, vy] = viewport.convertToViewportPoint(pdfX, pdfY);
-
-      const dist = Math.hypot(canvasX - vx, canvasY - vy);
-
-      // Item width in canvas pixels
-      const itemWidthPx = (item.width || 50) * (scale / (baseVP.width / containerWidth));
-
-      if (dist < bestDist && dist < itemWidthPx * 2.5) {
-        bestDist = dist;
-        // Figure out which word within this text item was tapped
-        const words = item.str.trim().split(/\s+/);
-        if (words.length === 1) {
-          bestWord = words[0];
-        } else {
-          // Estimate char width and find word index
-          const charW = itemWidthPx / Math.max(item.str.length, 1);
-          const relX = canvasX - vx;
-          const charIdx = Math.floor(relX / charW);
-          // Map character index to word
-          let charCount = 0;
-          let foundWord = words[0];
-          for (const w of words) {
-            charCount += w.length + 1;
-            if (charIdx <= charCount) { foundWord = w; break; }
-          }
-          bestWord = foundWord;
-        }
-      }
-    }
-
-    if (bestWord) {
-      const clean = bestWord.replace(/[^a-zA-Z'-]/g, '');
-      if (clean.length > 1) lookupWord(clean, clientX, clientY);
-    }
-  } catch(e) {
-    // silently fail
-  }
-}
-
-async function lookupWord(word, x, y) {
-  const popup = document.getElementById('dict-popup');
-  if (!popup) return;
-
-  // Show popup immediately with "looking up..."
-  document.getElementById('dict-word').textContent = word;
-  document.getElementById('dict-phonetic').textContent = '';
-  document.getElementById('dict-pos').textContent = '';
-  document.getElementById('dict-def').textContent = '';
-  document.getElementById('dict-example').textContent = '';
-  document.getElementById('dict-loading').style.display = 'block';
-
-  // Position near finger, keep on screen
-  const pw = 260;
-  const vw = window.innerWidth, vh = window.innerHeight;
-  let left = Math.min(x - pw / 2, vw - pw - 12);
-  left = Math.max(12, left);
-  let top = y - 180;
-  if (top < 70) top = y + 30;
-  if (top + 180 > vh) top = vh - 200;
-  popup.style.left = left + 'px';
-  popup.style.top = top + 'px';
-  popup.style.display = 'block';
-
-  try {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
-    if (!res.ok) throw new Error('Not found');
-    const data = await res.json();
-    const entry = data[0];
-    const meaning = entry.meanings?.[0];
-    const def = meaning?.definitions?.[0];
-
-    document.getElementById('dict-loading').style.display = 'none';
-    document.getElementById('dict-phonetic').textContent = entry.phonetic || '';
-    document.getElementById('dict-pos').textContent = meaning?.partOfSpeech || '';
-    document.getElementById('dict-def').textContent = def?.definition || 'No definition found.';
-    document.getElementById('dict-example').textContent = def?.example ? `"${def.example}"` : '';
-  } catch(e) {
-    document.getElementById('dict-loading').style.display = 'none';
-    document.getElementById('dict-def').textContent = 'Word not found in dictionary.';
-  }
-}
-
-function closeDictPopup() {
-  const p = document.getElementById('dict-popup');
-  if (p) p.style.display = 'none';
-}
-
-window.openReaderSettings = openReaderSettings;
-window.closeReaderSettings = closeReaderSettings;
-window.setReaderTheme = setReaderTheme;
-window.readerSliderInput = readerSliderInput;
-window.readerSliderChange = readerSliderChange;
-window.handleReaderTap = handleReaderTap;
-window.toggleQuestExpand = toggleQuestExpand;
-window.closeDictPopup = closeDictPopup;
 window.setupReaderGestures = setupReaderGestures;
 
 
@@ -6961,7 +6832,7 @@ initHomeParticles();
 
   <!-- Main canvas tap area -->
   <div id="reader-canvas-wrap" onclick="handleReaderTap(event)" style="width:100%;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:88px;padding-bottom:56px;background:#fff;position:relative;">
-    <canvas id="reader-canvas" style="max-width:100%;display:none;"></canvas>
+    <canvas id="reader-canvas" style="width:100%;display:block;display:none;image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;"></canvas>
     <div id="reader-loading" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
       <div class="spinner"></div>
       <div style="font-size:0.78rem;color:var(--muted);">Loading page…</div>
@@ -7001,20 +6872,7 @@ initHomeParticles();
   </div>
   <div id="reader-settings-overlay" onclick="closeReaderSettings()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:199;"></div>
 
-  <!-- Dictionary popup -->
-  <div id="dict-popup" style="display:none;position:fixed;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.9rem 1rem;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.4rem;">
-      <div style="flex:1;">
-        <div id="dict-word" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--text);margin-bottom:0.1rem;"></div>
-        <div id="dict-phonetic" style="font-size:0.68rem;color:var(--muted);"></div>
-      </div>
-      <button onclick="closeDictPopup()" style="background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0 0 0 0.5rem;">✕</button>
-    </div>
-    <div id="dict-pos" style="font-size:0.65rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;"></div>
-    <div id="dict-def" style="font-size:0.78rem;color:var(--text);line-height:1.5;margin-bottom:0.4rem;"></div>
-    <div id="dict-example" style="font-size:0.72rem;color:var(--muted);font-style:italic;line-height:1.4;"></div>
-    <div id="dict-loading" style="font-size:0.75rem;color:var(--muted);display:none;">Looking up…</div>
-  </div>
+
 
 </div>
 
